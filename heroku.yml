@@ -1,0 +1,9 @@
+build:
+  docker:
+    web: dockerfile
+release:
+  command:
+    - alembic upgrade head
+  image: web
+run:
+  web: uvicorn digirent.web_app:app --workers 1 --host 0.0.0.0 --port $PORT

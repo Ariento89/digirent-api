@@ -1,0 +1,32 @@
+version: '3.7'
+
+services:
+    digirentdb:
+        image: postgres:12-alpine
+        container_name: digirentdb
+        ports:
+            - "5432:5432"
+        env_file: 
+            - env/.db.env
+    digirent:
+        build:
+            context: .
+            dockerfile: dockerfile
+        container_name: digirent
+        volumes:
+            - .:/src/digirent/
+        ports:
+            - "5000:5000"
+        env_file:
+            - env/.env.dev
+        depends_on:
+            - digirentdb
+    digirent-pgadmin:
+        container_name: digirent-pgadmin
+        image: dpage/pgadmin4
+        env_file: 
+            - env/.pgadmin.env
+        ports:
+            - "5050:80"
+        depends_on:
+            - digirentdb
