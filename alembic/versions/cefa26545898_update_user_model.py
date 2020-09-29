@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy_utils import ChoiceType
 
-from digirent.database.models import Gender
+from digirent.database.enums import Gender
 
 
 # revision identifiers, used by Alembic.

@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy_utils import UUIDType, ChoiceType, EmailType
 
-from digirent.database.models import UserRole
+from digirent.database.enums import UserRole
 
 
 # revision identifiers, used by Alembic.

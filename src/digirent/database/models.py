@@ -6,29 +6,15 @@ from sqlalchemy import (
     String,
     Text,
     Float,
-    Integer,
     ForeignKey,
-    JSON,
     Boolean,
-    DateTime,
     Date,
 )
-from sqlalchemy.orm.session import DEACTIVE
+from sqlalchemy.orm import backref, relationship
 from sqlalchemy_utils import ChoiceType, EmailType, UUIDType
 from .base import Base
 from .mixins import EntityMixin, TimestampMixin
-from enum import Enum
-
-
-class UserRole(str, Enum):
-    ADMIN = "admin"
-    TENANT = "tenant"
-    LANDLORD = "landlord"
-
-
-class Gender(str, Enum):
-    MALE = "male"
-    FEMALE = "female"
+from .enums import UserRole, Gender, HouseType
 
 
 class User(Base, EntityMixin, TimestampMixin):
@@ -47,6 +33,7 @@ class User(Base, EntityMixin, TimestampMixin):
     gender = Column(ChoiceType(Gender, impl=String()), nullable=True)
     city = Column(String, nullable=True)
     description = Column(String, nullable=True)
+    looking_for = relationship("LookingFor", uselist=False, backref="user")
 
     def __init__(
         self,
@@ -75,3 +62,11 @@ class User(Base, EntityMixin, TimestampMixin):
         if self.is_suspended:
             return False
         return all([self.email_verified, self.phone_verified])
+
+
+class LookingFor(Base, EntityMixin, TimestampMixin):
+    __tablename__ = "looking_for"
+    user_id = Column(UUIDType(binary=False), ForeignKey("users.id"))
+    house_type = Column(ChoiceType(HouseType, impl=String()), nullable=False)
+    city = Column(String, nullable=False)
+    max_budget = Column(Float, nullable=False)

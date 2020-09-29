@@ -17,7 +17,8 @@ environ["APP_ENV"] = "test"
 from digirent.core.config import DATABASE_URL
 
 from digirent.web_app import get_app
-from digirent.database.models import User, UserRole
+from digirent.database.models import User
+from digirent.database.enums import UserRole
 from digirent.app.container import ApplicationContainer
 from digirent.database.base import SessionLocal, Base
 from digirent.core.services.auth import AuthService
