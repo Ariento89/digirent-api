@@ -1,3 +1,5 @@
+from datetime import datetime
+import random
 from typing import Dict, List, Any
 from uuid import UUID
 
@@ -15,16 +17,12 @@ environ["APP_ENV"] = "test"
 from digirent.core.config import DATABASE_URL
 
 from digirent.web_app import get_app
-from digirent.api.user.schema import UserCreateSchema, UserSchema
-from digirent.api.me.schema import ProfileSchema
-from digirent.api.auth.schema import TokenSchema
 from digirent.database.models import User, UserRole
-from digirent.app.container import ServiceContainer, ApplicationContainer
+from digirent.app.container import ApplicationContainer
 from digirent.database.base import SessionLocal, Base
 from digirent.core.services.auth import AuthService
 from digirent.core.services.user import UserService
 from digirent.app import Application
-from digirent.script import create_admin_user
 
 
 @pytest.fixture(autouse=True)
@@ -62,14 +60,39 @@ def session() -> Session:
 
 
 @pytest.fixture
-def new_user_data() -> dict:
+def tenant_create_data() -> dict:
     return {
-        "first_name": "John",
+        "first_name": "Tenant",
         "last_name": "Doe",
-        "email": "johndoe@gmail.com",
-        "username": "johndoe",
+        "email": "tenantdoe@gmail.com",
+        "dob": datetime.now().date(),
         "phone_number": "0012345678",
         "password": "testpassword",
+        "role": UserRole.TENANT,
+    }
+
+
+@pytest.fixture
+def landlord_create_data() -> dict:
+    return {
+        "first_name": "Landlord",
+        "last_name": "Doe",
+        "email": "landlorddoe@gmail.com",
+        "phone_number": "0012345678",
+        "password": "testpassword",
+        "role": UserRole.LANDLORD,
+    }
+
+
+@pytest.fixture
+def admin_create_data() -> dict:
+    return {
+        "first_name": "Admin",
+        "last_name": "Doe",
+        "email": "admindoe@gmail.com",
+        "phone_number": "0012345678",
+        "password": "testpassword",
+        "role": UserRole.ADMIN,
     }
 
 
@@ -84,23 +107,48 @@ def auth_service():
 
 
 @pytest.fixture
-def existing_user(
-    session: Session, user_service: UserService, new_user_data: dict
+def tenant(
+    session: Session, user_service: UserService, tenant_create_data: dict
 ) -> User:
     assert session.query(User).count() == 0
-    result = user_service.create_user(session, **new_user_data)
+    result = user_service.create_user(session, **tenant_create_data)
     assert isinstance(result, User)
+    assert result.role == UserRole.TENANT
     assert session.query(User).count() == 1
     return result
 
 
 @pytest.fixture
-def user_auth_header(client: TestClient, existing_user: User, new_user_data: dict):
+def landlord(
+    session: Session, user_service: UserService, landlord_create_data: dict
+) -> User:
+    assert session.query(User).count() == 0
+    landlord_create_data["dob"] = None
+    result = user_service.create_user(session, **landlord_create_data)
+    assert isinstance(result, User)
+    assert result.role == UserRole.LANDLORD
+    assert session.query(User).count() == 1
+    return result
+
+
+@pytest.fixture
+def admin(session: Session, user_service: UserService, admin_create_data: dict) -> User:
+    assert session.query(User).count() == 0
+    admin_create_data["dob"] = None
+    result = user_service.create_user(session, **admin_create_data)
+    assert isinstance(result, User)
+    assert result.role == UserRole.ADMIN
+    assert session.query(User).count() == 1
+    return result
+
+
+@pytest.fixture
+def tenant_auth_header(client: TestClient, tenant: User, tenant_create_data: dict):
     response = client.post(
         f"/api/auth/",
         data={
-            "username": existing_user.email,
-            "password": new_user_data["password"],
+            "username": tenant.email,
+            "password": tenant_create_data["password"],
         },
     )
     result = response.json()
@@ -108,3 +156,62 @@ def user_auth_header(client: TestClient, existing_user: User, new_user_data: dic
     assert "access_token" in result
     assert "token_type" in result
     return {"Authorization": f"Bearer {result['access_token']}"}
+
+
+@pytest.fixture
+def landlord_auth_header(
+    client: TestClient, landlord: User, landlord_create_data: dict
+):
+    response = client.post(
+        f"/api/auth/",
+        data={
+            "username": landlord.email,
+            "password": landlord_create_data["password"],
+        },
+    )
+    result = response.json()
+    assert response.status_code == 200
+    assert "access_token" in result
+    assert "token_type" in result
+    return {"Authorization": f"Bearer {result['access_token']}"}
+
+
+@pytest.fixture
+def admin_auth_header(client: TestClient, admin: User, admin_create_data: dict):
+    response = client.post(
+        f"/api/auth/",
+        data={
+            "username": admin.email,
+            "password": admin_create_data["password"],
+        },
+    )
+    result = response.json()
+    assert response.status_code == 200
+    assert "access_token" in result
+    assert "token_type" in result
+    return {"Authorization": f"Bearer {result['access_token']}"}
+
+
+@pytest.fixture
+def user_create_data(request):
+    return request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def non_admin_user_create_data(request):
+    return request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def user(request):
+    return request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def user_auth_header(request):
+    return request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def non_admin_user(request):
+    return request.getfixturevalue(request.param)

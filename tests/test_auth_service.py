@@ -6,83 +6,103 @@ from digirent.core.services.auth import AuthService
 from digirent.database.models import User
 
 
+@pytest.mark.parametrize(
+    "user, user_create_data",
+    [
+        ("tenant", "tenant_create_data"),
+        ("landlord", "landlord_create_data"),
+        ("admin", "admin_create_data"),
+    ],
+    indirect=True,
+)
 def test_authenticate_user_by_email_ok(
+    user,
+    user_create_data,
     auth_service: AuthService,
-    existing_user: User,
     session: Session,
-    new_user_data: dict,
 ):
     assert session.query(User).count() == 1
     token = auth_service.authenticate(
-        session, new_user_data["email"], new_user_data["password"]
+        session, user_create_data["email"], user_create_data["password"]
     )
     assert token
     assert isinstance(token, bytes)
 
 
-def test_authenticate_user_by_username_ok(
-    auth_service: AuthService,
-    existing_user: User,
-    session: Session,
-    new_user_data: dict,
-):
-    assert session.query(User).count() == 1
-    token = auth_service.authenticate(
-        session, new_user_data["username"], new_user_data["password"]
-    )
-    assert token
-    assert isinstance(token, bytes)
-
-
+@pytest.mark.parametrize(
+    "user, user_create_data",
+    [
+        ("tenant", "tenant_create_data"),
+        ("landlord", "landlord_create_data"),
+        ("admin", "admin_create_data"),
+    ],
+    indirect=True,
+)
 def test_authenticate_user_by_phonenumber_ok(
     auth_service: AuthService,
-    existing_user: User,
+    user: User,
     session: Session,
-    new_user_data: dict,
+    user_create_data: dict,
 ):
     assert session.query(User).count() == 1
     token = auth_service.authenticate(
-        session, new_user_data["phone_number"], new_user_data["password"]
+        session, user_create_data["phone_number"], user_create_data["password"]
     )
     assert token
     assert isinstance(token, bytes)
 
 
+@pytest.mark.parametrize(
+    "user, user_create_data",
+    [
+        ("tenant", "tenant_create_data"),
+        ("landlord", "landlord_create_data"),
+        ("admin", "admin_create_data"),
+    ],
+    indirect=True,
+)
 def test_authenticate_user_wrong_password_fail(
     auth_service: AuthService,
-    existing_user: User,
+    user: User,
     session: Session,
-    new_user_data: dict,
+    user_create_data: dict,
 ):
     assert session.query(User).count() == 1
     token = auth_service.authenticate(
-        session, new_user_data["email"], new_user_data["password"] + "wrong"
+        session, user_create_data["email"], user_create_data["password"] + "wrong"
     )
     assert not token
 
 
+@pytest.mark.parametrize(
+    "user, user_create_data",
+    [
+        ("tenant", "tenant_create_data"),
+        ("landlord", "landlord_create_data"),
+        ("admin", "admin_create_data"),
+    ],
+    indirect=True,
+)
 def test_authenticate_token_ok(
     auth_service: AuthService,
-    existing_user: User,
+    user: User,
     session: Session,
-    new_user_data: dict,
+    user_create_data: dict,
 ):
     assert session.query(User).count() == 1
     token = auth_service.authenticate(
-        session, new_user_data["email"], new_user_data["password"]
+        session, user_create_data["email"], user_create_data["password"]
     )
     assert token
-    user = auth_service.authenticate_token(session, token)
-    assert user
-    assert user == existing_user
+    xuser = auth_service.authenticate_token(session, token)
+    assert xuser
+    assert user == xuser
 
 
 def test_authenticate_token_fail(
     auth_service: AuthService,
-    existing_user: User,
     session: Session,
-    new_user_data: dict,
 ):
-    assert session.query(User).count() == 1
+    assert session.query(User).count() == 0
     with pytest.raises(PyJWTError):
         user = auth_service.authenticate_token(session, b"wrongtokentoken")

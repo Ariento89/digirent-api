@@ -1,6 +1,19 @@
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy import Column, String, Text, Float, Integer, ForeignKey, JSON, Boolean
+from sqlalchemy import (
+    Column,
+    String,
+    Text,
+    Float,
+    Integer,
+    ForeignKey,
+    JSON,
+    Boolean,
+    DateTime,
+    Date,
+)
+from sqlalchemy.orm.session import DEACTIVE
 from sqlalchemy_utils import ChoiceType, EmailType, UUIDType
 from .base import Base
 from .mixins import EntityMixin, TimestampMixin
@@ -9,14 +22,15 @@ from enum import Enum
 
 class UserRole(str, Enum):
     ADMIN = "admin"
-    REGULAR = "regular"
+    TENANT = "tenant"
+    LANDLORD = "landlord"
 
 
 class User(Base, EntityMixin, TimestampMixin):
     __tablename__ = "users"
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
-    username = Column(String, nullable=False, unique=True)
+    dob = Column(Date, nullable=True)
     phone_number = Column(String, nullable=False, unique=True)
     email = Column(EmailType, nullable=False, unique=True)
     hashed_password = Column(Text, nullable=False)
@@ -24,23 +38,21 @@ class User(Base, EntityMixin, TimestampMixin):
     phone_verified = Column(Boolean, nullable=False, default=False)
     is_suspended = Column(Boolean, nullable=False, default=False)
     suspended_reason = Column(String, nullable=True)
-    role = Column(
-        ChoiceType(UserRole, impl=String()), nullable=False, default=UserRole.REGULAR
-    )
+    role = Column(ChoiceType(UserRole, impl=String()), nullable=False)
 
     def __init__(
         self,
         first_name: str,
         last_name: str,
-        username: str,
         email: str,
         phone_number: str,
         hashed_password: str,
-        role: UserRole = UserRole.REGULAR,
+        role: UserRole,
+        dob: datetime = None,
     ) -> None:
         self.first_name = first_name
         self.last_name = last_name
-        self.username = username
+        self.dob = dob
         self.phone_number = phone_number
         self.email = email
         self.hashed_password = hashed_password

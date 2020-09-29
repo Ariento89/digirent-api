@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from typing import Optional, Union
 from jwt import PyJWTError
 from sqlalchemy.orm.session import Session
@@ -7,30 +8,77 @@ from digirent.database.models import User, UserRole
 
 
 class Application(ApplicationBase):
-    def create_user(
+    def create_tenant(
         self,
         session: Session,
         first_name: str,
         last_name: str,
-        username: str,
+        dob: date,
         email: str,
         phone_number: str,
         password: str,
-        role: UserRole = UserRole.REGULAR,
-    ) -> User:
-        result: Union[str, User] = self.user_service.create_user(
+    ):
+        if not dob:
+            raise ApplicationError("Date of birth required for tenant creation")
+        user: User = self.user_service.create_user(
             session,
             first_name,
             last_name,
-            username,
+            dob,
             email,
             phone_number,
             password,
-            role,
+            UserRole.TENANT,
         )
-        if isinstance(result, str):
-            raise ApplicationError(result)
-        return result
+        if isinstance(user, str):
+            raise ApplicationError(user)
+        return user
+
+    def create_landlord(
+        self,
+        session: Session,
+        first_name: str,
+        last_name: str,
+        email: str,
+        phone_number: str,
+        password: str,
+    ):
+        user: User = self.user_service.create_user(
+            session,
+            first_name,
+            last_name,
+            None,
+            email,
+            phone_number,
+            password,
+            UserRole.LANDLORD,
+        )
+        if isinstance(user, str):
+            raise ApplicationError(user)
+        return user
+
+    def create_admin(
+        self,
+        session: Session,
+        first_name: str,
+        last_name: str,
+        email: str,
+        phone_number: str,
+        password: str,
+    ):
+        user: User = self.user_service.create_user(
+            session,
+            first_name,
+            last_name,
+            None,
+            email,
+            phone_number,
+            password,
+            UserRole.ADMIN,
+        )
+        if isinstance(user, str):
+            raise ApplicationError(user)
+        return user
 
     def authenticate_user(self, session: Session, login: str, password: str) -> bytes:
         token = self.auth_service.authenticate(session, login, password)

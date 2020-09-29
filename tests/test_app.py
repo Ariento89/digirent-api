@@ -1,59 +1,55 @@
+from tests.test_user_service import user_data
+from tests.conftest import admin_create_data
 from digirent.app.error import ApplicationError
-from tests.conftest import application, existing_user, new_user_data
 import pytest
 from digirent.app import Application
 from sqlalchemy.orm.session import Session
-from digirent.database.models import User
+from digirent.database.models import User, UserRole
 
 
-def testt_create_user(application: Application, session: Session, new_user_data: dict):
+def test_create_tenant(
+    application: Application, session: Session, tenant_create_data: dict
+):
+    del tenant_create_data["role"]
     assert not session.query(User).count()
-    user = application.create_user(session, **new_user_data)
-    assert user
+    tenant: User = application.create_tenant(session, **tenant_create_data)
+    assert tenant
+    assert tenant.dob
+    assert tenant.role == UserRole.TENANT
     assert session.query(User).count() == 1
 
 
-def testt_create_user_fail(
-    application: Application, session: Session, new_user_data: dict
+def test_create_landlord(
+    application: Application, session: Session, landlord_create_data: dict
 ):
+    del landlord_create_data["role"]
     assert not session.query(User).count()
-    user = application.create_user(session, **new_user_data)
-    assert user
+    landlord: User = application.create_landlord(session, **landlord_create_data)
+    assert landlord
+    assert not landlord.dob
+    assert landlord.role == UserRole.LANDLORD
     assert session.query(User).count() == 1
-    with pytest.raises(ApplicationError):
-        application.create_user(session, **new_user_data)
+
+
+def test_create_admin(
+    application: Application, session: Session, admin_create_data: dict
+):
+    del admin_create_data["role"]
+    assert not session.query(User).count()
+    admin: User = application.create_admin(session, **admin_create_data)
+    assert admin
+    assert not admin.dob
+    assert admin.role == UserRole.ADMIN
     assert session.query(User).count() == 1
 
 
-def test_authenticate_user_ok(
-    existing_user: User, application: Application, new_user_data: dict, session: Session
+def test_create_tenant_without_dob_fail(
+    application: Application, session: Session, tenant_create_data: dict
 ):
-    token = application.authenticate_user(
-        session, existing_user.username, new_user_data["password"]
-    )
-    assert token
-    assert isinstance(token, bytes)
-
-
-def test_authenticate_user_fail(
-    existing_user: User, application: Application, new_user_data: dict, session: Session
-):
-    with pytest.raises(ApplicationError):
-        application.authenticate_user(session, existing_user.username, "wrongpassword")
-
-
-def test_authenticate_token_ok(
-    existing_user: User, application: Application, new_user_data: dict, session: Session
-):
-    token = application.authenticate_user(
-        session, existing_user.username, new_user_data["password"]
-    )
-    user: User = application.authenticate_token(session, token)
-    assert user == existing_user
-
-
-def test_authenticate_token_fail(
-    existing_user: User, application: Application, new_user_data: dict, session: Session
-):
-    with pytest.raises(ApplicationError):
-        application.authenticate_token(session, b"wrongtoken")
+    del tenant_create_data["role"]
+    assert not session.query(User).count()
+    tenant_create_data["dob"] = None
+    with pytest.raises(ApplicationError) as e:
+        application.create_tenant(session, **tenant_create_data)
+        assert "date of birth is required" in str(e).lower()
+    assert session.query(User).count() == 0

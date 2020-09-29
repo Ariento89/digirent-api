@@ -18,11 +18,9 @@ class AuthService:
     def authenticate(
         self, session: Session, login: str, password: str
     ) -> Optional[bytes]:
-        existing_user: Optional[User] = (
-            self.user_service.get_user_by_email(session, login)
-            or self.user_service.get_user_by_username(session, login)
-            or self.user_service.get_user_by_phone_number(session, login)
-        )
+        existing_user: Optional[User] = self.user_service.get_user_by_email(
+            session, login
+        ) or self.user_service.get_user_by_phone_number(session, login)
         if not existing_user:
             return
         if not self.user_service.password_is_match(
