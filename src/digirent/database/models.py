@@ -34,6 +34,7 @@ class User(Base, EntityMixin, TimestampMixin):
     city = Column(String, nullable=True)
     description = Column(String, nullable=True)
     looking_for = relationship("LookingFor", uselist=False, backref="user")
+    bank_detail = relationship("BankDetail", uselist=False, backref="user")
 
     def __init__(
         self,
@@ -70,3 +71,21 @@ class LookingFor(Base, EntityMixin, TimestampMixin):
     house_type = Column(ChoiceType(HouseType, impl=String()), nullable=False)
     city = Column(String, nullable=False)
     max_budget = Column(Float, nullable=False)
+
+    def __init__(self, user_id, house_type, city, max_budget):
+        self.user_id = user_id
+        self.house_type = house_type
+        self.city = city
+        self.max_budget = max_budget
+
+
+class BankDetail(Base, EntityMixin, TimestampMixin):
+    __tablename__ = "bank_details"
+    user_id = Column(UUIDType(binary=False), ForeignKey("users.id"))
+    account_name = Column(String, nullable=False)
+    account_number = Column(String, nullable=False)
+
+    def __init__(self, user_id, account_name, account_number) -> None:
+        self.user_id = user_id
+        self.account_name = account_name
+        self.account_number = account_number
