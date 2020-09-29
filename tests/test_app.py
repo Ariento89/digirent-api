@@ -41,15 +41,3 @@ def test_create_admin(
     assert not admin.dob
     assert admin.role == UserRole.ADMIN
     assert session.query(User).count() == 1
-
-
-def test_create_tenant_without_dob_fail(
-    application: Application, session: Session, tenant_create_data: dict
-):
-    del tenant_create_data["role"]
-    assert not session.query(User).count()
-    tenant_create_data["dob"] = None
-    with pytest.raises(ApplicationError) as e:
-        application.create_tenant(session, **tenant_create_data)
-        assert "date of birth is required" in str(e).lower()
-    assert session.query(User).count() == 0

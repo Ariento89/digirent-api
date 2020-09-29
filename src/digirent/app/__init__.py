@@ -18,8 +18,6 @@ class Application(ApplicationBase):
         phone_number: str,
         password: str,
     ):
-        if not dob:
-            raise ApplicationError("Date of birth required for tenant creation")
         user: User = self.user_service.create_user(
             session,
             first_name,

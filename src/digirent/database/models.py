@@ -26,6 +26,11 @@ class UserRole(str, Enum):
     LANDLORD = "landlord"
 
 
+class Gender(str, Enum):
+    MALE = "male"
+    FEMALE = "female"
+
+
 class User(Base, EntityMixin, TimestampMixin):
     __tablename__ = "users"
     first_name = Column(String, nullable=False)
@@ -39,6 +44,9 @@ class User(Base, EntityMixin, TimestampMixin):
     is_suspended = Column(Boolean, nullable=False, default=False)
     suspended_reason = Column(String, nullable=True)
     role = Column(ChoiceType(UserRole, impl=String()), nullable=False)
+    gender = Column(ChoiceType(Gender, impl=String()), nullable=True)
+    city = Column(String, nullable=True)
+    description = Column(String, nullable=True)
 
     def __init__(
         self,

@@ -22,6 +22,9 @@ def test_fetch_profile_ok(client: TestClient, user: User, user_auth_header: dict
     assert "id" in result
     assert "phoneNumber" in result
     assert "dob" in result
+    assert "description" in result
+    assert "city" in result
+    assert "gender" in result
 
 
 def test_fetch_profile_without_token_fail(client: TestClient):
