@@ -6,12 +6,15 @@ from sqlalchemy import (
     String,
     Text,
     Float,
+    Integer,
     ForeignKey,
     Boolean,
     Date,
+    JSON,
 )
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy_utils import ChoiceType, EmailType, UUIDType
+from sqlalchemy_utils.functions import foreign_keys
 from .base import Base
 from .mixins import EntityMixin, TimestampMixin
 from .enums import UserRole, Gender, HouseType
@@ -69,7 +72,7 @@ class Admin(User):
 
 
 class Tenant(User):
-    looking_for = relationship("LookingFor", uselist=False, backref="user")
+    looking_for = relationship("LookingFor", uselist=False, backref="tenant")
     __mapper_args__ = {"polymorphic_identity": UserRole.TENANT}
 
 
@@ -79,13 +82,13 @@ class Landlord(User):
 
 class LookingFor(Base, EntityMixin, TimestampMixin):
     __tablename__ = "looking_for"
-    user_id = Column(UUIDType(binary=False), ForeignKey("users.id"))
+    tenant_id = Column(UUIDType(binary=False), ForeignKey("users.id"))
     house_type = Column(ChoiceType(HouseType, impl=String()), nullable=False)
     city = Column(String, nullable=False)
     max_budget = Column(Float, nullable=False)
 
-    def __init__(self, user_id, house_type, city, max_budget):
-        self.user_id = user_id
+    def __init__(self, tenant_id, house_type, city, max_budget):
+        self.tenant_id = tenant_id
         self.house_type = house_type
         self.city = city
         self.max_budget = max_budget
@@ -101,3 +104,32 @@ class BankDetail(Base, EntityMixin, TimestampMixin):
         self.user_id = user_id
         self.account_name = account_name
         self.account_number = account_number
+
+
+class Apartment(Base, EntityMixin, TimestampMixin):
+    __tablename__ = "apartments"
+    name = Column(String, nullable=False)
+    monthly_price = Column(Float, nullable=False)
+    utilities_price = Column(Float, nullable=False)
+    address = Column(String, nullable=False)
+    country = Column(String, nullable=False)
+    state = Column(String, nullable=False)
+    city = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    house_type = Column(ChoiceType(HouseType, impl=String()), nullable=False)
+    bedrooms = Column(Integer, nullable=False)
+    bathrooms = Column(Integer, nullable=False)
+    size = Column(Float, nullable=False)
+    furnish_type = Column(String, nullable=False)
+    available_from = Column(Date, nullable=False)
+    available_to = Column(Date, nullable=False)
+    amenities = Column(JSON, nullable=False, default=[])
+    landlord_id = Column(UUIDType(binary=False), ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(UUIDType(binary=False), ForeignKey("users.id"), nullable=True)
+
+    landlord = relationship(
+        "Landlord", foreign_keys=[landlord_id], backref="apartments"
+    )
+    tenant = relationship(
+        "Tenant", foreign_keys=[tenant_id], backref=backref("apartment", uselist=False)
+    )
