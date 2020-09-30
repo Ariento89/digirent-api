@@ -5,10 +5,10 @@ from jwt import PyJWTError
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 
-from digirent.database.enums import Gender
+from digirent.database.enums import Gender, HouseType
 from .base import ApplicationBase
 from .error import ApplicationError
-from digirent.database.models import BankDetail, User, UserRole
+from digirent.database.models import BankDetail, LookingFor, Tenant, User, UserRole
 
 
 class Application(ApplicationBase):
@@ -112,7 +112,7 @@ class Application(ApplicationBase):
         gender: Gender = None,
     ):
         try:
-            result = self.user_service.update_user(
+            self.user_service.update_user(
                 session,
                 user.id,
                 first_name=first_name,
@@ -123,8 +123,6 @@ class Application(ApplicationBase):
                 gender=gender,
                 dob=dob,
             )
-            if not result:
-                raise ApplicationError(f"User not found")
         except IntegrityError as e:
             marker = "unique constraint failed:"
             if marker in str(e).lower():
@@ -137,11 +135,7 @@ class Application(ApplicationBase):
         self, session: Session, user: User, account_name: str, account_number: str
     ):
         bank_detail = BankDetail(uuid4(), account_name, account_number)
-        result = self.user_service.update_user(
-            session, user.id, bank_detail=bank_detail
-        )
-        if not result:
-            raise ApplicationError(f"User not found")
+        self.user_service.update_user(session, user.id, bank_detail=bank_detail)
 
     def update_password(
         self, session: Session, user: User, old_password: str, new_password: str
@@ -149,8 +143,20 @@ class Application(ApplicationBase):
         if not self.user_service.password_is_match(old_password, user.hashed_password):
             raise ApplicationError("Wrong password")
         new_hashed_password = self.user_service.hash_password(new_password)
-        result = self.user_service.update_user(
+        self.user_service.update_user(
             session, user.id, hashed_password=new_hashed_password
         )
-        if not result:
-            raise ApplicationError("User not found")
+
+    def update_description(self, session: Session, user: User, description: str):
+        self.user_service.update_user(session, user.id, description=description)
+
+    def set_looking_for(
+        self,
+        session: Session,
+        tenant: Tenant,
+        house_type: HouseType,
+        city: str,
+        max_budget: float,
+    ):
+        looking_for = LookingFor(tenant.id, house_type, city, max_budget)
+        self.user_service.update_user(session, tenant.id, looking_for=looking_for)

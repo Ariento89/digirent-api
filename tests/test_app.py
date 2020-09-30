@@ -1,4 +1,6 @@
+from itertools import takewhile
 from digirent.core.services.user import UserService
+from digirent.database.enums import HouseType
 from tests.test_user_service import user_data
 from tests.conftest import (
     admin_create_data,
@@ -10,7 +12,7 @@ from digirent.app.error import ApplicationError
 import pytest
 from digirent.app import Application
 from sqlalchemy.orm.session import Session
-from digirent.database.models import Landlord, Tenant, User, UserRole
+from digirent.database.models import Landlord, LookingFor, Tenant, User, UserRole
 
 
 def test_create_tenant(
@@ -172,3 +174,38 @@ def test_update_password(
     assert user.hashed_password != new_password
     assert not user_service.password_is_match(old_password, user.hashed_password)
     assert user_service.password_is_match(new_password, user.hashed_password)
+
+
+@pytest.mark.parametrize(
+    "user",
+    [
+        "tenant",
+        "landlord",
+        "admin",
+    ],
+    indirect=True,
+)
+def test_update_description(
+    user: User,
+    session: Session,
+    application: Application,
+):
+    prev_description = user.description
+    new_description = "new description"
+    assert prev_description != new_description
+    application.update_description(session, user, new_description)
+    xuser = session.query(User).get(user.id)
+    assert xuser.description == new_description
+
+
+def test_set_looking_for(tenant: Tenant, session: Session, application: Application):
+    assert not tenant.looking_for
+    house_type = HouseType.BUNGALOW
+    city = "preferred city"
+    max_budget = 45.78
+    application.set_looking_for(session, tenant, house_type, city, max_budget)
+    assert tenant.looking_for
+    assert tenant.looking_for.id
+    assert tenant.looking_for.house_type == HouseType.BUNGALOW
+    assert tenant.looking_for.city == city
+    assert tenant.looking_for.max_budget == max_budget
