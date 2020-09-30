@@ -9,14 +9,10 @@ class BaseUserSchema(BaseSchema):
     last_name: str
     email: str
     phone_number: str
+    dob: Optional[date]
 
 
-class TenantCreateSchema(BaseUserSchema):
-    dob: date
-    password: str
-
-
-class LandlordCreateSchema(BaseUserSchema):
+class UserCreateSchema(BaseUserSchema):
     password: str
 
 

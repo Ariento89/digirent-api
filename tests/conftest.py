@@ -17,7 +17,7 @@ environ["APP_ENV"] = "test"
 from digirent.core.config import DATABASE_URL
 
 from digirent.web_app import get_app
-from digirent.database.models import User
+from digirent.database.models import Landlord, Tenant, User
 from digirent.database.enums import UserRole
 from digirent.app.container import ApplicationContainer
 from digirent.database.base import SessionLocal, Base
@@ -80,6 +80,7 @@ def landlord_create_data() -> dict:
         "last_name": "Doe",
         "email": "landlorddoe@gmail.com",
         "phone_number": "0012345678",
+        "dob": None,
         "password": "testpassword",
         "role": UserRole.LANDLORD,
     }
@@ -92,6 +93,7 @@ def admin_create_data() -> dict:
         "last_name": "Doe",
         "email": "admindoe@gmail.com",
         "phone_number": "0012345678",
+        "dob": None,
         "password": "testpassword",
         "role": UserRole.ADMIN,
     }
@@ -110,26 +112,35 @@ def auth_service():
 @pytest.fixture
 def tenant(
     session: Session, user_service: UserService, tenant_create_data: dict
-) -> User:
-    assert session.query(User).count() == 0
-    result = user_service.create_user(session, **tenant_create_data)
-    assert isinstance(result, User)
-    assert result.role == UserRole.TENANT
-    assert session.query(User).count() == 1
-    return result
+) -> Tenant:
+    assert session.query(Tenant).count() == 0
+    create_data = {**tenant_create_data}
+    hashed_password = user_service.hash_password(create_data["password"])
+    del create_data["password"]
+    del create_data["role"]
+    create_data["hashed_password"] = hashed_password
+    tenant = Tenant(**create_data)
+    session.add(tenant)
+    session.commit()
+    assert session.query(Tenant).count() == 1
+    return tenant
 
 
 @pytest.fixture
 def landlord(
     session: Session, user_service: UserService, landlord_create_data: dict
 ) -> User:
-    assert session.query(User).count() == 0
-    landlord_create_data["dob"] = None
-    result = user_service.create_user(session, **landlord_create_data)
-    assert isinstance(result, User)
-    assert result.role == UserRole.LANDLORD
-    assert session.query(User).count() == 1
-    return result
+    assert session.query(Landlord).count() == 0
+    create_data = {**landlord_create_data}
+    hashed_password = user_service.hash_password(create_data["password"])
+    del create_data["password"]
+    del create_data["role"]
+    create_data["hashed_password"] = hashed_password
+    landlord = Landlord(**create_data)
+    session.add(landlord)
+    session.commit()
+    assert session.query(Landlord).count() == 1
+    return landlord
 
 
 @pytest.fixture

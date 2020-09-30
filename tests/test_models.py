@@ -1,7 +1,9 @@
 from datetime import datetime
+import pytest
+from requests import status_codes
 from sqlalchemy.orm.session import Session
 from digirent.database.enums import HouseType, UserRole
-from digirent.database.models import Tenant, User, LookingFor, BankDetail
+from digirent.database.models import Admin, Tenant, User, LookingFor, BankDetail
 
 
 def test_user_looking_for_relationship(session: Session):
@@ -11,10 +13,10 @@ def test_user_looking_for_relationship(session: Session):
         "email",
         "00000",
         "hashed",
-        UserRole.TENANT,
         datetime.now().date(),
     )
     session.add(user)
+    assert user.role == UserRole.TENANT
     session.flush()
     lfor = LookingFor(
         house_type=HouseType.BUNGALOW,
@@ -29,15 +31,15 @@ def test_user_looking_for_relationship(session: Session):
 
 
 def test_user_bank_detail_relationship(session: Session):
-    user = User(
+    user = Tenant(
         "fname",
         "lname",
         "email",
         "00000",
         "hashed",
-        UserRole.TENANT,
         datetime.now().date(),
     )
+    assert user.role == UserRole.TENANT
     session.add(user)
     session.flush()
     bank = BankDetail(

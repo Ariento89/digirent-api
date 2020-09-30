@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional, Union
 from uuid import UUID
-from digirent.database.models import User, UserRole
+from digirent.database.models import Admin, Landlord, Tenant, User, UserRole
 from sqlalchemy.orm.session import Session
 from passlib.context import CryptContext
 
@@ -45,8 +45,8 @@ class UserService:
             email=email,
             phone_number=phone_number,
             hashed_password=hashed_password,
-            role=role,
         )
+        new_user.role = role
         session.add(new_user)
         if commit:
             session.commit()

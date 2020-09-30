@@ -44,7 +44,6 @@ class User(Base, EntityMixin, TimestampMixin):
         email: str,
         phone_number: str,
         hashed_password: str,
-        role: UserRole,
         dob: datetime = None,
     ) -> None:
         self.first_name = first_name
@@ -53,7 +52,6 @@ class User(Base, EntityMixin, TimestampMixin):
         self.phone_number = phone_number
         self.email = email
         self.hashed_password = hashed_password
-        self.role = role
         self.email_verified = False
         self.phone_verified = False
         self.is_suspended = False

@@ -6,14 +6,14 @@ from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
 from digirent.database.models import User
-from .schema import TenantCreateSchema, LandlordCreateSchema, UserSchema
+from .schema import UserCreateSchema, UserSchema
 
 router = APIRouter()
 
 
 @router.post("/tenant", response_model=UserSchema)
 async def register_tenant(
-    data: TenantCreateSchema,
+    data: UserCreateSchema,
     application: Application = Depends(dependencies.get_application),
     session: Session = Depends(dependencies.get_database_session),
 ):
@@ -25,7 +25,7 @@ async def register_tenant(
 
 @router.post("/landlord", response_model=UserSchema)
 async def register_landlord(
-    data: LandlordCreateSchema,
+    data: UserCreateSchema,
     application: Application = Depends(dependencies.get_application),
     session: Session = Depends(dependencies.get_database_session),
 ):
