@@ -33,8 +33,9 @@ class User(Base, EntityMixin, TimestampMixin):
     gender = Column(ChoiceType(Gender, impl=String()), nullable=True)
     city = Column(String, nullable=True)
     description = Column(String, nullable=True)
-    looking_for = relationship("LookingFor", uselist=False, backref="user")
     bank_detail = relationship("BankDetail", uselist=False, backref="user")
+
+    __mapper_args__ = {"polymorphic_identity": None, "polymorphic_on": role}
 
     def __init__(
         self,
@@ -63,6 +64,19 @@ class User(Base, EntityMixin, TimestampMixin):
         if self.is_suspended:
             return False
         return all([self.email_verified, self.phone_verified])
+
+
+class Admin(User):
+    __mapper_args__ = {"polymorphic_identity": UserRole.ADMIN}
+
+
+class Tenant(User):
+    looking_for = relationship("LookingFor", uselist=False, backref="user")
+    __mapper_args__ = {"polymorphic_identity": UserRole.TENANT}
+
+
+class Landlord(User):
+    __mapper_args__ = {"polymorphic_identity": UserRole.LANDLORD}
 
 
 class LookingFor(Base, EntityMixin, TimestampMixin):
