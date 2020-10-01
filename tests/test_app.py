@@ -193,7 +193,18 @@ def test_update_description(
     prev_description = user.description
     new_description = "new description"
     assert prev_description != new_description
-    application.update_description(session, user, new_description)
+    application.update_profile(
+        session,
+        user,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        email=user.email,
+        phone_number=user.phone_number,
+        city=user.city,
+        gender=user.gender,
+        dob=user.dob,
+        description=new_description,
+    )
     xuser = session.query(User).get(user.id)
     assert xuser.description == new_description
 

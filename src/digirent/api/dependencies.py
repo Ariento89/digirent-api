@@ -1,3 +1,4 @@
+from typing import Union
 from fastapi import Depends, HTTPException
 from fastapi import status as status
 from fastapi.security import OAuth2PasswordBearer
@@ -6,7 +7,7 @@ from digirent.app import Application
 from digirent.app.container import ApplicationContainer
 from sqlalchemy.orm.session import Session
 from digirent.app.error import ApplicationError
-from digirent.database.models import User, UserRole
+from digirent.database.models import Admin, Landlord, Tenant, User, UserRole
 from digirent.database.base import SessionLocal
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/")
@@ -37,6 +38,12 @@ async def get_current_user(
     )
     try:
         user: User = application.authenticate_token(session, token)
+        if user.role == UserRole.ADMIN:
+            user = session.query(Admin).get(user.id)
+        elif user.role == UserRole.TENANT:
+            user = session.query(Tenant).get(user.id)
+        elif user.role == UserRole.LANDLORD:
+            user = session.query(Landlord).get(user.id)
     except ApplicationError:
         raise credentials_exception
     return user
@@ -50,7 +57,7 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 
 async def get_current_admin_user(
     current_user: User = Depends(get_current_user),
-) -> User:
+) -> Admin:
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Forbidden")
     return current_user
@@ -58,23 +65,57 @@ async def get_current_admin_user(
 
 async def get_current_active_admin_user(
     current_admin: User = Depends(get_current_admin_user),
-):
+) -> Admin:
     if not current_admin.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_admin
 
 
-async def get_current_regular_user(
+async def get_current_tenant(
     current_user: User = Depends(get_current_user),
-) -> User:
-    if current_user.role != UserRole.REGULAR:
+) -> Tenant:
+    if current_user.role != UserRole.TENANT:
         raise HTTPException(status_code=403, detail="Forbidden")
     return current_user
 
 
-async def get_current_active_regular_user(
-    current_user: User = Depends(get_current_regular_user),
-):
-    if not current_user.is_active:
+async def get_current_active_tenant(
+    current_tenant: Tenant = Depends(get_current_tenant),
+) -> Tenant:
+    if not current_tenant.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+    return current_tenant
+
+
+async def get_current_landlord(
+    current_user: User = Depends(get_current_user),
+) -> Landlord:
+    if current_user.role != UserRole.LANDLORD:
+        raise HTTPException(status_code=403, detail="Forbidden")
     return current_user
+
+
+async def get_current_active_landlord(
+    current_landlord: Landlord = Depends(get_current_landlord),
+) -> Landlord:
+    if not current_landlord.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_landlord
+
+
+async def get_current_non_admin_user(
+    current_user: User = Depends(get_current_user),
+) -> Union[Landlord, Tenant]:
+    if current_user.role == UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return current_user
+
+
+async def get_current_active_non_admin_user(
+    current_non_admin_user: Union[Landlord, Tenant] = Depends(
+        get_current_non_admin_user
+    ),
+) -> Landlord:
+    if not current_non_admin_user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_non_admin_user

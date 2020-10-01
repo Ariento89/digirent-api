@@ -110,6 +110,7 @@ class Application(ApplicationBase):
         email: str = None,
         dob: date = None,
         gender: Gender = None,
+        description: str = None,
     ):
         try:
             self.user_service.update_user(
@@ -122,6 +123,7 @@ class Application(ApplicationBase):
                 email=email,
                 gender=gender,
                 dob=dob,
+                description=description,
             )
         except IntegrityError as e:
             marker = "unique constraint failed:"
@@ -146,9 +148,6 @@ class Application(ApplicationBase):
         self.user_service.update_user(
             session, user.id, hashed_password=new_hashed_password
         )
-
-    def update_description(self, session: Session, user: User, description: str):
-        self.user_service.update_user(session, user.id, description=description)
 
     def set_looking_for(
         self,

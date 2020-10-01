@@ -38,9 +38,6 @@ def test_create_landlord_ok(
     assert "role" not in landlord_create_data
     response = client.post(f"/api/users/landlord", json=landlord_create_data)
     result = response.json()
-    print("\n\n\n\n")
-    print(result)
-    print("\n\n\n\n")
     assert response.status_code == 200
     assert session.query(User).count() == 1
     assert "firstName" in result

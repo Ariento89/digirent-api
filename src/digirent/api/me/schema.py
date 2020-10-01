@@ -1,6 +1,7 @@
 from datetime import date
 from uuid import UUID
 from typing import Optional
+from digirent.database.enums import HouseType
 from digirent.database.models import Gender, UserRole
 from ..schema import BaseSchema, OrmSchema
 
@@ -16,3 +17,30 @@ class ProfileSchema(OrmSchema):
     phone_number: str
     role: UserRole
     is_active: bool
+
+
+class ProfileUpdateSchema(BaseSchema):
+    first_name: Optional[str]
+    last_name: Optional[str]
+    dob: Optional[date]
+    email: Optional[str]
+    phone_number: Optional[str]
+    city: Optional[str]
+    gender: Optional[Gender]
+    description: Optional[str]
+
+
+class LookingForSchema(BaseSchema):
+    house_type: HouseType
+    city: str
+    max_budget: float
+
+
+class BankDetailSchema(BaseSchema):
+    account_name: str
+    account_number: str
+
+
+class PasswordUpdateSchema(BaseSchema):
+    old_password: str
+    new_password: str
