@@ -6,6 +6,7 @@ from sqlalchemy.orm.session import Session
 from digirent.database.enums import HouseType, UserRole
 from digirent.database.models import (
     Admin,
+    Amenity,
     Apartment,
     Landlord,
     Tenant,
@@ -79,12 +80,11 @@ def test_landlord_apartment_relationship(session: Session, landlord: Landlord):
         available_from=datetime.now().date(),
         available_to=datetime.now().date(),
     )
-    apartment.amenities = [5]
     session.add(apartment)
     session.commit()
     assert session.query(Apartment).count()
     assert landlord.apartments == [apartment]
-    assert apartment.amenities == [5]
+    assert not apartment.amenities
     assert not apartment.tenant
 
 
@@ -109,12 +109,43 @@ def test_tenant_apartment_relationship(
         available_from=datetime.now().date(),
         available_to=datetime.now().date(),
     )
-    apartment.amenities = [5]
     apartment.tenant_id = tenant.id
     session.add(apartment)
     session.commit()
     assert session.query(Apartment).count()
     assert landlord.apartments == [apartment]
-    assert apartment.amenities == [5]
+    assert not apartment.amenities
     assert apartment.tenant == tenant
     assert tenant.apartment == apartment
+
+
+def test_apartment_amenity_relationship(session: Session, landlord: Landlord):
+    apartment = Apartment(
+        landlord_id=landlord.id,
+        name="apartment name",
+        monthly_price=350.55,
+        utilities_price=20.55,
+        address="somewhere",
+        country="Netherlands",
+        state="somestate",
+        city="somecity",
+        description="some description",
+        house_type=HouseType.BUNGALOW,
+        bedrooms=3,
+        bathrooms=3,
+        size=1400,
+        furnish_type="some furnish type",
+        available_from=datetime.now().date(),
+        available_to=datetime.now().date(),
+    )
+    amenity1 = Amenity(title="pool")
+    amenity2 = Amenity(title="barn")
+    apartment.amenities.append(amenity1)
+    apartment.amenities.append(amenity2)
+    session.add(apartment)
+    session.commit()
+    assert session.query(Apartment).count()
+    assert session.query(Amenity).count() == 2
+    assert landlord.apartments == [apartment]
+    assert apartment.amenities == [amenity1, amenity2]
+    assert not apartment.tenant

@@ -3,6 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 from sqlalchemy import (
     Column,
+    Table,
     String,
     Text,
     Float,
@@ -14,10 +15,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy_utils import ChoiceType, EmailType, UUIDType
-from sqlalchemy_utils.functions import foreign_keys
 from .base import Base
 from .mixins import EntityMixin, TimestampMixin
 from .enums import UserRole, Gender, HouseType
+from .association_tables import apartments_amenities_association_table
 
 
 class User(Base, EntityMixin, TimestampMixin):
@@ -123,7 +124,11 @@ class Apartment(Base, EntityMixin, TimestampMixin):
     furnish_type = Column(String, nullable=False)
     available_from = Column(Date, nullable=False)
     available_to = Column(Date, nullable=False)
-    amenities = Column(JSON, nullable=False, default=[])
+    amenities = relationship(
+        "Amenity",
+        secondary=apartments_amenities_association_table,
+        backref="apartments",
+    )
     landlord_id = Column(UUIDType(binary=False), ForeignKey("users.id"), nullable=False)
     tenant_id = Column(UUIDType(binary=False), ForeignKey("users.id"), nullable=True)
 
@@ -133,3 +138,8 @@ class Apartment(Base, EntityMixin, TimestampMixin):
     tenant = relationship(
         "Tenant", foreign_keys=[tenant_id], backref=backref("apartment", uselist=False)
     )
+
+
+class Amenity(Base, EntityMixin, TimestampMixin):
+    __tablename__ = "amenities"
+    title = Column(String, nullable=False, unique=True)
