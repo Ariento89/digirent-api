@@ -1,5 +1,4 @@
-from digirent.core.services.user import UserService
-from tests.conftest import session, user_service
+import digirent.util as util
 from sqlalchemy.orm.session import Session
 from digirent.database.enums import Gender, HouseType
 from digirent.database.models import Landlord, Tenant, User, UserRole
@@ -181,14 +180,13 @@ def test_update_user_password(
     client: TestClient,
     user: User,
     session: Session,
-    user_service: UserService,
     user_auth_header: dict,
     user_create_data: dict,
 ):
     old_password = user_create_data["password"]
     new_password = "newpass"
-    assert user_service.password_is_match(old_password, user.hashed_password)
-    assert not user_service.password_is_match(new_password, user.hashed_password)
+    assert util.password_is_match(old_password, user.hashed_password)
+    assert not util.password_is_match(new_password, user.hashed_password)
     response = client.put(
         "/api/me/password",
         headers=user_auth_header,
@@ -199,5 +197,5 @@ def test_update_user_password(
     )
     assert response.status_code == 200
     session.expire_all()
-    assert not user_service.password_is_match(old_password, user.hashed_password)
-    assert user_service.password_is_match(new_password, user.hashed_password)
+    assert not util.password_is_match(old_password, user.hashed_password)
+    assert util.password_is_match(new_password, user.hashed_password)

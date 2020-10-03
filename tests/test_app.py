@@ -1,5 +1,5 @@
-from itertools import takewhile
-from digirent.core.services.user import UserService
+import digirent.util as util
+from digirent.database.services.user import UserService
 from digirent.database.enums import HouseType
 from tests.test_user_service import user_data
 from tests.conftest import (
@@ -172,8 +172,8 @@ def test_update_password(
     application.update_password(session, user, old_password, new_password)
     assert user.hashed_password != old_password
     assert user.hashed_password != new_password
-    assert not user_service.password_is_match(old_password, user.hashed_password)
-    assert user_service.password_is_match(new_password, user.hashed_password)
+    assert not util.password_is_match(old_password, user.hashed_password)
+    assert util.password_is_match(new_password, user.hashed_password)
 
 
 @pytest.mark.parametrize(

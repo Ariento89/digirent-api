@@ -1,7 +1,8 @@
-from datetime import date, datetime
-from typing import Optional, Union
+from typing import Optional
 from uuid import UUID, uuid4
+from datetime import date
 from jwt import PyJWTError
+import digirent.util as util
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 
@@ -21,20 +22,17 @@ class Application(ApplicationBase):
         email: str,
         phone_number: str,
         password: str,
-    ):
-        user: User = self.user_service.create_user(
+    ) -> Tenant:
+        hashed_password = util.hash_password(password)
+        return self.tenant_service.create(
             session,
-            first_name,
-            last_name,
-            dob,
-            email,
-            phone_number,
-            password,
-            UserRole.TENANT,
+            first_name=first_name,
+            last_name=last_name,
+            dob=dob,
+            email=email,
+            phone_number=phone_number,
+            hashed_password=hashed_password,
         )
-        if isinstance(user, str):
-            raise ApplicationError(user)
-        return user
 
     def create_landlord(
         self,
@@ -46,19 +44,16 @@ class Application(ApplicationBase):
         phone_number: str,
         password: str,
     ):
-        user: User = self.user_service.create_user(
+        hashed_password = util.hash_password(password)
+        return self.landlord_service.create(
             session,
-            first_name,
-            last_name,
-            dob,
-            email,
-            phone_number,
-            password,
-            UserRole.LANDLORD,
+            first_name=first_name,
+            last_name=last_name,
+            dob=dob,
+            email=email,
+            phone_number=phone_number,
+            hashed_password=hashed_password,
         )
-        if isinstance(user, str):
-            raise ApplicationError(user)
-        return user
 
     def create_admin(
         self,
@@ -70,32 +65,31 @@ class Application(ApplicationBase):
         phone_number: str,
         password: str,
     ):
-        user: User = self.user_service.create_user(
+        hashed_password = util.hash_password(password)
+        return self.admin_service.create(
             session,
-            first_name,
-            last_name,
-            dob,
-            email,
-            phone_number,
-            password,
-            UserRole.ADMIN,
+            first_name=first_name,
+            last_name=last_name,
+            dob=dob,
+            email=email,
+            phone_number=phone_number,
+            hashed_password=hashed_password,
         )
-        if isinstance(user, str):
-            raise ApplicationError(user)
-        return user
 
     def authenticate_user(self, session: Session, login: str, password: str) -> bytes:
-        token = self.auth_service.authenticate(session, login, password)
-        if not token:
+        existing_user: Optional[User] = self.user_service.get_by_email(
+            session, login
+        ) or self.user_service.get_by_phone_number(session, login)
+        if not existing_user:
             raise ApplicationError("Invalid login credentials")
-        return token
+        if not util.password_is_match(password, existing_user.hashed_password):
+            raise ApplicationError("Invalid login credentials")
+        return util.create_access_token(data={"sub": str(existing_user.id)})
 
     def authenticate_token(self, session: Session, token: bytes) -> User:
         try:
-            user = self.auth_service.authenticate_token(session, token)
-            if not user:
-                raise ApplicationError("Invalid token")
-            return user
+            user_id: str = util.decode_access_token(token)
+            return self.user_service.get(session, UUID(user_id))
         except PyJWTError:
             raise ApplicationError("Invalid token")
 
@@ -113,9 +107,9 @@ class Application(ApplicationBase):
         description: str = None,
     ):
         try:
-            self.user_service.update_user(
+            self.user_service.update(
                 session,
-                user.id,
+                user,
                 first_name=first_name,
                 last_name=last_name,
                 city=city,
@@ -137,17 +131,15 @@ class Application(ApplicationBase):
         self, session: Session, user: User, account_name: str, account_number: str
     ):
         bank_detail = BankDetail(uuid4(), account_name, account_number)
-        self.user_service.update_user(session, user.id, bank_detail=bank_detail)
+        self.user_service.update(session, user, bank_detail=bank_detail)
 
     def update_password(
         self, session: Session, user: User, old_password: str, new_password: str
     ):
-        if not self.user_service.password_is_match(old_password, user.hashed_password):
+        if not util.password_is_match(old_password, user.hashed_password):
             raise ApplicationError("Wrong password")
-        new_hashed_password = self.user_service.hash_password(new_password)
-        self.user_service.update_user(
-            session, user.id, hashed_password=new_hashed_password
-        )
+        new_hashed_password = util.hash_password(new_password)
+        self.user_service.update(session, user, hashed_password=new_hashed_password)
 
     def set_looking_for(
         self,
@@ -158,4 +150,4 @@ class Application(ApplicationBase):
         max_budget: float,
     ):
         looking_for = LookingFor(tenant.id, house_type, city, max_budget)
-        self.user_service.update_user(session, tenant.id, looking_for=looking_for)
+        self.tenant_service.update(session, tenant, looking_for=looking_for)

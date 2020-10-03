@@ -12,17 +12,18 @@ from sqlalchemy.orm.session import Session
 from starlette.config import environ
 from pytest_mock import MockFixture
 
+
 environ["APP_ENV"] = "test"
 
 from digirent.core.config import DATABASE_URL
-
+import digirent.util as util
+from digirent.database.services.base import DBService
 from digirent.web_app import get_app
-from digirent.database.models import Admin, Landlord, Tenant, User
+from digirent.database.models import Admin, Amenity, Apartment, Landlord, Tenant, User
 from digirent.database.enums import UserRole
 from digirent.app.container import ApplicationContainer
 from digirent.database.base import SessionLocal, Base
-from digirent.core.services.auth import AuthService
-from digirent.core.services.user import UserService
+from digirent.database.services.user import UserService
 from digirent.app import Application
 
 
@@ -105,16 +106,29 @@ def user_service():
 
 
 @pytest.fixture
-def auth_service():
-    return AuthService(UserService())
+def tenant_service():
+    return DBService[Tenant](Tenant)
 
 
 @pytest.fixture
-def tenant(
-    session: Session, user_service: UserService, tenant_create_data: dict
-) -> Tenant:
+def landlord_service():
+    return DBService[Landlord](Landlord)
+
+
+@pytest.fixture
+def apartment_service():
+    return DBService[Apartment](Apartment)
+
+
+@pytest.fixture
+def amenity_service():
+    return DBService[Amenity](Amenity)
+
+
+@pytest.fixture
+def tenant(session: Session, tenant_create_data: dict) -> Tenant:
     create_data = {**tenant_create_data}
-    hashed_password = user_service.hash_password(create_data["password"])
+    hashed_password = util.hash_password(create_data["password"])
     del create_data["password"]
     del create_data["role"]
     create_data["hashed_password"] = hashed_password
@@ -126,11 +140,9 @@ def tenant(
 
 
 @pytest.fixture
-def landlord(
-    session: Session, user_service: UserService, landlord_create_data: dict
-) -> User:
+def landlord(session: Session, landlord_create_data: dict) -> User:
     create_data = {**landlord_create_data}
-    hashed_password = user_service.hash_password(create_data["password"])
+    hashed_password = util.hash_password(create_data["password"])
     del create_data["password"]
     del create_data["role"]
     create_data["hashed_password"] = hashed_password
@@ -142,9 +154,9 @@ def landlord(
 
 
 @pytest.fixture
-def admin(session: Session, user_service: UserService, admin_create_data: dict) -> User:
+def admin(session: Session, admin_create_data: dict) -> User:
     create_data = {**admin_create_data}
-    hashed_password = user_service.hash_password(create_data["password"])
+    hashed_password = util.hash_password(create_data["password"])
     del create_data["password"]
     del create_data["role"]
     create_data["hashed_password"] = hashed_password

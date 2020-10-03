@@ -41,26 +41,6 @@ class User(Base, EntityMixin, TimestampMixin):
 
     __mapper_args__ = {"polymorphic_identity": None, "polymorphic_on": role}
 
-    def __init__(
-        self,
-        first_name: str,
-        last_name: str,
-        email: str,
-        phone_number: str,
-        hashed_password: str,
-        dob: datetime = None,
-    ) -> None:
-        self.first_name = first_name
-        self.last_name = last_name
-        self.dob = dob
-        self.phone_number = phone_number
-        self.email = email
-        self.hashed_password = hashed_password
-        self.email_verified = False
-        self.phone_verified = False
-        self.is_suspended = False
-        self.suspended_reason = None
-
     @property
     def is_active(self):
         if self.is_suspended:

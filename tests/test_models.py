@@ -18,12 +18,12 @@ from digirent.database.models import (
 
 def test_user_looking_for_relationship(session: Session):
     user = Tenant(
-        "fname",
-        "lname",
-        "email",
-        "00000",
-        "hashed",
-        datetime.now().date(),
+        first_name="fname",
+        last_name="lname",
+        email="email",
+        phone_number="00000",
+        hashed_password="hashed",
+        dob=datetime.now().date(),
     )
     session.add(user)
     assert user.role == UserRole.TENANT
@@ -42,12 +42,12 @@ def test_user_looking_for_relationship(session: Session):
 
 def test_user_bank_detail_relationship(session: Session):
     user = Tenant(
-        "fname",
-        "lname",
-        "email",
-        "00000",
-        "hashed",
-        datetime.now().date(),
+        first_name="fname",
+        last_name="lname",
+        email="email",
+        phone_number="00000",
+        hashed_password="hashed",
+        dob=datetime.now().date(),
     )
     assert user.role == UserRole.TENANT
     session.add(user)
