@@ -147,5 +147,5 @@ def test_apartment_amenity_relationship(session: Session, landlord: Landlord):
     assert session.query(Apartment).count()
     assert session.query(Amenity).count() == 2
     assert landlord.apartments == [apartment]
-    assert apartment.amenities == [amenity1, amenity2]
+    assert all(x in apartment.amenities for x in [amenity1, amenity2])
     assert not apartment.tenant

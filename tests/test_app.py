@@ -12,7 +12,14 @@ from digirent.app.error import ApplicationError
 import pytest
 from digirent.app import Application
 from sqlalchemy.orm.session import Session
-from digirent.database.models import Landlord, LookingFor, Tenant, User, UserRole
+from digirent.database.models import (
+    Amenity,
+    Landlord,
+    LookingFor,
+    Tenant,
+    User,
+    UserRole,
+)
 
 
 def test_create_tenant(
@@ -220,3 +227,22 @@ def test_set_looking_for(tenant: Tenant, session: Session, application: Applicat
     assert tenant.looking_for.house_type == HouseType.BUNGALOW
     assert tenant.looking_for.city == city
     assert tenant.looking_for.max_budget == max_budget
+
+
+def test_create_amenity_ok(session: Session, application: Application):
+    assert not session.query(Amenity).count()
+    application.create_amenity(session, "hello")
+    assert session.query(Amenity).count() == 1
+    amenity = session.query(Amenity).all()[0]
+    assert amenity.title == "hello"
+
+
+def test_create_exisiting_amenity_fail(session: Session, application: Application):
+    assert not session.query(Amenity).count()
+    application.create_amenity(session, "hello")
+    assert session.query(Amenity).count() == 1
+    amenity = session.query(Amenity).all()[0]
+    assert amenity.title == "hello"
+    with pytest.raises(ApplicationError) as e:
+        application.create_amenity(session, "hello")
+        assert "exists" in str(e).lower()

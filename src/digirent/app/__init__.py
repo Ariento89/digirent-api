@@ -9,7 +9,14 @@ from sqlalchemy.orm.session import Session
 from digirent.database.enums import Gender, HouseType
 from .base import ApplicationBase
 from .error import ApplicationError
-from digirent.database.models import BankDetail, LookingFor, Tenant, User, UserRole
+from digirent.database.models import (
+    Amenity,
+    BankDetail,
+    LookingFor,
+    Tenant,
+    User,
+    UserRole,
+)
 
 
 class Application(ApplicationBase):
@@ -151,3 +158,9 @@ class Application(ApplicationBase):
     ):
         looking_for = LookingFor(tenant.id, house_type, city, max_budget)
         self.tenant_service.update(session, tenant, looking_for=looking_for)
+
+    def create_amenity(self, session: Session, title: str):
+        existing_amenity = session.query(Amenity).filter(Amenity.title == title).first()
+        if existing_amenity:
+            raise ApplicationError("Amenity already exists")
+        self.amenity_service.create(session, title=title)
