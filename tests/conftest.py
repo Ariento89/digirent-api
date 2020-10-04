@@ -240,3 +240,7 @@ def user_auth_header(request):
 @pytest.fixture
 def non_admin_user(request):
     return request.getfixturevalue(request.param)
+
+@pytest.fixture
+def non_admin_user_auth_header(request):
+    return request.getfixturevalue(request.param)
