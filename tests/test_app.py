@@ -1,3 +1,4 @@
+from datetime import datetime
 import digirent.util as util
 from digirent.database.services.user import UserService
 from digirent.database.enums import HouseType
@@ -14,6 +15,7 @@ from digirent.app import Application
 from sqlalchemy.orm.session import Session
 from digirent.database.models import (
     Amenity,
+    Apartment,
     Landlord,
     LookingFor,
     Tenant,
@@ -246,3 +248,104 @@ def test_create_exisiting_amenity_fail(session: Session, application: Applicatio
     with pytest.raises(ApplicationError) as e:
         application.create_amenity(session, "hello")
         assert "exists" in str(e).lower()
+
+
+def test_create_apartment_ok(
+    session: Session, landlord: Landlord, application: Application
+):
+    assert not session.query(Apartment).count()
+    application.create_apartment(
+        session,
+        landlord,
+        name="Apartment Name",
+        monthly_price=450.70,
+        utilities_price=320.15,
+        address="some address",
+        country="Nigeria",
+        state="Kano",
+        city="Kano",
+        description="Apartment description",
+        house_type=HouseType.DUPLEX,
+        bedrooms=3,
+        bathrooms=4,
+        size=1200,
+        furnish_type="furnish type",
+        available_from=datetime.now().date(),
+        available_to=datetime.now().date(),
+        amenities=[],
+    )
+    assert session.query(Apartment).count() == 1
+    apartment: Apartment = session.query(Apartment).all()[0]
+    apartment.landlord == landlord
+    apartment.name == "Apartment Name"
+    apartment.monthly_price == 450.7
+    apartment.utilities_price == 320.15
+    apartment.address == "some address"
+    apartment.country == "Nigeria"
+    apartment.state == "Kano"
+    apartment.city == "Kano"
+    apartment.description == "Apartment description"
+    apartment.house_type == HouseType.DUPLEX,
+    apartment.bedrooms == 3
+    apartment.bathrooms == 4
+    apartment.size == 1200
+    apartment.furnish_type == "furnish type"
+    apartment.available_from == datetime.now().date()
+    apartment.available_to == datetime.now().date(),
+    apartment.amenities == []
+
+
+def test_update_apartment_ok(
+    session: Session, landlord: Landlord, application: Application
+):
+    application.create_amenity(session, "first")
+    amenity1 = session.query(Amenity).filter(Amenity.title == "first").first()
+    assert not session.query(Apartment).count()
+    application.create_apartment(
+        session,
+        landlord,
+        name="Apartment Name",
+        monthly_price=450.70,
+        utilities_price=320.15,
+        address="some address",
+        country="Nigeria",
+        state="Kano",
+        city="Kano",
+        description="Apartment description",
+        house_type=HouseType.DUPLEX,
+        bedrooms=3,
+        bathrooms=4,
+        size=1200,
+        furnish_type="furnish type",
+        available_from=datetime.now().date(),
+        available_to=datetime.now().date(),
+        amenities=[amenity1],
+    )
+    assert session.query(Apartment).count() == 1
+    apartment: Apartment = session.query(Apartment).all()[0]
+    apartment.landlord == landlord
+    apartment.name == "Apartment Name"
+    apartment.monthly_price == 450.7
+    apartment.utilities_price == 320.15
+    apartment.address == "some address"
+    apartment.country == "Nigeria"
+    apartment.state == "Kano"
+    apartment.city == "Kano"
+    apartment.description == "Apartment description"
+    apartment.house_type == HouseType.DUPLEX,
+    apartment.bedrooms == 3
+    apartment.bathrooms == 4
+    apartment.size == 1200
+    apartment.furnish_type == "furnish type"
+    apartment.available_from == datetime.now().date()
+    apartment.available_to == datetime.now().date(),
+    apartment.amenities == [amenity1]
+    application.create_amenity(session, "pool")
+    application.create_amenity(session, "barn")
+    assert session.query(Amenity).count() == 3
+    amenities = session.query(Amenity).all()
+    application.update_apartment(
+        session, apartment.landlord, apartment.id, amenities=amenities
+    )
+    xapartment = application.apartment_service.get(session, apartment.id)
+    assert xapartment.amenities == amenities

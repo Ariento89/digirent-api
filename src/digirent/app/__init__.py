@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID, uuid4
 from datetime import date
 from jwt import PyJWTError
@@ -11,7 +11,9 @@ from .base import ApplicationBase
 from .error import ApplicationError
 from digirent.database.models import (
     Amenity,
+    Apartment,
     BankDetail,
+    Landlord,
     LookingFor,
     Tenant,
     User,
@@ -164,3 +166,57 @@ class Application(ApplicationBase):
         if existing_amenity:
             raise ApplicationError("Amenity already exists")
         self.amenity_service.create(session, title=title)
+
+    def create_apartment(
+        self,
+        session: Session,
+        landlord: Landlord,
+        name: str,
+        monthly_price: float,
+        utilities_price: float,
+        address: str,
+        country: str,
+        state: str,
+        city: str,
+        description: str,
+        house_type: HouseType,
+        bedrooms: int,
+        bathrooms: int,
+        size: float,
+        furnish_type: str,
+        available_from: date,
+        available_to: date,
+        amenities: List[Amenity],
+    ):
+        self.apartment_service.create(
+            session,
+            amenities=amenities,
+            landlord=landlord,
+            name=name,
+            monthly_price=monthly_price,
+            utilities_price=utilities_price,
+            address=address,
+            country=country,
+            state=state,
+            city=city,
+            description=description,
+            house_type=house_type,
+            bedrooms=bedrooms,
+            bathrooms=bathrooms,
+            size=size,
+            furnish_type=furnish_type,
+            available_from=available_from,
+            available_to=available_to,
+        )
+
+    def update_apartment(
+        self, session: Session, landlord: Landlord, apartment_id: UUID, **kwargs
+    ):
+        apartment = self.apartment_service.get(session, apartment_id)
+        if not apartment:
+            raise ApplicationError("Apartment not found")
+        if apartment.landlord_id != landlord.id:
+            raise ApplicationError("Apartment not owned by user")
+        if apartment.tenant_id:
+            raise ApplicationError("Apartment has been subletted")
+        self.apartment_service.update(session, apartment, **kwargs)
