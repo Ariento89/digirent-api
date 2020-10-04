@@ -1,4 +1,6 @@
 from datetime import datetime
+from pathlib import Path
+from digirent.core.config import UPLOAD_PATH
 import digirent.util as util
 from digirent.database.services.user import UserService
 from digirent.database.enums import HouseType
@@ -6,6 +8,9 @@ from tests.test_user_service import user_data
 from tests.conftest import (
     admin_create_data,
     application,
+    clear_upload,
+    copy_id_file,
+    proof_of_income_file,
     user_create_data,
     user_service,
 )
@@ -349,3 +354,79 @@ def test_update_apartment_ok(
     )
     xapartment = application.apartment_service.get(session, apartment.id)
     assert xapartment.amenities == amenities
+
+
+@pytest.mark.parametrize(
+    "user",
+    [
+        "tenant",
+        "landlord",
+        "admin",
+    ],
+    indirect=True,
+)
+def test_user_upload_copy_id_ok(
+    application: Application, user: User, copy_id_file, clear_upload
+):
+    file_extension = "pdf"
+    user_copy_id_file_path: Path = (
+        Path(UPLOAD_PATH) / "copy_ids" / (str(user.id) + "." + file_extension)
+    )
+    assert not user_copy_id_file_path.exists()
+    application.upload_copy_id(user, copy_id_file, file_extension)
+    assert user_copy_id_file_path.exists()
+
+
+@pytest.mark.parametrize(
+    "user",
+    [
+        "tenant",
+        "landlord",
+        "admin",
+    ],
+    indirect=True,
+)
+def test_user_upload_another_copy_id_to_replace_previous_ok(
+    application: Application, user: User, copy_id_file, clear_upload
+):
+    file_extension = "pdf"
+    user_copy_id_file_path: Path = (
+        Path(UPLOAD_PATH) / "copy_ids" / (str(user.id) + "." + file_extension)
+    )
+    assert not user_copy_id_file_path.exists()
+    application.upload_copy_id(user, copy_id_file, file_extension)
+    assert user_copy_id_file_path.exists()
+    application.upload_copy_id(user, copy_id_file, "doc")
+    assert not user_copy_id_file_path.exists()
+    user_copy_id_file_path: Path = (
+        Path(UPLOAD_PATH) / "copy_ids" / (str(user.id) + "." + "doc")
+    )
+    assert user_copy_id_file_path.exists()
+
+
+def test_tenant_upload_proof_of_income(
+    application: Application, tenant: Tenant, proof_of_income_file, clear_upload
+):
+    file_extension = "pdf"
+    tenant_proof_of_income_file_path: Path = (
+        Path(UPLOAD_PATH) / "proof_of_income" / (str(tenant.id) + "." + file_extension)
+    )
+    assert not tenant_proof_of_income_file_path.exists()
+    application.upload_proof_of_income(tenant, proof_of_income_file, file_extension)
+    assert tenant_proof_of_income_file_path.exists()
+
+
+def test_tenant_upload_proof_of_enrollment(
+    application: Application, tenant: Tenant, proof_of_enrollment_file, clear_upload
+):
+    file_extension = "pdf"
+    tenant_proof_of_enrollment_file_path: Path = (
+        Path(UPLOAD_PATH)
+        / "proof_of_enrollment"
+        / (str(tenant.id) + "." + file_extension)
+    )
+    assert not tenant_proof_of_enrollment_file_path.exists()
+    application.upload_proof_of_enrollment(
+        tenant, proof_of_enrollment_file, file_extension
+    )
+    assert tenant_proof_of_enrollment_file_path.exists()

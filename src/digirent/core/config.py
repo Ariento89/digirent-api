@@ -39,3 +39,5 @@ MAIL_PORT: int = config("MAIL_PORT", cast=int, default=25)
 MAIL_USERNAME: str = config("MAIL_USERNAME", cast=str, default=None)
 
 MAIL_PASSWORD: str = config("MAIL_PASSWORD", cast=str, default=None)
+
+UPLOAD_PATH: str = config("UPLOAD_PATH", cast=str, default="upload")

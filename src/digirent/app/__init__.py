@@ -1,7 +1,9 @@
-from typing import List, Optional
+from pathlib import Path
+from typing import IO, List, Optional
 from uuid import UUID, uuid4
 from datetime import date
 from jwt import PyJWTError
+from digirent.core.config import UPLOAD_PATH
 import digirent.util as util
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
@@ -19,6 +21,9 @@ from digirent.database.models import (
     User,
     UserRole,
 )
+
+
+SUPPORTED_FILE_EXTENSIONS = ["pdf", "doc", "docx"]
 
 
 class Application(ApplicationBase):
@@ -220,3 +225,23 @@ class Application(ApplicationBase):
         if apartment.tenant_id:
             raise ApplicationError("Apartment has been subletted")
         self.apartment_service.update(session, apartment, **kwargs)
+
+    def __upload_file(self, user: User, file: IO, extension: str, foldername: str):
+        if extension not in SUPPORTED_FILE_EXTENSIONS:
+            raise ApplicationError("Invalid file format")
+        folder_path = Path(UPLOAD_PATH) / foldername
+        possible_filenames = [f"{user.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
+        for filename in possible_filenames:
+            if self.file_service.get(filename, folder_path):
+                self.file_service.delete(filename, folder_path)
+        filename = f"{user.id}.{extension}"
+        self.file_service.store_file(folder_path, filename, file)
+
+    def upload_copy_id(self, user: User, file: IO, extension: str):
+        return self.__upload_file(user, file, extension, "copy_ids")
+
+    def upload_proof_of_income(self, user: User, file: IO, extension: str):
+        return self.__upload_file(user, file, extension, "proof_of_income")
+
+    def upload_proof_of_enrollment(self, user: User, file: IO, extension: str):
+        return self.__upload_file(user, file, extension, "proof_of_enrollment")

@@ -5,17 +5,20 @@ from uuid import UUID
 
 import pytest
 import stripe
+import io
+import shutil
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm.session import Session
 from starlette.config import environ
 from pytest_mock import MockFixture
+from pathlib import Path
 
 
 environ["APP_ENV"] = "test"
 
-from digirent.core.config import DATABASE_URL
+from digirent.core.config import DATABASE_URL, UPLOAD_PATH
 import digirent.util as util
 from digirent.database.services.base import DBService
 from digirent.web_app import get_app
@@ -241,6 +244,38 @@ def user_auth_header(request):
 def non_admin_user(request):
     return request.getfixturevalue(request.param)
 
+
 @pytest.fixture
 def non_admin_user_auth_header(request):
     return request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def copy_id_file():
+    xfile = io.BytesIO()
+    xfile.write(b"Copy data")
+    xfile.seek(0)
+    return xfile
+
+
+@pytest.fixture
+def proof_of_income_file():
+    xfile = io.BytesIO()
+    xfile.write(b"Proof of income")
+    xfile.seek(0)
+    return xfile
+
+
+@pytest.fixture
+def proof_of_enrollment_file():
+    xfile = io.BytesIO()
+    xfile.write(b"Proof of enrollment")
+    xfile.seek(0)
+    return xfile
+
+
+@pytest.fixture
+def clear_upload():
+    yield
+    shutil.rmtree(UPLOAD_PATH)
+    assert not Path(UPLOAD_PATH).exists()
