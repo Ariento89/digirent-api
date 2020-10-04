@@ -5,6 +5,7 @@ from digirent.api.auth.router import router as auth_router
 from digirent.api.me.router import router as me_router
 from digirent.api.user.router import router as user_router
 from digirent.api.amenity.router import router as amenity_router
+from digirent.api.apartments.router import router as apartments_router
 
 
 def get_app():
@@ -22,6 +23,7 @@ def get_app():
     app.include_router(me_router, prefix="/api/me", tags=["Me"])
     app.include_router(user_router, prefix="/api/users", tags=["Users"])
     app.include_router(amenity_router, prefix="/api/amenities", tags=["Amenities"])
+    app.include_router(apartments_router, prefix="/api/apartments", tags=["Apartments"])
     return app
 
 

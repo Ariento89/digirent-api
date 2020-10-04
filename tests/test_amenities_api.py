@@ -26,7 +26,7 @@ def test_admin_create_amenity_ok(
     ],
     indirect=True,
 )
-def test_non_admin_creat_amenity_fail(
+def test_non_admin_create_amenity_fail(
     non_admin_user, non_admin_user_auth_header, session: Session, client: TestClient
 ):
     assert not session.query(Amenity).count()
