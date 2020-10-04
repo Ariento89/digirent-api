@@ -55,16 +55,4 @@ def update_apartment(
     except ApplicationError as e:
         if "not found" in str(e).lower():
             raise HTTPException(404, str(e))
-        raise HTTPException(401, str(e))
-
-
-# @router.get("/", response_model=List[AmenitySchema])
-# async def fetch_amenities(
-#     user: User = Depends(dependencies.get_current_user),
-#     application: Application = Depends(dependencies.get_application),
-#     session: Session = Depends(dependencies.get_database_session),
-# ):
-#     try:
-#         return application.amenity_service.all(session)
-#     except ApplicationError as e:
-#         raise HTTPException(401, str(e))
+        raise HTTPException(400, str(e))
