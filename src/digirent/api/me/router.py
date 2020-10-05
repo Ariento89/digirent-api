@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from enum import Enum
+from fastapi import APIRouter, Depends, File, UploadFile, Response, Query
 from fastapi.exceptions import HTTPException
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
@@ -78,6 +79,51 @@ def update_password(
 ):
     try:
         app.update_password(session, user, data.old_password, data.new_password)
+    except ApplicationError as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(404, str(e))
+        raise HTTPException(400, str(e))
+
+
+@router.post("/upload/copy-id", status_code=201)
+def upload_copy_id(
+    file: UploadFile = File(...),
+    user: User = Depends(dependencies.get_current_user),
+    app: Application = Depends(dependencies.get_application),
+):
+    try:
+        file_extension = file.filename.split(".")[-1]
+        app.upload_copy_id(user, file.file, file_extension)
+    except ApplicationError as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(404, str(e))
+        raise HTTPException(400, str(e))
+
+
+@router.post("/upload/proof-of-income", status_code=201)
+def upload_proof_of_income(
+    file: UploadFile = File(...),
+    tenant: Tenant = Depends(dependencies.get_current_tenant),
+    app: Application = Depends(dependencies.get_application),
+):
+    try:
+        file_extension = file.filename.split(".")[-1]
+        app.upload_proof_of_income(tenant, file.file, file_extension)
+    except ApplicationError as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(404, str(e))
+        raise HTTPException(400, str(e))
+
+
+@router.post("/upload/proof-of-enrollment", status_code=201)
+def upload_proof_of_enrollment(
+    file: UploadFile = File(...),
+    tenant: Tenant = Depends(dependencies.get_current_tenant),
+    app: Application = Depends(dependencies.get_application),
+):
+    try:
+        file_extension = file.filename.split(".")[-1]
+        app.upload_proof_of_enrollment(tenant, file.file, file_extension)
     except ApplicationError as e:
         if "not found" in str(e).lower():
             raise HTTPException(404, str(e))

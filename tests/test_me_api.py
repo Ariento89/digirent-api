@@ -4,6 +4,8 @@ from digirent.database.enums import Gender, HouseType
 from digirent.database.models import Landlord, Tenant, User, UserRole
 import pytest
 from fastapi.testclient import TestClient
+from pathlib import Path
+from digirent.core.config import UPLOAD_PATH
 
 
 @pytest.mark.parametrize(
@@ -199,3 +201,144 @@ def test_update_user_password(
     session.expire_all()
     assert not util.password_is_match(old_password, user.hashed_password)
     assert util.password_is_match(new_password, user.hashed_password)
+
+
+@pytest.mark.parametrize(
+    "user, user_auth_header",
+    [
+        ("tenant", "tenant_auth_header"),
+        ("landlord", "landlord_auth_header"),
+        ("admin", "admin_auth_header"),
+    ],
+    indirect=True,
+)
+def test_user_upload_copy_id_file_ok(
+    client: TestClient,
+    copy_id_file,
+    user,
+    user_auth_header: dict,
+    clear_upload,
+):
+    target_path = Path(UPLOAD_PATH) / f"copy_ids/{user.id}.pdf"
+    assert not target_path.exists()
+    response = client.post(
+        "/api/me/upload/copy-id",
+        files={"file": ("some_copy_file.pdf", copy_id_file, "image/jpeg")},
+        headers=user_auth_header,
+    )
+    assert response.status_code == 201
+    assert target_path.exists()
+
+
+def test_tenant_upload_proof_of_income_file_ok(
+    client: TestClient,
+    proof_of_income_file,
+    tenant,
+    tenant_auth_header: dict,
+    clear_upload,
+):
+    target_path = Path(UPLOAD_PATH) / f"proof_of_income/{tenant.id}.pdf"
+    assert not target_path.exists()
+    response = client.post(
+        "/api/me/upload/proof-of-income",
+        files={
+            "file": (
+                "some_proof_of_income_file.pdf",
+                proof_of_income_file,
+                "image/jpeg",
+            )
+        },
+        headers=tenant_auth_header,
+    )
+    assert response.status_code == 201
+    assert target_path.exists()
+
+
+def test_landlord_upload_proof_of_income_file_fail(
+    client: TestClient, proof_of_income_file, landlord, landlord_auth_header: dict
+):
+    target_path = Path(UPLOAD_PATH) / f"proof_of_income/{landlord.id}.pdf"
+    assert not target_path.exists()
+    response = client.post(
+        "/api/me/upload/proof-of-income",
+        files={
+            "file": (
+                "some_proof_of_income_file.pdf",
+                proof_of_income_file,
+                "image/jpeg",
+            )
+        },
+        headers=landlord_auth_header,
+    )
+    assert response.status_code == 403
+    assert not target_path.exists()
+
+
+def test_tenant_upload_proof_of_enrollment_file_ok(
+    client: TestClient,
+    proof_of_enrollment_file,
+    tenant,
+    tenant_auth_header: dict,
+    clear_upload,
+):
+    target_path = Path(UPLOAD_PATH) / f"proof_of_income/{tenant.id}.pdf"
+    assert not target_path.exists()
+    response = client.post(
+        "/api/me/upload/proof-of-income",
+        files={
+            "file": (
+                "some_proof_of_enrollment_file.pdf",
+                proof_of_enrollment_file,
+                "image/jpeg",
+            )
+        },
+        headers=tenant_auth_header,
+    )
+    assert response.status_code == 201
+    assert target_path.exists()
+
+
+def test_landlord_upload_proof_of_enrollment_file_fail(
+    client: TestClient, proof_of_enrollment_file, landlord, landlord_auth_header: dict
+):
+    target_path = Path(UPLOAD_PATH) / f"proof_of_enrollment/{landlord.id}.pdf"
+    assert not target_path.exists()
+    response = client.post(
+        "/api/me/upload/proof-of-enrollment",
+        files={
+            "file": (
+                "some_proof_of_enrollment_file.pdf",
+                proof_of_enrollment_file,
+                "image/jpeg",
+            )
+        },
+        headers=landlord_auth_header,
+    )
+    assert response.status_code == 403
+    assert not target_path.exists()
+
+
+@pytest.mark.parametrize(
+    "user, user_auth_header",
+    [
+        ("tenant", "tenant_auth_header"),
+        ("landlord", "landlord_auth_header"),
+        ("admin", "admin_auth_header"),
+    ],
+    indirect=True,
+)
+def test_user_upload_copy_id_with_unsupported_file_type_fail(
+    client: TestClient,
+    copy_id_file,
+    user,
+    user_auth_header: dict,
+):
+    target_path = Path(UPLOAD_PATH) / f"copy_ids/{user.id}.pdf"
+    assert not target_path.exists()
+    response = client.post(
+        "/api/me/upload/copy-id",
+        files={"file": ("some_copy_file.xlsx", copy_id_file, "image/jpeg")},
+        headers=user_auth_header,
+    )
+    assert response.status_code == 400
+    assert not target_path.exists()
