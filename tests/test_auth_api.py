@@ -1,13 +1,6 @@
-from digirent.database.models import User
 import pytest
-from uuid import UUID
+from digirent.database.models import User
 from fastapi.testclient import TestClient
-from digirent.api.me.schema import ProfileSchema
-from digirent.api.auth.schema import TokenSchema
-from pytest_mock import MockFixture
-from digirent.app import Application
-from digirent.app.error import ApplicationError
-from sqlalchemy.orm.session import Session
 
 
 @pytest.mark.parametrize(
@@ -21,7 +14,7 @@ from sqlalchemy.orm.session import Session
 )
 def test_tenant_auth_ok(client: TestClient, user: User, user_create_data: dict):
     response = client.post(
-        f"/api/auth/",
+        "/api/auth/",
         data={
             "username": user.email,
             "password": user_create_data["password"],
@@ -35,7 +28,7 @@ def test_tenant_auth_ok(client: TestClient, user: User, user_create_data: dict):
 
 def test_user_auth_fail(client: TestClient):
     response = client.post(
-        f"/api/auth/",
+        "/api/auth/",
         data={
             "username": "wrong email",
             "password": "wrongpassword",

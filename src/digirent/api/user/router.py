@@ -1,11 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from digirent.app.error import ApplicationError
-from digirent.api.auth.schema import TokenSchema
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
-from digirent.database.models import User
 from .schema import UserCreateSchema, UserSchema
 
 router = APIRouter()

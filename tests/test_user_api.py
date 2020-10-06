@@ -1,5 +1,4 @@
 from digirent.database.models import User, UserRole
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm.session import Session
 
@@ -16,7 +15,7 @@ def test_create_tenant_ok(
         "password": tenant_create_data["password"],
     }
     assert session.query(User).count() == 0
-    response = client.post(f"/api/users/tenant", json=create_data)
+    response = client.post("/api/users/tenant", json=create_data)
     result = response.json()
     assert response.status_code == 200
     assert session.query(User).count() == 1
@@ -36,7 +35,7 @@ def test_create_landlord_ok(
     assert session.query(User).count() == 0
     del landlord_create_data["role"]
     assert "role" not in landlord_create_data
-    response = client.post(f"/api/users/landlord", json=landlord_create_data)
+    response = client.post("/api/users/landlord", json=landlord_create_data)
     result = response.json()
     assert response.status_code == 200
     assert session.query(User).count() == 1

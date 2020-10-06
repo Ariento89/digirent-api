@@ -1,5 +1,4 @@
 from datetime import date
-from uuid import UUID
 from typing import Optional
 from digirent.database.enums import HouseType
 from digirent.database.models import Gender, UserRole

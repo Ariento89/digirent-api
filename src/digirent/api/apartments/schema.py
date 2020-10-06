@@ -1,7 +1,6 @@
-from datetime import date, datetime
+from datetime import date
 from typing import List, Optional
 from digirent.database.enums import HouseType
-from digirent.database.models import UserRole
 from ..schema import BaseSchema, OrmSchema
 
 

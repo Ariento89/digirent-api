@@ -1,12 +1,6 @@
 import os
-from typing import IO, Optional, Union
-from uuid import UUID
-from digirent.database.models import User, UserRole
-from sqlalchemy.orm.session import Session
-from passlib.context import CryptContext
-from digirent.core.config import UPLOAD_PATH
+from typing import IO, Union
 from pathlib import Path
-from io import BytesIO
 
 
 class FileService:

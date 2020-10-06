@@ -1,25 +1,14 @@
-from typing import Any, List, Optional, Union
+import inflection
+from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel
 from datetime import datetime
 
 
-def to_camel_case(text: str):
-    """Converts a given text to camel case
-
-    Arguments:
-        text {str} -- text to be converted
-    """
-    splitted_text: List[str] = text.split("_")
-    return splitted_text[0].lower() + "".join(
-        word.capitalize() for word in splitted_text[1:]
-    )
-
-
 class BaseSchema(BaseModel):
     class Config:
         extra = "forbid"
-        alias_generator = to_camel_case
+        alias_generator = inflection.camelize
         allow_population_by_field_name = True
 
 

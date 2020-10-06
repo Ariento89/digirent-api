@@ -1,11 +1,10 @@
-from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from digirent.app.error import ApplicationError
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
-from digirent.database.models import Admin, Amenity, Landlord, User
+from digirent.database.models import Amenity, Landlord
 from .schema import ApartmentCreateSchema, ApartmentUpdateSchema
 
 router = APIRouter()

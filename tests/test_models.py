@@ -1,16 +1,11 @@
 from datetime import datetime
-from tests.conftest import landlord
-import pytest
-from requests import status_codes
 from sqlalchemy.orm.session import Session
 from digirent.database.enums import HouseType, UserRole
 from digirent.database.models import (
-    Admin,
     Amenity,
     Apartment,
     Landlord,
     Tenant,
-    User,
     LookingFor,
     BankDetail,
 )

@@ -1,9 +1,5 @@
-from datetime import datetime
-from typing import List, Optional
-from uuid import UUID
 from sqlalchemy import (
     Column,
-    Table,
     String,
     Text,
     Float,
@@ -11,7 +7,6 @@ from sqlalchemy import (
     ForeignKey,
     Boolean,
     Date,
-    JSON,
 )
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy_utils import ChoiceType, EmailType, UUIDType

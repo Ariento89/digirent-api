@@ -1,10 +1,8 @@
 from digirent.app import Application
-from digirent.database.enums import HouseType, UserRole
-from tests.conftest import application
-import pytest
+from digirent.database.enums import HouseType
 from sqlalchemy.orm.session import Session
 from fastapi.testclient import TestClient
-from digirent.database.models import Admin, Amenity, Apartment, Landlord
+from digirent.database.models import Apartment, Landlord
 from datetime import datetime
 
 

@@ -1,10 +1,6 @@
 from datetime import datetime
-import random
-from typing import Dict, List, Any
-from uuid import UUID
 
 import pytest
-import stripe
 import io
 import shutil
 from fastapi import FastAPI
@@ -12,7 +8,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm.session import Session
 from starlette.config import environ
-from pytest_mock import MockFixture
 from pathlib import Path
 
 
@@ -173,7 +168,7 @@ def admin(session: Session, admin_create_data: dict) -> User:
 @pytest.fixture
 def tenant_auth_header(client: TestClient, tenant: User, tenant_create_data: dict):
     response = client.post(
-        f"/api/auth/",
+        "/api/auth/",
         data={
             "username": tenant.email,
             "password": tenant_create_data["password"],
@@ -191,7 +186,7 @@ def landlord_auth_header(
     client: TestClient, landlord: User, landlord_create_data: dict
 ):
     response = client.post(
-        f"/api/auth/",
+        "/api/auth/",
         data={
             "username": landlord.email,
             "password": landlord_create_data["password"],
@@ -207,7 +202,7 @@ def landlord_auth_header(
 @pytest.fixture
 def admin_auth_header(client: TestClient, admin: User, admin_create_data: dict):
     response = client.post(
-        f"/api/auth/",
+        "/api/auth/",
         data={
             "username": admin.email,
             "password": admin_create_data["password"],

@@ -1,12 +1,8 @@
-from datetime import datetime
-
-from sqlalchemy.exc import IntegrityError
-from digirent.database.enums import UserRole
-from tests.conftest import landlord_auth_header, user_create_data
 import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 from digirent.database.services.user import UserService
-from digirent.database.models import Landlord, Tenant, User
+from digirent.database.models import User
 
 
 @pytest.fixture
@@ -42,7 +38,7 @@ def test_create_user_with_existing_email_fail(
     new_dict["hashed_password"] = new_dict["password"]
     del new_dict["password"]
     with pytest.raises(IntegrityError) as e:
-        result = user_service.create(session, **new_dict)
+        user_service.create(session, **new_dict)
         assert "unique constraint" in str(e).lower()
 
 
@@ -66,7 +62,7 @@ def test_create_user_with_existing_phonenumber_fail(
     new_dict["hashed_password"] = new_dict["password"]
     del new_dict["password"]
     with pytest.raises(IntegrityError) as e:
-        result = user_service.create(session, **new_dict)
+        user_service.create(session, **new_dict)
         assert "unique constraint" in str(e).lower()
 
 

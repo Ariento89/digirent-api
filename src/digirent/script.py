@@ -1,6 +1,6 @@
 import sys
 from sqlalchemy.orm.session import Session
-from digirent.database.models import User, UserRole
+from digirent.database.models import UserRole
 from digirent.database.base import SessionLocal
 from digirent.app import Application
 from digirent.app.error import ApplicationError

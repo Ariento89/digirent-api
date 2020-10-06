@@ -1,5 +1,4 @@
 from digirent.app import Application
-from tests.conftest import application
 import pytest
 from sqlalchemy.orm.session import Session
 from fastapi.testclient import TestClient

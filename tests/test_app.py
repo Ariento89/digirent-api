@@ -4,16 +4,6 @@ from digirent.core.config import UPLOAD_PATH
 import digirent.util as util
 from digirent.database.services.user import UserService
 from digirent.database.enums import HouseType
-from tests.test_user_service import user_data
-from tests.conftest import (
-    admin_create_data,
-    application,
-    clear_upload,
-    copy_id_file,
-    proof_of_income_file,
-    user_create_data,
-    user_service,
-)
 from digirent.app.error import ApplicationError
 import pytest
 from digirent.app import Application
@@ -22,7 +12,6 @@ from digirent.database.models import (
     Amenity,
     Apartment,
     Landlord,
-    LookingFor,
     Tenant,
     User,
     UserRole,
@@ -110,7 +99,7 @@ def test_update_user_email_to_existing_email_fail(
 ):
     prev_email = tenant.email
     assert prev_email != landlord.email
-    with pytest.raises(ApplicationError) as e:
+    with pytest.raises(ApplicationError):
         application.update_profile(
             session,
             tenant,
@@ -129,7 +118,7 @@ def test_update_user_phone_number_to_existing_email_fail(
 ):
     prev_phone_number = tenant.phone_number
     assert prev_phone_number != landlord.phone_number
-    with pytest.raises(ApplicationError) as e:
+    with pytest.raises(ApplicationError):
         application.update_profile(
             session,
             tenant,

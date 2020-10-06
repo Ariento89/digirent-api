@@ -1,7 +1,7 @@
 import digirent.util as util
 from sqlalchemy.orm.session import Session
 from digirent.database.enums import Gender, HouseType
-from digirent.database.models import Landlord, Tenant, User, UserRole
+from digirent.database.models import Landlord, Tenant, User
 import pytest
 from fastapi.testclient import TestClient
 from pathlib import Path
@@ -17,7 +17,7 @@ from digirent.core.config import UPLOAD_PATH
     ],
     indirect=True,
 )
-def test_fetch_profile_ok(client: TestClient, user: User, user_auth_header: dict):
+def test_fetch_profile_ok(client: TestClient, user: User, user_auth_header):
     response = client.get("/api/me/", headers=user_auth_header)
     result = response.json()
     assert response.status_code == 200
@@ -33,7 +33,7 @@ def test_fetch_profile_ok(client: TestClient, user: User, user_auth_header: dict
 
 
 def test_fetch_profile_without_token_fail(client: TestClient):
-    response = client.get(f"/api/me/")
+    response = client.get("/api/me/")
     assert response.status_code == 401
 
 

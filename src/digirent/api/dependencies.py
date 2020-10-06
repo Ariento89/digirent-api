@@ -2,7 +2,6 @@ from typing import Union
 from fastapi import Depends, HTTPException
 from fastapi import status as status
 from fastapi.security import OAuth2PasswordBearer
-from jwt import PyJWTError
 from digirent.app import Application
 from digirent.app.container import ApplicationContainer
 from sqlalchemy.orm.session import Session

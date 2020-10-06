@@ -1,4 +1,3 @@
-from uuid import UUID
 from sqlalchemy import Column, Table, ForeignKey
 from sqlalchemy_utils import UUIDType
 from .base import Base

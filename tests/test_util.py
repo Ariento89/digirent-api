@@ -1,4 +1,3 @@
-from sqlalchemy import util
 import digirent.util as util
 
 
