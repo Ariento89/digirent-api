@@ -8,7 +8,7 @@ from datetime import datetime
 class BaseSchema(BaseModel):
     class Config:
         extra = "forbid"
-        alias_generator = inflection.camelize
+        alias_generator = lambda x: inflection.camelize(x, False)  # noqa
         allow_population_by_field_name = True
 
 
