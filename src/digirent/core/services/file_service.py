@@ -1,5 +1,5 @@
 import os
-from typing import IO, Union
+from typing import IO, List, Union
 from pathlib import Path
 
 
@@ -27,3 +27,6 @@ class FileService:
             return False
         os.remove(path)
         return True
+
+    def list_files(self, folder_path: Path) -> List[str]:
+        return os.listdir(folder_path) if folder_path.exists() else []

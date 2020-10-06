@@ -1,6 +1,11 @@
 from datetime import datetime
 from pathlib import Path
-from digirent.core.config import UPLOAD_PATH
+from typing import IO
+from digirent.core.config import (
+    UPLOAD_PATH,
+    NUMBER_OF_APARTMENT_IMAGES,
+    NUMBER_OF_APARTMENT_VIDEOS,
+)
 import digirent.util as util
 from digirent.database.services.user import UserService
 from digirent.database.enums import HouseType
@@ -355,15 +360,15 @@ def test_update_apartment_ok(
     indirect=True,
 )
 def test_user_upload_copy_id_ok(
-    application: Application, user: User, copy_id_file, clear_upload
+    application: Application, user: User, file, clear_upload  # noqa
 ):
     file_extension = "pdf"
-    user_copy_id_file_path: Path = (
+    user_file_path: Path = (
         Path(UPLOAD_PATH) / "copy_ids" / (str(user.id) + "." + file_extension)
     )
-    assert not user_copy_id_file_path.exists()
-    application.upload_copy_id(user, copy_id_file, file_extension)
-    assert user_copy_id_file_path.exists()
+    assert not user_file_path.exists()
+    application.upload_copy_id(user, file, file_extension)
+    assert user_file_path.exists()
 
 
 @pytest.mark.parametrize(
@@ -376,46 +381,186 @@ def test_user_upload_copy_id_ok(
     indirect=True,
 )
 def test_user_upload_another_copy_id_to_replace_previous_ok(
-    application: Application, user: User, copy_id_file, clear_upload
+    application: Application, user: User, file, clear_upload  # noqa
 ):
     file_extension = "pdf"
-    user_copy_id_file_path: Path = (
+    user_file_path: Path = (
         Path(UPLOAD_PATH) / "copy_ids" / (str(user.id) + "." + file_extension)
     )
-    assert not user_copy_id_file_path.exists()
-    application.upload_copy_id(user, copy_id_file, file_extension)
-    assert user_copy_id_file_path.exists()
-    application.upload_copy_id(user, copy_id_file, "doc")
-    assert not user_copy_id_file_path.exists()
-    user_copy_id_file_path: Path = (
-        Path(UPLOAD_PATH) / "copy_ids" / (str(user.id) + "." + "doc")
-    )
-    assert user_copy_id_file_path.exists()
+    assert not user_file_path.exists()
+    application.upload_copy_id(user, file, file_extension)
+    assert user_file_path.exists()
+    application.upload_copy_id(user, file, "doc")
+    assert not user_file_path.exists()
+    user_file_path: Path = Path(UPLOAD_PATH) / "copy_ids" / (str(user.id) + "." + "doc")
+    assert user_file_path.exists()
 
 
 def test_tenant_upload_proof_of_income(
-    application: Application, tenant: Tenant, proof_of_income_file, clear_upload
+    application: Application, tenant: Tenant, file, clear_upload  # noqa
 ):
     file_extension = "pdf"
-    tenant_proof_of_income_file_path: Path = (
+    tenant_file_path: Path = (
         Path(UPLOAD_PATH) / "proof_of_income" / (str(tenant.id) + "." + file_extension)
     )
-    assert not tenant_proof_of_income_file_path.exists()
-    application.upload_proof_of_income(tenant, proof_of_income_file, file_extension)
-    assert tenant_proof_of_income_file_path.exists()
+    assert not tenant_file_path.exists()
+    application.upload_proof_of_income(tenant, file, file_extension)
+    assert tenant_file_path.exists()
 
 
 def test_tenant_upload_proof_of_enrollment(
-    application: Application, tenant: Tenant, proof_of_enrollment_file, clear_upload
+    application: Application, tenant: Tenant, file, clear_upload  # noqa
 ):
     file_extension = "pdf"
-    tenant_proof_of_enrollment_file_path: Path = (
+    tenant_file_path: Path = (
         Path(UPLOAD_PATH)
         / "proof_of_enrollment"
         / (str(tenant.id) + "." + file_extension)
     )
-    assert not tenant_proof_of_enrollment_file_path.exists()
-    application.upload_proof_of_enrollment(
-        tenant, proof_of_enrollment_file, file_extension
+    assert not tenant_file_path.exists()
+    application.upload_proof_of_enrollment(tenant, file, file_extension)
+    assert tenant_file_path.exists()
+
+
+def test_landlord_upload_apartment_images_ok(
+    application: Application,
+    landlord: Landlord,
+    file: IO,
+    apartment: Apartment,
+    clear_upload,  # noqa
+):
+    filename = "image1.jpg"
+    target_path: Path = (
+        Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images/{filename}"
     )
-    assert tenant_proof_of_enrollment_file_path.exists()
+    assert not target_path.exists()
+    application.upload_apartment_image(landlord, apartment, file, filename)
+    assert target_path.exists()
+
+
+def test_landlord_upload_apartment_video_ok(
+    application: Application,
+    landlord: Landlord,
+    file: IO,
+    apartment: Apartment,
+    clear_upload,  # noqa
+):
+    filename = "video1.mp4"
+    target_path: Path = (
+        Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/videos/{filename}"
+    )
+    assert not target_path.exists()
+    application.upload_apartment_video(landlord, apartment, file, filename)
+    assert target_path.exists()
+
+
+def test_landlord_upload_more_images_than_supported_fail(
+    application: Application,
+    landlord: Landlord,
+    file: IO,
+    apartment: Apartment,
+    clear_upload,  # noqa
+):
+    filenames = [f"image{i}.jpg" for i in range(NUMBER_OF_APARTMENT_IMAGES)]
+    for filename in filenames:
+        target_path: Path = (
+            Path(UPLOAD_PATH)
+            / f"apartments/{landlord.id}/{apartment.id}/images/{filename}"
+        )
+        assert not target_path.exists()
+        application.upload_apartment_image(landlord, apartment, file, filename)
+        assert target_path.exists()
+    with pytest.raises(ApplicationError) as e:
+        application.upload_apartment_image(
+            landlord, apartment, file, f"image{NUMBER_OF_APARTMENT_IMAGES+7}.jpg"
+        )
+        assert "maximum number of apartment images reached" in str(e).lower()
+
+
+def test_tenant_upload_apartment_images_fail(
+    application: Application,
+    tenant: Tenant,
+    file: IO,
+    apartment: Apartment,
+):
+    filename = "image1.jpg"
+    target_path: Path = (
+        Path(UPLOAD_PATH) / f"apartments/{tenant.id}/{apartment.id}/images/{filename}"
+    )
+    assert not target_path.exists()
+    with pytest.raises(AssertionError):
+        application.upload_apartment_image(tenant, apartment, file, filename)
+    assert not target_path.exists()
+
+
+def test_tenant_upload_apartment_video_fail(
+    application: Application,
+    tenant: Tenant,
+    file: IO,
+    apartment: Apartment,
+):
+    filename = "video1.mp4"
+    target_path: Path = (
+        Path(UPLOAD_PATH) / f"apartments/{tenant.id}/{apartment.id}/videos/{filename}"
+    )
+    assert not target_path.exists()
+    with pytest.raises(AssertionError):
+        application.upload_apartment_video(tenant, apartment, file, filename)
+    assert not target_path.exists()
+
+
+def test_landlord_upload_more_videos_than_supported_fail(
+    application: Application,
+    landlord: Landlord,
+    file: IO,
+    apartment: Apartment,
+    clear_upload,  # noqa
+):
+    filenames = [f"video{i}.mp4" for i in range(NUMBER_OF_APARTMENT_VIDEOS)]
+    for filename in filenames:
+        target_path: Path = (
+            Path(UPLOAD_PATH)
+            / f"apartments/{landlord.id}/{apartment.id}/videos/{filename}"
+        )
+        assert not target_path.exists()
+        application.upload_apartment_video(landlord, apartment, file, filename)
+        assert target_path.exists()
+    with pytest.raises(ApplicationError) as e:
+        application.upload_apartment_video(
+            landlord, apartment, file, f"video{NUMBER_OF_APARTMENT_VIDEOS+7}.mp4"
+        )
+        assert "maximum number of apartment videos reached" in str(e).lower()
+
+
+def test_landlord_upload_unsupported_image_format_fail(
+    application: Application,
+    landlord: Landlord,
+    file: IO,
+    apartment: Apartment,
+):
+    filename = "image1.unsupported"
+    target_path: Path = (
+        Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images/{filename}"
+    )
+    assert not target_path.exists()
+    with pytest.raises(ApplicationError) as e:
+        application.upload_apartment_image(landlord, apartment, file, filename)
+        assert "unsupported image format" in str(e).lower()
+    assert not target_path.exists()
+
+
+def test_landlord_upload_unsupported_video_format_fail(
+    application: Application,
+    landlord: Landlord,
+    file: IO,
+    apartment: Apartment,
+):
+    filename = "video1.unsupported"
+    target_path: Path = (
+        Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images/{filename}"
+    )
+    assert not target_path.exists()
+    with pytest.raises(ApplicationError) as e:
+        application.upload_apartment_image(landlord, apartment, file, filename)
+        assert "unsupported video format" in str(e).lower()
+    assert not target_path.exists()

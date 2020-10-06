@@ -3,7 +3,11 @@ from typing import IO, List, Optional
 from uuid import UUID, uuid4
 from datetime import date
 from jwt import PyJWTError
-from digirent.core.config import UPLOAD_PATH
+from digirent.core.config import (
+    NUMBER_OF_APARTMENT_VIDEOS,
+    UPLOAD_PATH,
+    NUMBER_OF_APARTMENT_IMAGES,
+)
 import digirent.util as util
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
@@ -24,6 +28,8 @@ from digirent.database.models import (
 
 
 SUPPORTED_FILE_EXTENSIONS = ["pdf", "doc", "docx"]
+SUPPORTED_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png"]
+SUPPORTED_VIDEO_EXTENSIONS = ["mp4", "avi", "mkv"]
 
 
 class Application(ApplicationBase):
@@ -245,3 +251,33 @@ class Application(ApplicationBase):
 
     def upload_proof_of_enrollment(self, user: User, file: IO, extension: str):
         return self.__upload_file(user, file, extension, "proof_of_enrollment")
+
+    def upload_apartment_image(
+        self, landlord: Landlord, apartment: Apartment, file: IO, filename: str
+    ):
+        assert isinstance(landlord, Landlord)
+        file_extension = filename.split(".")[-1]
+        if file_extension not in SUPPORTED_IMAGE_EXTENSIONS:
+            raise ApplicationError("Unsupported image format")
+        folder_path = (
+            Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images"
+        )
+        files = self.file_service.list_files(folder_path)
+        if len(files) == NUMBER_OF_APARTMENT_IMAGES:
+            raise ApplicationError("Maximum number of apartment images reached")
+        self.file_service.store_file(folder_path, filename, file)
+
+    def upload_apartment_video(
+        self, landlord: Landlord, apartment: Apartment, file: IO, filename: str
+    ):
+        assert isinstance(landlord, Landlord)
+        file_extension = filename.split(".")[-1]
+        if file_extension not in SUPPORTED_VIDEO_EXTENSIONS:
+            raise ApplicationError("Unsupported video format")
+        folder_path = (
+            Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/videos"
+        )
+        files = self.file_service.list_files(folder_path)
+        if len(files) == NUMBER_OF_APARTMENT_VIDEOS:
+            raise ApplicationError("Maximum number of apartment vidoes reached")
+        self.file_service.store_file(folder_path, filename, file)

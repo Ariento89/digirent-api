@@ -10,6 +10,8 @@ from sqlalchemy.orm.session import Session
 from starlette.config import environ
 from pathlib import Path
 
+from digirent.core.services.file_service import FileService
+
 
 environ["APP_ENV"] = "test"
 
@@ -18,7 +20,7 @@ import digirent.util as util
 from digirent.database.services.base import DBService
 from digirent.web_app import get_app
 from digirent.database.models import Admin, Amenity, Apartment, Landlord, Tenant, User
-from digirent.database.enums import UserRole
+from digirent.database.enums import HouseType, UserRole
 from digirent.app.container import ApplicationContainer
 from digirent.database.base import SessionLocal, Base
 from digirent.database.services.user import UserService
@@ -121,6 +123,11 @@ def apartment_service():
 @pytest.fixture
 def amenity_service():
     return DBService[Amenity](Amenity)
+
+
+@pytest.fixture
+def file_service():
+    return FileService()
 
 
 @pytest.fixture
@@ -246,25 +253,9 @@ def non_admin_user_auth_header(request):
 
 
 @pytest.fixture
-def copy_id_file():
+def file():
     xfile = io.BytesIO()
     xfile.write(b"Copy data")
-    xfile.seek(0)
-    return xfile
-
-
-@pytest.fixture
-def proof_of_income_file():
-    xfile = io.BytesIO()
-    xfile.write(b"Proof of income")
-    xfile.seek(0)
-    return xfile
-
-
-@pytest.fixture
-def proof_of_enrollment_file():
-    xfile = io.BytesIO()
-    xfile.write(b"Proof of enrollment")
     xfile.seek(0)
     return xfile
 
@@ -274,3 +265,32 @@ def clear_upload():
     yield
     shutil.rmtree(UPLOAD_PATH)
     assert not Path(UPLOAD_PATH).exists()
+
+
+@pytest.fixture
+def apartment(
+    session: Session, landlord: Landlord, application: Application
+) -> Apartment:
+    assert not session.query(Apartment).count()
+    application.create_apartment(
+        session,
+        landlord,
+        "apartment name",
+        450.35,
+        320.40,
+        "some address",
+        "Nigeria",
+        "Kano",
+        "KN",
+        "some description",
+        HouseType.BUNGALOW,
+        3,
+        2,
+        1200,
+        "ftype",
+        datetime.utcnow().date(),
+        datetime.utcnow().date(),
+        [],
+    )
+    assert session.query(Apartment).count() == 1
+    return session.query(Apartment).all()[0]

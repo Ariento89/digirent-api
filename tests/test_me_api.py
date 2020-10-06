@@ -212,9 +212,9 @@ def test_update_user_password(
     ],
     indirect=True,
 )
-def test_user_upload_copy_id_file_ok(
+def test_user_upload_copy_idfile_ok(
     client: TestClient,
-    copy_id_file,
+    file,
     user,
     user_auth_header: dict,
     clear_upload,
@@ -223,7 +223,7 @@ def test_user_upload_copy_id_file_ok(
     assert not target_path.exists()
     response = client.post(
         "/api/me/upload/copy-id",
-        files={"file": ("some_copy_file.pdf", copy_id_file, "image/jpeg")},
+        files={"file": ("some_copy_file.pdf", file, "image/jpeg")},
         headers=user_auth_header,
     )
     assert response.status_code == 201
@@ -232,7 +232,7 @@ def test_user_upload_copy_id_file_ok(
 
 def test_tenant_upload_proof_of_income_file_ok(
     client: TestClient,
-    proof_of_income_file,
+    file,
     tenant,
     tenant_auth_header: dict,
     clear_upload,
@@ -243,8 +243,8 @@ def test_tenant_upload_proof_of_income_file_ok(
         "/api/me/upload/proof-of-income",
         files={
             "file": (
-                "some_proof_of_income_file.pdf",
-                proof_of_income_file,
+                "some_file.pdf",
+                file,
                 "image/jpeg",
             )
         },
@@ -255,7 +255,7 @@ def test_tenant_upload_proof_of_income_file_ok(
 
 
 def test_landlord_upload_proof_of_income_file_fail(
-    client: TestClient, proof_of_income_file, landlord, landlord_auth_header: dict
+    client: TestClient, file, landlord, landlord_auth_header: dict
 ):
     target_path = Path(UPLOAD_PATH) / f"proof_of_income/{landlord.id}.pdf"
     assert not target_path.exists()
@@ -263,8 +263,8 @@ def test_landlord_upload_proof_of_income_file_fail(
         "/api/me/upload/proof-of-income",
         files={
             "file": (
-                "some_proof_of_income_file.pdf",
-                proof_of_income_file,
+                "some_file.pdf",
+                file,
                 "image/jpeg",
             )
         },
@@ -276,19 +276,19 @@ def test_landlord_upload_proof_of_income_file_fail(
 
 def test_tenant_upload_proof_of_enrollment_file_ok(
     client: TestClient,
-    proof_of_enrollment_file,
+    file,
     tenant,
     tenant_auth_header: dict,
     clear_upload,
 ):
-    target_path = Path(UPLOAD_PATH) / f"proof_of_income/{tenant.id}.pdf"
+    target_path = Path(UPLOAD_PATH) / f"proof_of_enrollment/{tenant.id}.pdf"
     assert not target_path.exists()
     response = client.post(
-        "/api/me/upload/proof-of-income",
+        "/api/me/upload/proof-of-enrollment",
         files={
             "file": (
-                "some_proof_of_enrollment_file.pdf",
-                proof_of_enrollment_file,
+                "some_file.pdf",
+                file,
                 "image/jpeg",
             )
         },
@@ -299,7 +299,7 @@ def test_tenant_upload_proof_of_enrollment_file_ok(
 
 
 def test_landlord_upload_proof_of_enrollment_file_fail(
-    client: TestClient, proof_of_enrollment_file, landlord, landlord_auth_header: dict
+    client: TestClient, file, landlord, landlord_auth_header: dict
 ):
     target_path = Path(UPLOAD_PATH) / f"proof_of_enrollment/{landlord.id}.pdf"
     assert not target_path.exists()
@@ -307,8 +307,8 @@ def test_landlord_upload_proof_of_enrollment_file_fail(
         "/api/me/upload/proof-of-enrollment",
         files={
             "file": (
-                "some_proof_of_enrollment_file.pdf",
-                proof_of_enrollment_file,
+                "some_file.pdf",
+                file,
                 "image/jpeg",
             )
         },
@@ -329,7 +329,7 @@ def test_landlord_upload_proof_of_enrollment_file_fail(
 )
 def test_user_upload_copy_id_with_unsupported_file_type_fail(
     client: TestClient,
-    copy_id_file,
+    file,
     user,
     user_auth_header: dict,
 ):
@@ -337,7 +337,7 @@ def test_user_upload_copy_id_with_unsupported_file_type_fail(
     assert not target_path.exists()
     response = client.post(
         "/api/me/upload/copy-id",
-        files={"file": ("some_copy_file.xlsx", copy_id_file, "image/jpeg")},
+        files={"file": ("some_copy_file.xlsx", file, "image/jpeg")},
         headers=user_auth_header,
     )
     assert response.status_code == 400

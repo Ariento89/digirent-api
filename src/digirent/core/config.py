@@ -41,3 +41,7 @@ MAIL_USERNAME: str = config("MAIL_USERNAME", cast=str, default=None)
 MAIL_PASSWORD: str = config("MAIL_PASSWORD", cast=str, default=None)
 
 UPLOAD_PATH: str = config("UPLOAD_PATH", cast=str, default="upload")
+
+NUMBER_OF_APARTMENT_IMAGES: int = config("NUMBER_OF_APARTMENT_IMAGES", cast=int)
+
+NUMBER_OF_APARTMENT_VIDEOS: int = config("NUMBER_OF_APARTMENT_VIDEOS", cast=int)
