@@ -1,10 +1,10 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from digirent.app.error import ApplicationError
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
-from digirent.database.models import Amenity, Landlord
+from digirent.database.models import Amenity, Apartment, Landlord
 from .schema import ApartmentCreateSchema, ApartmentUpdateSchema
 
 router = APIRouter()
@@ -54,4 +54,38 @@ def update_apartment(
     except ApplicationError as e:
         if "not found" in str(e).lower():
             raise HTTPException(404, str(e))
+        raise HTTPException(400, str(e))
+
+
+@router.post("/{apartment_id}/images")
+def upload_image(
+    apartment_id: UUID,
+    image: UploadFile = File(...),
+    landlord: Landlord = Depends(dependencies.get_current_landlord),
+    session: Session = Depends(dependencies.get_database_session),
+    app: Application = Depends(dependencies.get_application),
+):
+    try:
+        apartment: Apartment = app.apartment_service.get(session, apartment_id)
+        if not apartment:
+            raise HTTPException(404, "Apartment not found")
+        app.upload_apartment_image(landlord, apartment, image.file, image.filename)
+    except ApplicationError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/{apartment_id}/videos")
+def upload_videos(
+    apartment_id: UUID,
+    video: UploadFile = File(...),
+    landlord: Landlord = Depends(dependencies.get_current_landlord),
+    session: Session = Depends(dependencies.get_database_session),
+    app: Application = Depends(dependencies.get_application),
+):
+    try:
+        apartment: Apartment = app.apartment_service.get(session, apartment_id)
+        if not apartment:
+            raise HTTPException(404, "Apartment not found")
+        app.upload_apartment_video(landlord, apartment, video.file, video.filename)
+    except ApplicationError as e:
         raise HTTPException(400, str(e))

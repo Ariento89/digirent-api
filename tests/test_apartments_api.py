@@ -1,10 +1,12 @@
+from pathlib import Path
 from digirent.app import Application
+from digirent.core.services.file_service import FileService
 from digirent.database.enums import HouseType
 from sqlalchemy.orm.session import Session
 from fastapi.testclient import TestClient
-from digirent.database.models import Apartment, Landlord
+from digirent.database.models import Apartment, Landlord, Tenant
 from datetime import datetime
-
+from digirent.core.config import UPLOAD_PATH
 
 apartment_create_data = dict(
     name="Apartment Name",
@@ -160,3 +162,153 @@ def test_tenant_update_apartment_fail(
         headers=tenant_auth_header,
     )
     assert response.status_code == 403
+
+
+def test_landlord_upload_apartment_image_ok(
+    landlord_auth_header: dict,
+    landlord: Landlord,
+    file_service: FileService,
+    client: TestClient,
+    apartment: Apartment,
+    file,
+):
+    filename = "image1.jpg"
+    image_folder_path = (
+        Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images"
+    )
+    assert len(file_service.list_files(image_folder_path)) == 0
+    file_path = image_folder_path / filename
+    assert not file_path.exists()
+    response = client.post(
+        f"/api/apartments/{apartment.id}/images",
+        files={"image": (filename, file, "image/jpeg")},
+        headers=landlord_auth_header,
+    )
+    assert response.status_code == 200
+    assert len(file_service.list_files(image_folder_path)) == 1
+    assert file_path.exists()
+
+
+def test_landlord_upload_apartment_video_ok(
+    landlord_auth_header: dict,
+    landlord: Landlord,
+    file_service: FileService,
+    client: TestClient,
+    apartment: Apartment,
+    file,
+):
+    filename = "video1.mp4"
+    video_folder_path = (
+        Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/videos"
+    )
+    assert len(file_service.list_files(video_folder_path)) == 0
+    file_path = video_folder_path / filename
+    assert not file_path.exists()
+    response = client.post(
+        f"/api/apartments/{apartment.id}/videos",
+        files={"video": (filename, file, "video/jpeg")},
+        headers=landlord_auth_header,
+    )
+    assert response.status_code == 200
+    assert len(file_service.list_files(video_folder_path)) == 1
+    assert file_path.exists()
+
+
+def test_tenant_upload_apartment_image_fail(
+    tenant_auth_header: dict,
+    tenant: Tenant,
+    file_service: FileService,
+    client: TestClient,
+    apartment: Apartment,
+    file,
+):
+    filename = "image1.mp4"
+    image_folder_path = (
+        Path(UPLOAD_PATH) / f"apartments/{tenant.id}/{apartment.id}/images"
+    )
+    assert len(file_service.list_files(image_folder_path)) == 0
+    file_path = image_folder_path / filename
+    assert not file_path.exists()
+    response = client.post(
+        f"/api/apartments/{apartment.id}/images",
+        files={"image": (filename, file, "image/jpeg")},
+        headers=tenant_auth_header,
+    )
+    assert response.status_code == 403
+    assert len(file_service.list_files(image_folder_path)) == 0
+    assert not file_path.exists()
+
+
+def test_tenant_upload_apartment_video_fail(
+    tenant_auth_header: dict,
+    tenant: Tenant,
+    file_service: FileService,
+    client: TestClient,
+    apartment: Apartment,
+    file,
+):
+    filename = "video1.mp4"
+    video_folder_path = (
+        Path(UPLOAD_PATH) / f"apartments/{tenant.id}/{apartment.id}/videos"
+    )
+    assert len(file_service.list_files(video_folder_path)) == 0
+    file_path = video_folder_path / filename
+    assert not file_path.exists()
+    response = client.post(
+        f"/api/apartments/{apartment.id}/videos",
+        files={"video": (filename, file, "video/jpeg")},
+        headers=tenant_auth_header,
+    )
+    assert response.status_code == 403
+    assert len(file_service.list_files(video_folder_path)) == 0
+    assert not file_path.exists()
+
+
+def test_landlord_upload_wrong_image_file_type_fail(
+    landlord_auth_header: dict,
+    landlord: Landlord,
+    file_service: FileService,
+    client: TestClient,
+    apartment: Apartment,
+    file,
+):
+    filename = "image1.unsupported"
+    image_folder_path = (
+        Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images"
+    )
+    assert len(file_service.list_files(image_folder_path)) == 0
+    file_path = image_folder_path / filename
+    assert not file_path.exists()
+    response = client.post(
+        f"/api/apartments/{apartment.id}/images",
+        files={"image": (filename, file, "image/jpeg")},
+        headers=landlord_auth_header,
+    )
+    assert response.status_code == 400
+    assert len(file_service.list_files(image_folder_path)) == 0
+    assert not file_path.exists()
+
+
+def test_landlord_upload_wrong_video_file_type_fail(
+    landlord_auth_header: dict,
+    landlord: Landlord,
+    file_service: FileService,
+    client: TestClient,
+    apartment: Apartment,
+    file,
+):
+    filename = "video1.unsupported"
+    video_folder_path = (
+        Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/videos"
+    )
+    assert len(file_service.list_files(video_folder_path)) == 0
+    file_path = video_folder_path / filename
+    assert not file_path.exists()
+    response = client.post(
+        f"/api/apartments/{apartment.id}/videos",
+        files={"video": (filename, file, "video/jpeg")},
+        headers=landlord_auth_header,
+    )
+    assert response.status_code == 400
+    assert len(file_service.list_files(video_folder_path)) == 0
+    assert not file_path.exists()
