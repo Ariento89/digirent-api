@@ -16,6 +16,7 @@ class ProfileSchema(OrmSchema):
     phone_number: str
     role: UserRole
     is_active: bool
+    profile_percentage: Optional[float]
 
 
 class ProfileUpdateSchema(BaseSchema):

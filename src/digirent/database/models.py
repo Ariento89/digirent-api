@@ -9,7 +9,11 @@ from sqlalchemy import (
     Date,
 )
 from sqlalchemy.orm import backref, relationship
+from sqlalchemy.util.langhelpers import hybridproperty
 from sqlalchemy_utils import ChoiceType, EmailType, UUIDType
+
+from digirent import util
+from digirent.core.config import SUPPORTED_FILE_EXTENSIONS
 from .base import Base
 from .mixins import EntityMixin, TimestampMixin
 from .enums import UserRole, Gender, HouseType
@@ -51,9 +55,47 @@ class Tenant(User):
     looking_for = relationship("LookingFor", uselist=False, backref="tenant")
     __mapper_args__ = {"polymorphic_identity": UserRole.TENANT}
 
+    @hybridproperty
+    def profile_percentage(self) -> float:
+        result = 0
+        possible_filenames = [f"{self.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
+        copy_id_path = util.get_copy_ids_path()
+        possible_copy_id_file_paths = [
+            (copy_id_path / filename) for filename in possible_filenames
+        ]
+        proof_of_income_path = util.get_proof_of_income_path()
+        possible_proof_of_income_file_paths = [
+            (proof_of_income_path / filename) for filename in possible_filenames
+        ]
+        proof_of_enrollment_path = util.get_proof_of_enrollment_path()
+        possible_proof_of_enrollment_file_paths = [
+            (proof_of_enrollment_path / filename) for filename in possible_filenames
+        ]
+        if any(path.exists() for path in possible_copy_id_file_paths):
+            result += 20
+        if any(path.exists() for path in possible_proof_of_income_file_paths):
+            result += 10
+        if any(path.exists() for path in possible_proof_of_enrollment_file_paths):
+            result += 10
+        assert result <= 100
+        return result
+
 
 class Landlord(User):
     __mapper_args__ = {"polymorphic_identity": UserRole.LANDLORD}
+
+    @hybridproperty
+    def profile_percentage(self) -> float:
+        result = 0
+        possible_filenames = [f"{self.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
+        copy_id_path = util.get_copy_ids_path()
+        possible_copy_id_file_paths = [
+            (copy_id_path / filename) for filename in possible_filenames
+        ]
+        if any(path.exists() for path in possible_copy_id_file_paths):
+            result += 30
+        assert result <= 100
+        return result
 
 
 class LookingFor(Base, EntityMixin, TimestampMixin):

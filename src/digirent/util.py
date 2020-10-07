@@ -1,8 +1,14 @@
+from pathlib import Path
 import jwt
 from typing import Union
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
-from digirent.core.config import ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, JWT_ALGORITHM
+from digirent.core.config import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    SECRET_KEY,
+    JWT_ALGORITHM,
+    UPLOAD_PATH,
+)
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -31,3 +37,38 @@ def password_is_match(plain_password: str, hashed_password: str):
 
 def hash_password(plain_password: str):
     return pwd_context.hash(plain_password)
+
+
+def get_copy_ids_path() -> Path:
+    """
+    Get the copy id path
+    """
+    return Path(UPLOAD_PATH) / "copy_ids"
+
+
+def get_proof_of_income_path() -> Path:
+    """
+    Get the proof of income path of a tenant
+    """
+    return Path(UPLOAD_PATH) / "proof_of_income"
+
+
+def get_proof_of_enrollment_path() -> Path:
+    """
+    Get the proof of enrollment path
+    """
+    return Path(UPLOAD_PATH) / "proof_of_enrollment"
+
+
+def get_apartment_images_folder_path(landlord, apartment) -> Path:
+    """
+    Get images folder path of a landlord's apartment
+    """
+    return Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images"
+
+
+def get_apartment_videos_folder_path(landlord, apartment) -> Path:
+    """
+    Get videos folder path of a landlord's apartment
+    """
+    return Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/videos"

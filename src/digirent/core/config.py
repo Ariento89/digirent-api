@@ -1,4 +1,5 @@
 import os
+from typing import List
 from starlette.config import Config
 from starlette.datastructures import CommaSeparatedStrings
 from pathlib import Path
@@ -45,3 +46,9 @@ UPLOAD_PATH: str = config("UPLOAD_PATH", cast=str, default="upload")
 NUMBER_OF_APARTMENT_IMAGES: int = config("NUMBER_OF_APARTMENT_IMAGES", cast=int)
 
 NUMBER_OF_APARTMENT_VIDEOS: int = config("NUMBER_OF_APARTMENT_VIDEOS", cast=int)
+
+SUPPORTED_FILE_EXTENSIONS: List[str] = ["pdf", "doc", "docx"]
+
+SUPPORTED_IMAGE_EXTENSIONS: List[str] = ["jpg", "jpeg", "png"]
+
+SUPPORTED_VIDEO_EXTENSIONS: List[str] = ["mp4", "avi", "mkv"]

@@ -1,6 +1,8 @@
 from datetime import datetime
 from sqlalchemy.orm.session import Session
+from digirent.app import Application
 from digirent.database.enums import HouseType, UserRole
+from digirent import util
 from digirent.database.models import (
     Amenity,
     Apartment,
@@ -144,3 +146,33 @@ def test_apartment_amenity_relationship(session: Session, landlord: Landlord):
     assert landlord.apartments == [apartment]
     assert all(x in apartment.amenities for x in [amenity1, amenity2])
     assert not apartment.tenant
+
+
+def test_tenant_percentage_profile(
+    tenant: Tenant, file, application: Application, clear_upload
+):
+    copy_id_path = util.get_copy_ids_path()
+    proof_of_income_path = util.get_proof_of_income_path()
+    proof_of_enrollment_path = util.get_proof_of_enrollment_path()
+    paths = [copy_id_path, proof_of_income_path, proof_of_enrollment_path]
+    assert all(not application.file_service.list_files(path) for path in paths)
+    assert tenant.profile_percentage == 0
+    application.upload_copy_id(tenant, file, "pdf")
+    assert tenant.profile_percentage == 20
+    application.upload_proof_of_enrollment(tenant, file, "pdf")
+    assert tenant.profile_percentage == 30
+    application.upload_proof_of_income(tenant, file, "pdf")
+    assert tenant.profile_percentage == 40
+
+
+def test_landlord_percentage_profile(
+    landlord: Landlord, file, application: Application, clear_upload
+):
+    copy_id_path = util.get_copy_ids_path()
+    proof_of_income_path = util.get_proof_of_income_path()
+    proof_of_enrollment_path = util.get_proof_of_enrollment_path()
+    paths = [copy_id_path, proof_of_income_path, proof_of_enrollment_path]
+    assert all(not application.file_service.list_files(path) for path in paths)
+    assert landlord.profile_percentage == 0
+    application.upload_copy_id(landlord, file, "pdf")
+    assert landlord.profile_percentage == 30

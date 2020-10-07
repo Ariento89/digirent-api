@@ -5,8 +5,11 @@ from datetime import date
 from jwt import PyJWTError
 from digirent.core.config import (
     NUMBER_OF_APARTMENT_VIDEOS,
+    SUPPORTED_FILE_EXTENSIONS,
     UPLOAD_PATH,
+    SUPPORTED_IMAGE_EXTENSIONS,
     NUMBER_OF_APARTMENT_IMAGES,
+    SUPPORTED_VIDEO_EXTENSIONS,
 )
 import digirent.util as util
 from sqlalchemy.exc import IntegrityError
@@ -25,11 +28,6 @@ from digirent.database.models import (
     User,
     UserRole,
 )
-
-
-SUPPORTED_FILE_EXTENSIONS = ["pdf", "doc", "docx"]
-SUPPORTED_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png"]
-SUPPORTED_VIDEO_EXTENSIONS = ["mp4", "avi", "mkv"]
 
 
 class Application(ApplicationBase):
@@ -232,10 +230,9 @@ class Application(ApplicationBase):
             raise ApplicationError("Apartment has been subletted")
         self.apartment_service.update(session, apartment, **kwargs)
 
-    def __upload_file(self, user: User, file: IO, extension: str, foldername: str):
+    def __upload_file(self, user: User, file: IO, extension: str, folder_path: Path):
         if extension not in SUPPORTED_FILE_EXTENSIONS:
             raise ApplicationError("Invalid file format")
-        folder_path = Path(UPLOAD_PATH) / foldername
         possible_filenames = [f"{user.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
         for filename in possible_filenames:
             if self.file_service.get(filename, folder_path):
@@ -244,13 +241,17 @@ class Application(ApplicationBase):
         self.file_service.store_file(folder_path, filename, file)
 
     def upload_copy_id(self, user: User, file: IO, extension: str):
-        return self.__upload_file(user, file, extension, "copy_ids")
+        return self.__upload_file(user, file, extension, util.get_copy_ids_path())
 
     def upload_proof_of_income(self, user: User, file: IO, extension: str):
-        return self.__upload_file(user, file, extension, "proof_of_income")
+        return self.__upload_file(
+            user, file, extension, util.get_proof_of_income_path()
+        )
 
     def upload_proof_of_enrollment(self, user: User, file: IO, extension: str):
-        return self.__upload_file(user, file, extension, "proof_of_enrollment")
+        return self.__upload_file(
+            user, file, extension, util.get_proof_of_enrollment_path()
+        )
 
     def upload_apartment_image(
         self, landlord: Landlord, apartment: Apartment, file: IO, filename: str
