@@ -15,7 +15,6 @@ services:
         container_name: digirent
         volumes:
             - .:/src/digirent/
-            - ~/digirent_uploads:/home/digirent/uploads
         ports:
             - "5000:5000"
         env_file:
