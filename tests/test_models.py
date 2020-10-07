@@ -6,6 +6,7 @@ from digirent import util
 from digirent.database.models import (
     Amenity,
     Apartment,
+    ApartmentApplication,
     Landlord,
     Tenant,
     LookingFor,
@@ -176,3 +177,14 @@ def test_landlord_percentage_profile(
     assert landlord.profile_percentage == 0
     application.upload_copy_id(landlord, file, "pdf")
     assert landlord.profile_percentage == 30
+
+
+def test_apartment_applications(tenant: Tenant, apartment: Apartment, session: Session):
+    apartment_application = ApartmentApplication(
+        tenant_id=tenant.id, apartment_id=apartment.id
+    )
+    session.add(apartment_application)
+    session.commit()
+    assert tenant.applications == [apartment_application]
+    assert apartment.applications == [apartment_application]
+    assert apartment_application.stage is None

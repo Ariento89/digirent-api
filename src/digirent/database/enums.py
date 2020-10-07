@@ -16,3 +16,8 @@ class HouseType(str, Enum):
     DUPLEX = "duplex"
     BUNGALOW = "bungalow"
     FLAT = "flat"
+
+
+class ApartmentApplicationStage(str, Enum):
+    REJECTED = "rejected"
+    CONSIDERED = "considered"

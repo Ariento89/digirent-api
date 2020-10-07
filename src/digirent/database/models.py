@@ -16,7 +16,7 @@ from digirent import util
 from digirent.core.config import SUPPORTED_FILE_EXTENSIONS
 from .base import Base
 from .mixins import EntityMixin, TimestampMixin
-from .enums import UserRole, Gender, HouseType
+from .enums import ApartmentApplicationStage, UserRole, Gender, HouseType
 from .association_tables import apartments_amenities_association_table
 
 
@@ -160,3 +160,14 @@ class Apartment(Base, EntityMixin, TimestampMixin):
 class Amenity(Base, EntityMixin, TimestampMixin):
     __tablename__ = "amenities"
     title = Column(String, nullable=False, unique=True)
+
+
+class ApartmentApplication(Base, EntityMixin, TimestampMixin):
+    __tablename__ = "apartment_applications"
+    apartment_id = Column(
+        UUIDType(binary=False), ForeignKey("apartments.id"), primary_key=True
+    )
+    tenant_id = Column(UUIDType(binary=False), ForeignKey("users.id"), primary_key=True)
+    stage = Column(ChoiceType(ApartmentApplicationStage, impl=String()), nullable=True)
+    apartment = relationship("Apartment", backref="applications")
+    tenants = relationship("Tenant", backref="applications")
