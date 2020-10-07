@@ -170,4 +170,4 @@ class ApartmentApplication(Base, EntityMixin, TimestampMixin):
     tenant_id = Column(UUIDType(binary=False), ForeignKey("users.id"), primary_key=True)
     stage = Column(ChoiceType(ApartmentApplicationStage, impl=String()), nullable=True)
     apartment = relationship("Apartment", backref="applications")
-    tenants = relationship("Tenant", backref="applications")
+    tenant = relationship("Tenant", backref="applications")

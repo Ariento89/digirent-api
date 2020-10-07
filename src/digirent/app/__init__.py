@@ -282,3 +282,10 @@ class Application(ApplicationBase):
         if len(files) == NUMBER_OF_APARTMENT_VIDEOS:
             raise ApplicationError("Maximum number of apartment vidoes reached")
         self.file_service.store_file(folder_path, filename, file)
+
+    def apply_for_apartment(
+        self, session: Session, tenant: Tenant, apartment: Apartment
+    ):
+        self.apartment_application_service.create(
+            session, tenant=tenant, apartment=apartment
+        )

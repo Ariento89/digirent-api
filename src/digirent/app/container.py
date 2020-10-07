@@ -1,7 +1,14 @@
 import dependency_injector.containers as containers
 import dependency_injector.providers as providers
 from digirent.core.services.file_service import FileService
-from digirent.database.models import Admin, Amenity, Apartment, Landlord, Tenant
+from digirent.database.models import (
+    Admin,
+    Amenity,
+    Apartment,
+    ApartmentApplication,
+    Landlord,
+    Tenant,
+)
 from digirent.database.services.base import DBService
 from digirent.database.services.user import UserService
 from . import Application
@@ -14,6 +21,9 @@ class ServiceContainer(containers.DeclarativeContainer):
     tenant_service = providers.Singleton(DBService, model_class=Tenant)
     apartment_service = providers.Singleton(DBService, model_class=Apartment)
     amenity_service = providers.Singleton(DBService, model_class=Amenity)
+    apartment_application_service = providers.Singleton(
+        DBService, model_class=ApartmentApplication
+    )
     file_service = providers.Singleton(FileService)
 
 
@@ -26,5 +36,6 @@ class ApplicationContainer(containers.DeclarativeContainer):
         tenant_service=ServiceContainer.tenant_service,
         apartment_service=ServiceContainer.apartment_service,
         amenity_service=ServiceContainer.amenity_service,
+        apartment_application_service=ServiceContainer.apartment_application_service,
         file_service=ServiceContainer.file_service,
     )

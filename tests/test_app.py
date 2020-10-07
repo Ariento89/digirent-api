@@ -16,6 +16,7 @@ from sqlalchemy.orm.session import Session
 from digirent.database.models import (
     Amenity,
     Apartment,
+    ApartmentApplication,
     Landlord,
     Tenant,
     User,
@@ -564,3 +565,15 @@ def test_landlord_upload_unsupported_video_format_fail(
         application.upload_apartment_image(landlord, apartment, file, filename)
         assert "unsupported video format" in str(e).lower()
     assert not target_path.exists()
+
+
+def test_tenant_apply_for_apartment(
+    application: Application, tenant: Tenant, apartment: Apartment, session: Session
+):
+    assert not session.query(ApartmentApplication).count()
+    application.apply_for_apartment(session, tenant, apartment)
+    assert session.query(ApartmentApplication).count()
+    apartment_application = session.query(ApartmentApplication).all()[0]
+    assert apartment_application.tenant == tenant
+    assert apartment_application.apartment == apartment
+    assert not apartment_application.stage
