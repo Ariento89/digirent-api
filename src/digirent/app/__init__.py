@@ -125,7 +125,7 @@ class Application(ApplicationBase):
         description: str = None,
     ):
         try:
-            self.user_service.update(
+            return self.user_service.update(
                 session,
                 user,
                 first_name=first_name,
@@ -149,7 +149,7 @@ class Application(ApplicationBase):
         self, session: Session, user: User, account_name: str, account_number: str
     ):
         bank_detail = BankDetail(uuid4(), account_name, account_number)
-        self.user_service.update(session, user, bank_detail=bank_detail)
+        return self.user_service.update(session, user, bank_detail=bank_detail)
 
     def update_password(
         self, session: Session, user: User, old_password: str, new_password: str
@@ -157,7 +157,9 @@ class Application(ApplicationBase):
         if not util.password_is_match(old_password, user.hashed_password):
             raise ApplicationError("Wrong password")
         new_hashed_password = util.hash_password(new_password)
-        self.user_service.update(session, user, hashed_password=new_hashed_password)
+        return self.user_service.update(
+            session, user, hashed_password=new_hashed_password
+        )
 
     def set_looking_for(
         self,
@@ -168,13 +170,13 @@ class Application(ApplicationBase):
         max_budget: float,
     ):
         looking_for = LookingFor(tenant.id, house_type, city, max_budget)
-        self.tenant_service.update(session, tenant, looking_for=looking_for)
+        return self.tenant_service.update(session, tenant, looking_for=looking_for)
 
     def create_amenity(self, session: Session, title: str):
         existing_amenity = session.query(Amenity).filter(Amenity.title == title).first()
         if existing_amenity:
             raise ApplicationError("Amenity already exists")
-        self.amenity_service.create(session, title=title)
+        return self.amenity_service.create(session, title=title)
 
     def create_apartment(
         self,
@@ -197,7 +199,7 @@ class Application(ApplicationBase):
         available_to: date,
         amenities: List[Amenity],
     ):
-        self.apartment_service.create(
+        return self.apartment_service.create(
             session,
             amenities=amenities,
             landlord=landlord,
@@ -228,7 +230,7 @@ class Application(ApplicationBase):
             raise ApplicationError("Apartment not owned by user")
         if apartment.tenant_id:
             raise ApplicationError("Apartment has been subletted")
-        self.apartment_service.update(session, apartment, **kwargs)
+        return self.apartment_service.update(session, apartment, **kwargs)
 
     def __upload_file(self, user: User, file: IO, extension: str, folder_path: Path):
         if extension not in SUPPORTED_FILE_EXTENSIONS:
@@ -239,6 +241,7 @@ class Application(ApplicationBase):
                 self.file_service.delete(filename, folder_path)
         filename = f"{user.id}.{extension}"
         self.file_service.store_file(folder_path, filename, file)
+        return user
 
     def upload_copy_id(self, user: User, file: IO, extension: str):
         return self.__upload_file(user, file, extension, util.get_copy_ids_path())
@@ -267,6 +270,7 @@ class Application(ApplicationBase):
         if len(files) == NUMBER_OF_APARTMENT_IMAGES:
             raise ApplicationError("Maximum number of apartment images reached")
         self.file_service.store_file(folder_path, filename, file)
+        return apartment
 
     def upload_apartment_video(
         self, landlord: Landlord, apartment: Apartment, file: IO, filename: str
@@ -282,10 +286,11 @@ class Application(ApplicationBase):
         if len(files) == NUMBER_OF_APARTMENT_VIDEOS:
             raise ApplicationError("Maximum number of apartment vidoes reached")
         self.file_service.store_file(folder_path, filename, file)
+        return apartment
 
     def apply_for_apartment(
         self, session: Session, tenant: Tenant, apartment: Apartment
     ):
-        self.apartment_application_service.create(
+        return self.apartment_application_service.create(
             session, tenant=tenant, apartment=apartment
         )

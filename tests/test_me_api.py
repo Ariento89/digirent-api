@@ -67,9 +67,19 @@ def test_update_user_profile_information(
             "gender": new_gender,
         },
     )
+    result = response.json()
+    assert response.status_code == 200
+    assert "firstName" in result
+    assert "lastName" in result
+    assert "email" in result
+    assert "id" in result
+    assert "phoneNumber" in result
+    assert "dob" in result
+    assert "description" in result
+    assert "city" in result
+    assert "gender" in result
     session.expire_all()
     xuser = session.query(User).get(user.id)
-    assert response.status_code == 200
     assert xuser.first_name == new_user_first_name
     assert xuser.last_name == new_user_last_name
 
@@ -99,6 +109,16 @@ def test_update_user_profile_description(
             "phone_number": user.phone_number,
         },
     )
+    result = response.json()
+    assert "firstName" in result
+    assert "lastName" in result
+    assert "email" in result
+    assert "id" in result
+    assert "phoneNumber" in result
+    assert "dob" in result
+    assert "description" in result
+    assert "city" in result
+    assert "gender" in result
     session.expire_all()
     xuser = session.query(User).get(user.id)
     assert response.status_code == 200
@@ -118,7 +138,17 @@ def test_update_set_tenant_lookingfor(
             "maxBudget": 34.50,
         },
     )
+    result = response.json()
     assert response.status_code == 200
+    assert "firstName" in result
+    assert "lastName" in result
+    assert "email" in result
+    assert "id" in result
+    assert "phoneNumber" in result
+    assert "dob" in result
+    assert "description" in result
+    assert "city" in result
+    assert "gender" in result
     session.expire_all()
     assert tenant.looking_for
     assert tenant.looking_for.house_type == HouseType.BUNGALOW
@@ -163,6 +193,16 @@ def test_set_user_bank_details(
         },
     )
     assert response.status_code == 200
+    result = response.json()
+    assert "firstName" in result
+    assert "lastName" in result
+    assert "email" in result
+    assert "id" in result
+    assert "phoneNumber" in result
+    assert "dob" in result
+    assert "description" in result
+    assert "city" in result
+    assert "gender" in result
     session.expire_all()
     assert user.bank_detail
     assert user.bank_detail.account_name == "Test Account Name"
@@ -198,6 +238,16 @@ def test_update_user_password(
         },
     )
     assert response.status_code == 200
+    result = response.json()
+    assert "firstName" in result
+    assert "lastName" in result
+    assert "email" in result
+    assert "id" in result
+    assert "phoneNumber" in result
+    assert "dob" in result
+    assert "description" in result
+    assert "city" in result
+    assert "gender" in result
     session.expire_all()
     assert not util.password_is_match(old_password, user.hashed_password)
     assert util.password_is_match(new_password, user.hashed_password)
@@ -227,6 +277,16 @@ def test_user_upload_copy_idfile_ok(
         headers=user_auth_header,
     )
     assert response.status_code == 201
+    result = response.json()
+    assert "firstName" in result
+    assert "lastName" in result
+    assert "email" in result
+    assert "id" in result
+    assert "phoneNumber" in result
+    assert "dob" in result
+    assert "description" in result
+    assert "city" in result
+    assert "gender" in result
     assert target_path.exists()
 
 
@@ -251,6 +311,16 @@ def test_tenant_upload_proof_of_income_file_ok(
         headers=tenant_auth_header,
     )
     assert response.status_code == 201
+    result = response.json()
+    assert "firstName" in result
+    assert "lastName" in result
+    assert "email" in result
+    assert "id" in result
+    assert "phoneNumber" in result
+    assert "dob" in result
+    assert "description" in result
+    assert "city" in result
+    assert "gender" in result
     assert target_path.exists()
 
 
@@ -295,6 +365,16 @@ def test_tenant_upload_proof_of_enrollment_file_ok(
         headers=tenant_auth_header,
     )
     assert response.status_code == 201
+    result = response.json()
+    assert "firstName" in result
+    assert "lastName" in result
+    assert "email" in result
+    assert "id" in result
+    assert "phoneNumber" in result
+    assert "dob" in result
+    assert "description" in result
+    assert "city" in result
+    assert "gender" in result
     assert target_path.exists()
 
 

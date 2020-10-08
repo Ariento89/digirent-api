@@ -12,6 +12,11 @@ def test_admin_create_amenity_ok(
     response = client.post(
         "/api/amenities/", json={"title": "hello"}, headers=admin_auth_header
     )
+    result = response.json()
+    assert isinstance(result, dict)
+    assert "id" in result
+    assert "title" in result
+    assert result["title"] == "hello"
     assert response.status_code == 201
     assert session.query(Amenity).count()
     assert session.query(Amenity).all()[0].title == "hello"

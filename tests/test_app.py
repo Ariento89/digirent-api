@@ -7,7 +7,6 @@ from digirent.core.config import (
     NUMBER_OF_APARTMENT_VIDEOS,
 )
 import digirent.util as util
-from digirent.database.services.user import UserService
 from digirent.database.enums import HouseType
 from digirent.app.error import ApplicationError
 import pytest
@@ -171,7 +170,6 @@ def test_set_bank_detail(user: User, session: Session, application: Application)
 def test_update_password(
     user: User,
     user_create_data: dict,
-    user_service: UserService,
     session: Session,
     application: Application,
 ):

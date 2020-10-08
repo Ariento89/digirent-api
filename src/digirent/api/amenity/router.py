@@ -10,7 +10,7 @@ from .schema import AmenityCreateSchema, AmenitySchema
 router = APIRouter()
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=AmenitySchema)
 async def create_amenity(
     data: AmenityCreateSchema,
     admin: Admin = Depends(dependencies.get_current_admin_user),

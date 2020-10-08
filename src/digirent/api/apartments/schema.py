@@ -20,11 +20,10 @@ class BaseApartmentSchema(BaseSchema):
     furnish_type: str
     available_from: date
     available_to: date
-    amenities: List[str]
 
 
 class ApartmentCreateSchema(BaseApartmentSchema):
-    pass
+    amenities: List[str]
 
 
 class ApartmentUpdateSchema(BaseSchema):
@@ -46,5 +45,5 @@ class ApartmentUpdateSchema(BaseSchema):
     amenities: Optional[List[str]]
 
 
-class AmenitySchema(OrmSchema, BaseApartmentSchema):
-    pass
+class ApartmentSchema(OrmSchema, BaseApartmentSchema):
+    amenity_titles: List[str]

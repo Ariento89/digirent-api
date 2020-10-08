@@ -41,6 +41,11 @@ def test_landlord_create_apartments_ok(
     response = client.post(
         "/api/apartments/", json=create_data, headers=landlord_auth_header
     )
+    result = response.json()
+    expected_keys = [*apartment_create_data.keys(), "id", "amenityTitles"]
+    expected_keys.remove("amenities")
+    assert all(key in result for key in expected_keys)
+    assert isinstance(result, dict)
     assert response.status_code == 201
     assert session.query(Apartment).count() == 1
 
@@ -67,6 +72,10 @@ def test_landlord_update_apartments_ok(
         json={"name": "updated name", "amenities": ["first", "second"]},
         headers=landlord_auth_header,
     )
+    result = response.json()
+    expected_keys = [*apartment_create_data.keys(), "id", "amenityTitles"]
+    expected_keys.remove("amenities")
+    assert all(key in result for key in expected_keys)
     assert response.status_code == 200
     session.expire_all()
     assert session.query(Apartment).count() == 1
@@ -184,6 +193,10 @@ def test_landlord_upload_apartment_image_ok(
         files={"image": (filename, file, "image/jpeg")},
         headers=landlord_auth_header,
     )
+    result = response.json()
+    expected_keys = [*apartment_create_data.keys(), "id", "amenityTitles"]
+    expected_keys.remove("amenities")
+    assert all(key in result for key in expected_keys)
     assert response.status_code == 200
     assert len(file_service.list_files(image_folder_path)) == 1
     assert file_path.exists()
@@ -209,6 +222,10 @@ def test_landlord_upload_apartment_video_ok(
         files={"video": (filename, file, "video/jpeg")},
         headers=landlord_auth_header,
     )
+    result = response.json()
+    expected_keys = [*apartment_create_data.keys(), "id", "amenityTitles"]
+    expected_keys.remove("amenities")
+    assert all(key in result for key in expected_keys)
     assert response.status_code == 200
     assert len(file_service.list_files(video_folder_path)) == 1
     assert file_path.exists()

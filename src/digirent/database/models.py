@@ -156,6 +156,10 @@ class Apartment(Base, EntityMixin, TimestampMixin):
         "Tenant", foreign_keys=[tenant_id], backref=backref("apartment", uselist=False)
     )
 
+    @hybridproperty
+    def amenity_titles(self):
+        return [amenity.title for amenity in self.amenities]
+
 
 class Amenity(Base, EntityMixin, TimestampMixin):
     __tablename__ = "amenities"
@@ -164,10 +168,8 @@ class Amenity(Base, EntityMixin, TimestampMixin):
 
 class ApartmentApplication(Base, EntityMixin, TimestampMixin):
     __tablename__ = "apartment_applications"
-    apartment_id = Column(
-        UUIDType(binary=False), ForeignKey("apartments.id"), primary_key=True
-    )
-    tenant_id = Column(UUIDType(binary=False), ForeignKey("users.id"), primary_key=True)
+    apartment_id = Column(UUIDType(binary=False), ForeignKey("apartments.id"))
+    tenant_id = Column(UUIDType(binary=False), ForeignKey("users.id"))
     stage = Column(ChoiceType(ApartmentApplicationStage, impl=String()), nullable=True)
     apartment = relationship("Apartment", backref="applications")
     tenant = relationship("Tenant", backref="applications")

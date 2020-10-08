@@ -22,7 +22,7 @@ async def me(user: User = Depends(dependencies.get_current_user)):
     return user
 
 
-@router.put("/")
+@router.put("/", response_model=ProfileSchema)
 def update_profile_information(
     data: ProfileUpdateSchema,
     user: User = Depends(dependencies.get_current_user),
@@ -30,14 +30,14 @@ def update_profile_information(
     session: Session = Depends(dependencies.get_database_session),
 ):
     try:
-        app.update_profile(session, user, **data.dict(by_alias=False))
+        return app.update_profile(session, user, **data.dict(by_alias=False))
     except ApplicationError as e:
         if "not found" in str(e).lower():
             raise HTTPException(404, str(e))
         raise HTTPException(400, str(e))
 
 
-@router.post("/looking-for")
+@router.post("/looking-for", response_model=ProfileSchema)
 def set_tenant_looking_for(
     data: LookingForSchema,
     tenant: Tenant = Depends(dependencies.get_current_tenant),
@@ -45,7 +45,7 @@ def set_tenant_looking_for(
     session: Session = Depends(dependencies.get_database_session),
 ):
     try:
-        app.set_looking_for(
+        return app.set_looking_for(
             session, tenant, data.house_type, data.city, data.max_budget
         )
     except ApplicationError as e:
@@ -54,7 +54,7 @@ def set_tenant_looking_for(
         raise HTTPException(400, str(e))
 
 
-@router.post("/bank")
+@router.post("/bank", response_model=ProfileSchema)
 def set_user_bank_details(
     data: BankDetailSchema,
     user: User = Depends(dependencies.get_current_user),
@@ -62,14 +62,16 @@ def set_user_bank_details(
     session: Session = Depends(dependencies.get_database_session),
 ):
     try:
-        app.set_bank_detail(session, user, data.account_name, data.account_number)
+        return app.set_bank_detail(
+            session, user, data.account_name, data.account_number
+        )
     except ApplicationError as e:
         if "not found" in str(e).lower():
             raise HTTPException(404, str(e))
         raise HTTPException(400, str(e))
 
 
-@router.put("/password")
+@router.put("/password", response_model=ProfileSchema)
 def update_password(
     data: PasswordUpdateSchema,
     user: User = Depends(dependencies.get_current_user),
@@ -77,14 +79,14 @@ def update_password(
     session: Session = Depends(dependencies.get_database_session),
 ):
     try:
-        app.update_password(session, user, data.old_password, data.new_password)
+        return app.update_password(session, user, data.old_password, data.new_password)
     except ApplicationError as e:
         if "not found" in str(e).lower():
             raise HTTPException(404, str(e))
         raise HTTPException(400, str(e))
 
 
-@router.post("/upload/copy-id", status_code=201)
+@router.post("/upload/copy-id", status_code=201, response_model=ProfileSchema)
 def upload_copy_id(
     file: UploadFile = File(...),
     user: User = Depends(dependencies.get_current_user),
@@ -92,14 +94,14 @@ def upload_copy_id(
 ):
     try:
         file_extension = file.filename.split(".")[-1]
-        app.upload_copy_id(user, file.file, file_extension)
+        return app.upload_copy_id(user, file.file, file_extension)
     except ApplicationError as e:
         if "not found" in str(e).lower():
             raise HTTPException(404, str(e))
         raise HTTPException(400, str(e))
 
 
-@router.post("/upload/proof-of-income", status_code=201)
+@router.post("/upload/proof-of-income", status_code=201, response_model=ProfileSchema)
 def upload_proof_of_income(
     file: UploadFile = File(...),
     tenant: Tenant = Depends(dependencies.get_current_tenant),
@@ -107,14 +109,16 @@ def upload_proof_of_income(
 ):
     try:
         file_extension = file.filename.split(".")[-1]
-        app.upload_proof_of_income(tenant, file.file, file_extension)
+        return app.upload_proof_of_income(tenant, file.file, file_extension)
     except ApplicationError as e:
         if "not found" in str(e).lower():
             raise HTTPException(404, str(e))
         raise HTTPException(400, str(e))
 
 
-@router.post("/upload/proof-of-enrollment", status_code=201)
+@router.post(
+    "/upload/proof-of-enrollment", status_code=201, response_model=ProfileSchema
+)
 def upload_proof_of_enrollment(
     file: UploadFile = File(...),
     tenant: Tenant = Depends(dependencies.get_current_tenant),
@@ -122,7 +126,7 @@ def upload_proof_of_enrollment(
 ):
     try:
         file_extension = file.filename.split(".")[-1]
-        app.upload_proof_of_enrollment(tenant, file.file, file_extension)
+        return app.upload_proof_of_enrollment(tenant, file.file, file_extension)
     except ApplicationError as e:
         if "not found" in str(e).lower():
             raise HTTPException(404, str(e))

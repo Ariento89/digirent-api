@@ -39,7 +39,7 @@ def upgrade():
             ["tenant_id"],
             ["users.id"],
         ),
-        sa.PrimaryKeyConstraint("id", "apartment_id", "tenant_id"),
+        sa.PrimaryKeyConstraint("id"),
     )
     # ### end Alembic commands ###
 
