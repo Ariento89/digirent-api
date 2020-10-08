@@ -7,7 +7,7 @@ from digirent.core.config import (
     NUMBER_OF_APARTMENT_VIDEOS,
 )
 import digirent.util as util
-from digirent.database.enums import HouseType
+from digirent.database.enums import ApartmentApplicationStage, HouseType
 from digirent.app.error import ApplicationError
 import pytest
 from digirent.app import Application
@@ -575,3 +575,62 @@ def test_tenant_apply_for_apartment(
     assert apartment_application.tenant == tenant
     assert apartment_application.apartment == apartment
     assert not apartment_application.stage
+
+
+def test_tenant_apply_for_same_apartment_again_fail(
+    application: Application, tenant: Tenant, apartment: Apartment, session: Session
+):
+    application.apply_for_apartment(session, tenant, apartment)
+    apartment_application = session.query(ApartmentApplication).all()[0]
+    assert apartment_application.tenant == tenant
+    assert apartment_application.apartment == apartment
+    assert not apartment_application.stage
+    with pytest.raises(ApplicationError) as e:
+        application.apply_for_apartment(session, tenant, apartment)
+        assert "already applied for apartment" in str(e).lower()
+
+
+def test_landlord_reject_tenant_application_ok(
+    landlord: Landlord,
+    tenant: Tenant,
+    apartment: Apartment,
+    application: Application,
+    session: Session,
+):
+    assert apartment.landlord_id == landlord.id
+    tenant_application = application.apply_for_apartment(session, tenant, apartment)
+    assert not tenant_application.stage
+    tenant_application = application.reject_tenant_application(
+        session, landlord, tenant_application
+    )
+    assert tenant_application.stage == ApartmentApplicationStage.REJECTED
+    tenant_application_db = (
+        session.query(ApartmentApplication)
+        .filter_by(tenant_id=tenant.id)
+        .filter_by(apartment_id=apartment.id)
+        .one_or_none()
+    )
+    assert tenant_application_db.stage == ApartmentApplicationStage.REJECTED
+
+
+def test_landlord_consider_a_tenant_application_ok(
+    landlord: Landlord,
+    tenant: Tenant,
+    apartment: Apartment,
+    application: Application,
+    session: Session,
+):
+    assert apartment.landlord_id == landlord.id
+    tenant_application = application.apply_for_apartment(session, tenant, apartment)
+    assert not tenant_application.stage
+    tenant_application = application.consider_tenant_application(
+        session, landlord, tenant_application
+    )
+    assert tenant_application.stage == ApartmentApplicationStage.CONSIDERED
+    tenant_application_db = (
+        session.query(ApartmentApplication)
+        .filter_by(tenant_id=tenant.id)
+        .filter_by(apartment_id=apartment.id)
+        .one_or_none()
+    )
+    assert tenant_application_db.stage == ApartmentApplicationStage.CONSIDERED

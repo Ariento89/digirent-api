@@ -15,12 +15,13 @@ import digirent.util as util
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 
-from digirent.database.enums import Gender, HouseType
+from digirent.database.enums import ApartmentApplicationStage, Gender, HouseType
 from .base import ApplicationBase
 from .error import ApplicationError
 from digirent.database.models import (
     Amenity,
     Apartment,
+    ApartmentApplication,
     BankDetail,
     Landlord,
     LookingFor,
@@ -291,6 +292,41 @@ class Application(ApplicationBase):
     def apply_for_apartment(
         self, session: Session, tenant: Tenant, apartment: Apartment
     ):
+        existing_application = (
+            session.query(ApartmentApplication)
+            .filter(ApartmentApplication.apartment_id == apartment.id)
+            .filter(ApartmentApplication.tenant_id == tenant.id)
+            .one_or_none()
+        )
+
+        if existing_application:
+            raise ApplicationError("User already applied for this apartment")
         return self.apartment_application_service.create(
             session, tenant=tenant, apartment=apartment
+        )
+
+    def reject_tenant_application(
+        self,
+        session: Session,
+        landlord: Landlord,
+        tenant_application: ApartmentApplication,
+    ):
+        apartment: Apartment = tenant_application.apartment
+        if apartment.landlord_id != landlord.id:
+            raise ApplicationError("Apartment not owned by landlord")
+        return self.apartment_application_service.update(
+            session, tenant_application, stage=ApartmentApplicationStage.REJECTED
+        )
+
+    def consider_tenant_application(
+        self,
+        session: Session,
+        landlord: Landlord,
+        tenant_application: ApartmentApplication,
+    ):
+        apartment: Apartment = tenant_application.apartment
+        if apartment.landlord_id != landlord.id:
+            raise ApplicationError("Apartment not owned by landlord")
+        return self.apartment_application_service.update(
+            session, tenant_application, stage=ApartmentApplicationStage.CONSIDERED
         )
