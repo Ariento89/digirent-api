@@ -19,7 +19,15 @@ from digirent.core.config import DATABASE_URL, UPLOAD_PATH
 import digirent.util as util
 from digirent.database.services.base import DBService
 from digirent.web_app import get_app
-from digirent.database.models import Admin, Amenity, Apartment, Landlord, Tenant, User
+from digirent.database.models import (
+    Admin,
+    Amenity,
+    Apartment,
+    ApartmentApplication,
+    Landlord,
+    Tenant,
+    User,
+)
 from digirent.database.enums import HouseType, UserRole
 from digirent.app.container import ApplicationContainer
 from digirent.database.base import SessionLocal, Base
@@ -145,7 +153,7 @@ def tenant(session: Session, tenant_create_data: dict) -> Tenant:
 
 
 @pytest.fixture
-def landlord(session: Session, landlord_create_data: dict) -> User:
+def landlord(session: Session, landlord_create_data: dict) -> Landlord:
     create_data = {**landlord_create_data}
     hashed_password = util.hash_password(create_data["password"])
     del create_data["password"]
@@ -271,8 +279,7 @@ def clear_upload():
 def apartment(
     session: Session, landlord: Landlord, application: Application
 ) -> Apartment:
-    assert not session.query(Apartment).count()
-    application.create_apartment(
+    apartment = application.create_apartment(
         session,
         landlord,
         "apartment name",
@@ -292,5 +299,43 @@ def apartment(
         datetime.utcnow().date(),
         [],
     )
-    assert session.query(Apartment).count() == 1
-    return session.query(Apartment).all()[0]
+    assert session.query(Apartment).get(apartment.id)
+    return apartment
+
+
+@pytest.fixture
+def apartment_application(
+    session: Session, application: Application, tenant: Tenant, apartment: Apartment
+):
+    apartment_application = application.apply_for_apartment(session, tenant, apartment)
+    assert session.query(ApartmentApplication).get(apartment_application.id)
+    return apartment_application
+
+
+@pytest.fixture
+def another_landlord(session: Session, application: Application) -> Landlord:
+    return application.create_landlord(
+        session,
+        "Another",
+        "Landlord",
+        datetime.utcnow().date(),
+        "another@gmail.com",
+        "001234578",
+        "password",
+    )
+
+
+@pytest.fixture
+def another_landlord_auth_header(client: TestClient, another_landlord: Landlord):
+    response = client.post(
+        "/api/auth/",
+        data={
+            "username": another_landlord.email,
+            "password": "password",
+        },
+    )
+    result = response.json()
+    assert response.status_code == 200
+    assert "access_token" in result
+    assert "token_type" in result
+    return {"Authorization": f"Bearer {result['access_token']}"}

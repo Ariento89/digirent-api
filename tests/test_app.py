@@ -634,3 +634,55 @@ def test_landlord_consider_a_tenant_application_ok(
         .one_or_none()
     )
     assert tenant_application_db.stage == ApartmentApplicationStage.CONSIDERED
+
+
+def test_landlord_reject_another_landlords_application_fail(
+    landlord: Landlord,
+    tenant: Tenant,
+    apartment: Apartment,
+    application: Application,
+    session: Session,
+):
+    another_landlord: Landlord = application.create_landlord(
+        session,
+        "another",
+        "landlord",
+        datetime.utcnow().date(),
+        "another@email.com",
+        "0012345678",
+        "password",
+    )
+    tenant_application = application.apply_for_apartment(session, tenant, apartment)
+    assert session.query(Landlord).count() == 2
+    assert apartment.landlord_id == landlord.id
+    with pytest.raises(ApplicationError) as e:
+        application.reject_tenant_application(
+            session, another_landlord, tenant_application
+        )
+        assert "apartment not owned by lanlord" in str(e).lower()
+
+
+def test_landlord_consider_another_landlords_application_fail(
+    landlord: Landlord,
+    tenant: Tenant,
+    apartment: Apartment,
+    application: Application,
+    session: Session,
+):
+    another_landlord: Landlord = application.create_landlord(
+        session,
+        "another",
+        "landlord",
+        datetime.utcnow().date(),
+        "another@email.com",
+        "0012345678",
+        "password",
+    )
+    tenant_application = application.apply_for_apartment(session, tenant, apartment)
+    assert session.query(Landlord).count() == 2
+    assert apartment.landlord_id == landlord.id
+    with pytest.raises(ApplicationError) as e:
+        application.consider_tenant_application(
+            session, another_landlord, tenant_application
+        )
+        assert "apartment not owned by lanlord" in str(e).lower()

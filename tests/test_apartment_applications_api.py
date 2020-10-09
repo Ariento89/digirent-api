@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 from sqlalchemy.orm.session import Session
-from digirent.database.models import Tenant, Apartment, Landlord, ApartmentApplication
+from digirent.database.enums import ApartmentApplicationStage
+from digirent.database.models import Tenant, Apartment, ApartmentApplication
 
 
 def test_tenant_apply_for_apartment_ok(
@@ -32,7 +33,6 @@ def test_tenant_apply_for_apartment_ok(
 def test_landlord_apply_for_apartment_fail(
     client: TestClient,
     session: Session,
-    landlord: Landlord,
     apartment: Apartment,
     landlord_auth_header: dict,
 ):
@@ -42,3 +42,83 @@ def test_landlord_apply_for_apartment_fail(
     )
     assert response.status_code == 403
     assert not session.query(ApartmentApplication).count()
+
+
+def test_landlord_reject_tenants_application_ok(
+    client: TestClient,
+    apartment_application: ApartmentApplication,
+    session: Session,
+    landlord_auth_header: dict,
+):
+    assert not apartment_application.stage
+    response = client.delete(
+        f"/api/applications/{apartment_application.id}/reject",
+        headers=landlord_auth_header,
+    )
+    result = response.json()
+    assert response.status_code == 200
+    assert isinstance(result, dict)
+    session.expire_all()
+    apartment_application = session.query(ApartmentApplication).get(
+        apartment_application.id
+    )
+    assert apartment_application.stage == ApartmentApplicationStage.REJECTED
+
+
+def test_landlord_consider_tenants_application_ok(
+    client: TestClient,
+    apartment_application: ApartmentApplication,
+    session: Session,
+    landlord_auth_header: dict,
+):
+    assert not apartment_application.stage
+    response = client.delete(
+        f"/api/applications/{apartment_application.id}/consider",
+        headers=landlord_auth_header,
+    )
+    result = response.json()
+    assert response.status_code == 200
+    assert isinstance(result, dict)
+    session.expire_all()
+    apartment_application = session.query(ApartmentApplication).get(
+        apartment_application.id
+    )
+    assert apartment_application.stage == ApartmentApplicationStage.CONSIDERED
+
+
+def test_another_landlord_reject_tenants_application_fail(
+    client: TestClient,
+    apartment_application: ApartmentApplication,
+    session: Session,
+    another_landlord_auth_header: dict,
+):
+    assert not apartment_application.stage
+    response = client.delete(
+        f"/api/applications/{apartment_application.id}/reject",
+        headers=another_landlord_auth_header,
+    )
+    assert response.status_code == 404
+    session.expire_all()
+    apartment_application = session.query(ApartmentApplication).get(
+        apartment_application.id
+    )
+    assert not apartment_application.stage
+
+
+def test_another_landlord_consider_tenants_application_fail(
+    client: TestClient,
+    apartment_application: ApartmentApplication,
+    session: Session,
+    another_landlord_auth_header: dict,
+):
+    assert not apartment_application.stage
+    response = client.delete(
+        f"/api/applications/{apartment_application.id}/consider",
+        headers=another_landlord_auth_header,
+    )
+    assert response.status_code == 404
+    session.expire_all()
+    apartment_application = session.query(ApartmentApplication).get(
+        apartment_application.id
+    )
+    assert not apartment_application.stage
