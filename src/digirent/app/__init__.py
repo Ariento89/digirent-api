@@ -330,3 +330,23 @@ class Application(ApplicationBase):
         return self.apartment_application_service.update(
             session, tenant_application, stage=ApartmentApplicationStage.CONSIDERED
         )
+
+    def accept_tenant_application(
+        self,
+        session: Session,
+        landlord: Landlord,
+        tenant_application: ApartmentApplication,
+    ):
+        apartment: Apartment = tenant_application.apartment
+        if tenant_application.stage != ApartmentApplicationStage.CONSIDERED:
+            raise ApplicationError("Application has not yet been considered")
+        if apartment.landlord_id != landlord.id:
+            raise ApplicationError("Apartment not owned by landlord")
+        for tenant_app in tenant_application.apartment.applications:
+            if tenant_app.id != tenant_application.id:
+                self.apartment_application_service.update(
+                    session, tenant_app, False, stage=ApartmentApplicationStage.REJECTED
+                )
+        return self.apartment_application_service.update(
+            session, tenant_application, stage=ApartmentApplicationStage.AWARDED
+        )

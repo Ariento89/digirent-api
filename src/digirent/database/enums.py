@@ -21,3 +21,4 @@ class HouseType(str, Enum):
 class ApartmentApplicationStage(str, Enum):
     REJECTED = "rejected"
     CONSIDERED = "considered"
+    AWARDED = "awarded"

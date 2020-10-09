@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import IO
+from typing import IO, List
 from digirent.core.config import (
     UPLOAD_PATH,
     NUMBER_OF_APARTMENT_IMAGES,
@@ -243,9 +243,8 @@ def test_create_exisiting_amenity_fail(session: Session, application: Applicatio
     assert session.query(Amenity).count() == 1
     amenity = session.query(Amenity).all()[0]
     assert amenity.title == "hello"
-    with pytest.raises(ApplicationError) as e:
+    with pytest.raises(ApplicationError):
         application.create_amenity(session, "hello")
-        assert "exists" in str(e).lower()
 
 
 def test_create_apartment_ok(
@@ -469,11 +468,10 @@ def test_landlord_upload_more_images_than_supported_fail(
         assert not target_path.exists()
         application.upload_apartment_image(landlord, apartment, file, filename)
         assert target_path.exists()
-    with pytest.raises(ApplicationError) as e:
+    with pytest.raises(ApplicationError):
         application.upload_apartment_image(
             landlord, apartment, file, f"image{NUMBER_OF_APARTMENT_IMAGES+7}.jpg"
         )
-        assert "maximum number of apartment images reached" in str(e).lower()
 
 
 def test_tenant_upload_apartment_images_fail(
@@ -524,11 +522,10 @@ def test_landlord_upload_more_videos_than_supported_fail(
         assert not target_path.exists()
         application.upload_apartment_video(landlord, apartment, file, filename)
         assert target_path.exists()
-    with pytest.raises(ApplicationError) as e:
+    with pytest.raises(ApplicationError):
         application.upload_apartment_video(
             landlord, apartment, file, f"video{NUMBER_OF_APARTMENT_VIDEOS+7}.mp4"
         )
-        assert "maximum number of apartment videos reached" in str(e).lower()
 
 
 def test_landlord_upload_unsupported_image_format_fail(
@@ -542,9 +539,8 @@ def test_landlord_upload_unsupported_image_format_fail(
         Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images/{filename}"
     )
     assert not target_path.exists()
-    with pytest.raises(ApplicationError) as e:
+    with pytest.raises(ApplicationError):
         application.upload_apartment_image(landlord, apartment, file, filename)
-        assert "unsupported image format" in str(e).lower()
     assert not target_path.exists()
 
 
@@ -559,9 +555,8 @@ def test_landlord_upload_unsupported_video_format_fail(
         Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images/{filename}"
     )
     assert not target_path.exists()
-    with pytest.raises(ApplicationError) as e:
+    with pytest.raises(ApplicationError):
         application.upload_apartment_image(landlord, apartment, file, filename)
-        assert "unsupported video format" in str(e).lower()
     assert not target_path.exists()
 
 
@@ -585,9 +580,17 @@ def test_tenant_apply_for_same_apartment_again_fail(
     assert apartment_application.tenant == tenant
     assert apartment_application.apartment == apartment
     assert not apartment_application.stage
-    with pytest.raises(ApplicationError) as e:
+    with pytest.raises(ApplicationError):
         application.apply_for_apartment(session, tenant, apartment)
-        assert "already applied for apartment" in str(e).lower()
+
+
+def test_tenant_apply_for_already_awarded_apartment_fail(
+    application: Application,
+    tenant: Tenant,
+    apartment: Apartment,
+    session: Session,
+):
+    raise Exception()
 
 
 def test_landlord_reject_tenant_application_ok(
@@ -655,11 +658,10 @@ def test_landlord_reject_another_landlords_application_fail(
     tenant_application = application.apply_for_apartment(session, tenant, apartment)
     assert session.query(Landlord).count() == 2
     assert apartment.landlord_id == landlord.id
-    with pytest.raises(ApplicationError) as e:
+    with pytest.raises(ApplicationError):
         application.reject_tenant_application(
             session, another_landlord, tenant_application
         )
-        assert "apartment not owned by lanlord" in str(e).lower()
 
 
 def test_landlord_consider_another_landlords_application_fail(
@@ -681,8 +683,165 @@ def test_landlord_consider_another_landlords_application_fail(
     tenant_application = application.apply_for_apartment(session, tenant, apartment)
     assert session.query(Landlord).count() == 2
     assert apartment.landlord_id == landlord.id
-    with pytest.raises(ApplicationError) as e:
+    with pytest.raises(ApplicationError):
         application.consider_tenant_application(
             session, another_landlord, tenant_application
         )
-        assert "apartment not owned by lanlord" in str(e).lower()
+
+
+def test_landlord_accept_considered_application_ok(
+    application: Application,
+    session: Session,
+    landlord: Landlord,
+    apartment_application: ApartmentApplication,
+):
+    apartment_application = application.consider_tenant_application(
+        session, landlord, apartment_application
+    )
+    assert apartment_application.stage == ApartmentApplicationStage.CONSIDERED
+    apartment_application = application.accept_tenant_application(
+        session, landlord, apartment_application
+    )
+    assert apartment_application.stage == ApartmentApplicationStage.AWARDED
+
+
+@pytest.fixture
+def tenant_applications(
+    session: Session, apartment: Apartment, application: Application
+):
+    dob = datetime.utcnow().date()
+    tenant1 = application.create_tenant(
+        session,
+        "tenant1",
+        "lastname1",
+        dob,
+        "tenant1@email.com",
+        "001234578",
+        "password",
+    )
+    tenant2 = application.create_tenant(
+        session,
+        "tenant2",
+        "lastname2",
+        dob,
+        "tenant2@email.com",
+        "001234575",
+        "password",
+    )
+    tenant3 = application.create_tenant(
+        session,
+        "tenant3",
+        "lastname3",
+        dob,
+        "tenant3@email.com",
+        "001234576",
+        "password",
+    )
+    tenant4 = application.create_tenant(
+        session,
+        "tenant4",
+        "lastname4",
+        dob,
+        "tenant4@email.com",
+        "001234577",
+        "password",
+    )
+    app1 = application.apply_for_apartment(session, tenant1, apartment)
+    app2 = application.apply_for_apartment(session, tenant2, apartment)
+    app3 = application.apply_for_apartment(session, tenant3, apartment)
+    app4 = application.apply_for_apartment(session, tenant4, apartment)
+    return [app1, app2, app3, app4]
+
+
+def test_landlord_accept_new_application_fail(
+    application: Application,
+    session: Session,
+    landlord: Landlord,
+    apartment_application: ApartmentApplication,
+):
+    assert not apartment_application.stage
+    with pytest.raises(ApplicationError):
+        application.accept_tenant_application(session, landlord, apartment_application)
+
+
+def test_another_landlord_accept_considered_application_fail(
+    application: Application,
+    session: Session,
+    landlord: Landlord,
+    another_landlord: Landlord,
+    apartment_application: ApartmentApplication,
+):
+    apartment_application = application.consider_tenant_application(
+        session, landlord, apartment_application
+    )
+    assert apartment_application.stage == ApartmentApplicationStage.CONSIDERED
+    with pytest.raises(ApplicationError):
+        apartment_application = application.accept_tenant_application(
+            session, another_landlord, apartment_application
+        )
+    assert apartment_application.stage == ApartmentApplicationStage.CONSIDERED
+
+
+def test_landlord_accept_rejected_application_fail(
+    application: Application,
+    session: Session,
+    landlord: Landlord,
+    apartment_application: ApartmentApplication,
+):
+    apartment_application = application.reject_tenant_application(
+        session, landlord, apartment_application
+    )
+    assert apartment_application.stage == ApartmentApplicationStage.REJECTED
+    with pytest.raises(ApplicationError):
+        apartment_application = application.accept_tenant_application(
+            session, landlord, apartment_application
+        )
+
+
+def test_award_already_awarded_apartment_fail(
+    application: Application,
+    session: Session,
+    tenant_applications: List[ApartmentApplication],
+    landlord: Landlord,
+):
+    assert all(not app.stage for app in tenant_applications)
+    application.reject_tenant_application(session, landlord, tenant_applications[0])
+    considered_app2 = application.consider_tenant_application(
+        session, landlord, tenant_applications[1]
+    )
+    assert considered_app2.stage == ApartmentApplicationStage.CONSIDERED
+    considered_app3 = application.consider_tenant_application(
+        session, landlord, tenant_applications[2]
+    )
+    assert considered_app3.stage == ApartmentApplicationStage.CONSIDERED
+    considered_app_4 = application.consider_tenant_application(
+        session, landlord, tenant_applications[3]
+    )
+    application.accept_tenant_application(session, landlord, considered_app_4)
+    with pytest.raises(ApplicationError):
+        application.accept_tenant_application(session, landlord, considered_app2)
+
+
+def test_other_considered_applications_rejected_when_one_application_is_accepted(
+    application: Application,
+    session: Session,
+    tenant_applications: List[ApartmentApplication],
+    landlord: Landlord,
+):
+    assert all(not app.stage for app in tenant_applications)
+    application.reject_tenant_application(session, landlord, tenant_applications[0])
+    considered_app2 = application.consider_tenant_application(
+        session, landlord, tenant_applications[1]
+    )
+    assert considered_app2.stage == ApartmentApplicationStage.CONSIDERED
+    considered_app3 = application.consider_tenant_application(
+        session, landlord, tenant_applications[2]
+    )
+    assert considered_app3.stage == ApartmentApplicationStage.CONSIDERED
+    considered_app_4 = application.consider_tenant_application(
+        session, landlord, tenant_applications[3]
+    )
+    application.accept_tenant_application(session, landlord, considered_app_4)
+    assert considered_app_4.stage == ApartmentApplicationStage.AWARDED
+    assert considered_app2.stage == ApartmentApplicationStage.REJECTED
+    assert considered_app3.stage == ApartmentApplicationStage.REJECTED
