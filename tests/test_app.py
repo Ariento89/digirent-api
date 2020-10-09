@@ -586,11 +586,18 @@ def test_tenant_apply_for_same_apartment_again_fail(
 
 def test_tenant_apply_for_already_awarded_apartment_fail(
     application: Application,
+    landlord: Landlord,
     tenant: Tenant,
+    another_tenant: Tenant,
     apartment: Apartment,
     session: Session,
 ):
-    raise Exception()
+    apartment_application = application.apply_for_apartment(session, tenant, apartment)
+    application.consider_tenant_application(session, landlord, apartment_application)
+    application.accept_tenant_application(session, landlord, apartment_application)
+    assert apartment_application.stage == ApartmentApplicationStage.AWARDED
+    with pytest.raises(ApplicationError):
+        application.apply_for_apartment(session, another_tenant, apartment)
 
 
 def test_landlord_reject_tenant_application_ok(

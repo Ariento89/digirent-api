@@ -319,8 +319,21 @@ def another_landlord(session: Session, application: Application) -> Landlord:
         "Another",
         "Landlord",
         datetime.utcnow().date(),
-        "another@gmail.com",
+        "another_landlord@gmail.com",
         "001234578",
+        "password",
+    )
+
+
+@pytest.fixture
+def another_tenant(session: Session, application: Application) -> Tenant:
+    return application.create_tenant(
+        session,
+        "Another",
+        "Tenant",
+        datetime.utcnow().date(),
+        "another_tenant@gmail.com",
+        "01023478",
         "password",
     )
 
@@ -331,6 +344,22 @@ def another_landlord_auth_header(client: TestClient, another_landlord: Landlord)
         "/api/auth/",
         data={
             "username": another_landlord.email,
+            "password": "password",
+        },
+    )
+    result = response.json()
+    assert response.status_code == 200
+    assert "access_token" in result
+    assert "token_type" in result
+    return {"Authorization": f"Bearer {result['access_token']}"}
+
+
+@pytest.fixture
+def another_tenant_auth_header(client: TestClient, another_tenant: Tenant):
+    response = client.post(
+        "/api/auth/",
+        data={
+            "username": another_tenant.email,
             "password": "password",
         },
     )

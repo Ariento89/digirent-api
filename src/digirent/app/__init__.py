@@ -292,6 +292,14 @@ class Application(ApplicationBase):
     def apply_for_apartment(
         self, session: Session, tenant: Tenant, apartment: Apartment
     ):
+        awarded_application = (
+            session.query(ApartmentApplication)
+            .filter(ApartmentApplication.apartment_id == apartment.id)
+            .filter(ApartmentApplication.stage == ApartmentApplicationStage.AWARDED)
+            .first()
+        )
+        if awarded_application:
+            raise ApplicationError("Apartment has already been awarded")
         existing_application = (
             session.query(ApartmentApplication)
             .filter(ApartmentApplication.apartment_id == apartment.id)
