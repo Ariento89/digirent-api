@@ -168,8 +168,10 @@ class Amenity(Base, EntityMixin, TimestampMixin):
 
 class ApartmentApplication(Base, EntityMixin, TimestampMixin):
     __tablename__ = "apartment_applications"
-    apartment_id = Column(UUIDType(binary=False), ForeignKey("apartments.id"))
-    tenant_id = Column(UUIDType(binary=False), ForeignKey("users.id"))
+    apartment_id = Column(
+        UUIDType(binary=False), ForeignKey("apartments.id"), nullable=False
+    )
+    tenant_id = Column(UUIDType(binary=False), ForeignKey("users.id"), nullable=False)
     stage = Column(ChoiceType(ApartmentApplicationStage, impl=String()), nullable=True)
     apartment = relationship("Apartment", backref="applications")
     tenant = relationship("Tenant", backref="applications")
