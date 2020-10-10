@@ -7,7 +7,12 @@ from digirent.core.config import (
     NUMBER_OF_APARTMENT_VIDEOS,
 )
 import digirent.util as util
-from digirent.database.enums import ApartmentApplicationStage, FurnishType, HouseType
+from digirent.database.enums import (
+    ApartmentApplicationStage,
+    BookingRequestStatus,
+    FurnishType,
+    HouseType,
+)
 from digirent.app.error import ApplicationError
 import pytest
 from digirent.app import Application
@@ -16,6 +21,7 @@ from digirent.database.models import (
     Amenity,
     Apartment,
     ApartmentApplication,
+    BookingRequest,
     Landlord,
     Tenant,
     User,
@@ -852,3 +858,20 @@ def test_other_considered_applications_rejected_when_one_application_is_accepted
     assert considered_app_4.stage == ApartmentApplicationStage.AWARDED
     assert considered_app2.stage == ApartmentApplicationStage.REJECTED
     assert considered_app3.stage == ApartmentApplicationStage.REJECTED
+
+
+def test_landlord_invite_tenant_to_apply(
+    application: Application,
+    session: Session,
+    landlord: Landlord,
+    tenant: Tenant,
+    apartment: Apartment,
+):
+    assert not session.query(BookingRequest).count()
+    booking_request: BookingRequest = application.invite_tenant_to_apply(
+        session, landlord, tenant, apartment
+    )
+    assert booking_request.apartment_id == apartment.id
+    assert booking_request.tenant_id == tenant.id
+    assert not booking_request.apartment_application_id
+    assert booking_request.status == BookingRequestStatus.PENDING

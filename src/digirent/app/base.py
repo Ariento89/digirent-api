@@ -5,6 +5,7 @@ from digirent.database.models import (
     Amenity,
     Apartment,
     ApartmentApplication,
+    BookingRequest,
     Landlord,
     Tenant,
 )
@@ -21,6 +22,7 @@ class ApplicationBase:
         amenity_service: DBService[Amenity],
         admin_service: DBService[Admin],
         apartment_application_service: DBService[ApartmentApplication],
+        booking_request_service: DBService[BookingRequest],
         file_service: FileService,
     ) -> None:
         self.user_service: UserService = user_service
@@ -29,5 +31,6 @@ class ApplicationBase:
         self.tenant_service = tenant_service
         self.apartment_service = apartment_service
         self.amenity_service = amenity_service
+        self.booking_request_service = booking_request_service
         self.file_service = file_service
         self.apartment_application_service = apartment_application_service

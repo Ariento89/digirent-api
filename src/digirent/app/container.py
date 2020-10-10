@@ -6,6 +6,7 @@ from digirent.database.models import (
     Amenity,
     Apartment,
     ApartmentApplication,
+    BookingRequest,
     Landlord,
     Tenant,
 )
@@ -24,6 +25,7 @@ class ServiceContainer(containers.DeclarativeContainer):
     apartment_application_service = providers.Singleton(
         DBService, model_class=ApartmentApplication
     )
+    booking_request_service = providers.Singleton(DBService, model_class=BookingRequest)
     file_service = providers.Singleton(FileService)
 
 
@@ -37,5 +39,6 @@ class ApplicationContainer(containers.DeclarativeContainer):
         apartment_service=ServiceContainer.apartment_service,
         amenity_service=ServiceContainer.amenity_service,
         apartment_application_service=ServiceContainer.apartment_application_service,
+        booking_request_service=ServiceContainer.booking_request_service,
         file_service=ServiceContainer.file_service,
     )

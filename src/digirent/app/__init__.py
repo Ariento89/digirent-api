@@ -23,6 +23,7 @@ from digirent.database.models import (
     Apartment,
     ApartmentApplication,
     BankDetail,
+    BookingRequest,
     Landlord,
     LookingFor,
     Tenant,
@@ -124,7 +125,7 @@ class Application(ApplicationBase):
         dob: date = None,
         gender: Gender = None,
         description: str = None,
-    ):
+    ) -> User:
         try:
             return self.user_service.update(
                 session,
@@ -148,13 +149,13 @@ class Application(ApplicationBase):
 
     def set_bank_detail(
         self, session: Session, user: User, account_name: str, account_number: str
-    ):
+    ) -> User:
         bank_detail = BankDetail(uuid4(), account_name, account_number)
         return self.user_service.update(session, user, bank_detail=bank_detail)
 
     def update_password(
         self, session: Session, user: User, old_password: str, new_password: str
-    ):
+    ) -> User:
         if not util.password_is_match(old_password, user.hashed_password):
             raise ApplicationError("Wrong password")
         new_hashed_password = util.hash_password(new_password)
@@ -169,11 +170,11 @@ class Application(ApplicationBase):
         house_type: HouseType,
         city: str,
         max_budget: float,
-    ):
+    ) -> Tenant:
         looking_for = LookingFor(tenant.id, house_type, city, max_budget)
         return self.tenant_service.update(session, tenant, looking_for=looking_for)
 
-    def create_amenity(self, session: Session, title: str):
+    def create_amenity(self, session: Session, title: str) -> Amenity:
         existing_amenity = session.query(Amenity).filter(Amenity.title == title).first()
         if existing_amenity:
             raise ApplicationError("Amenity already exists")
@@ -199,7 +200,7 @@ class Application(ApplicationBase):
         available_from: date,
         available_to: date,
         amenities: List[Amenity],
-    ):
+    ) -> Apartment:
         return self.apartment_service.create(
             session,
             amenities=amenities,
@@ -223,7 +224,7 @@ class Application(ApplicationBase):
 
     def update_apartment(
         self, session: Session, landlord: Landlord, apartment_id: UUID, **kwargs
-    ):
+    ) -> Apartment:
         apartment = self.apartment_service.get(session, apartment_id)
         if not apartment:
             raise ApplicationError("Apartment not found")
@@ -233,7 +234,9 @@ class Application(ApplicationBase):
             raise ApplicationError("Apartment has been subletted")
         return self.apartment_service.update(session, apartment, **kwargs)
 
-    def __upload_file(self, user: User, file: IO, extension: str, folder_path: Path):
+    def __upload_file(
+        self, user: User, file: IO, extension: str, folder_path: Path
+    ) -> User:
         if extension not in SUPPORTED_FILE_EXTENSIONS:
             raise ApplicationError("Invalid file format")
         possible_filenames = [f"{user.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
@@ -244,22 +247,24 @@ class Application(ApplicationBase):
         self.file_service.store_file(folder_path, filename, file)
         return user
 
-    def upload_copy_id(self, user: User, file: IO, extension: str):
+    def upload_copy_id(self, user: User, file: IO, extension: str) -> User:
         return self.__upload_file(user, file, extension, util.get_copy_ids_path())
 
-    def upload_proof_of_income(self, user: User, file: IO, extension: str):
+    def upload_proof_of_income(self, user: User, file: IO, extension: str) -> Tenant:
         return self.__upload_file(
             user, file, extension, util.get_proof_of_income_path()
         )
 
-    def upload_proof_of_enrollment(self, user: User, file: IO, extension: str):
+    def upload_proof_of_enrollment(
+        self, user: User, file: IO, extension: str
+    ) -> Tenant:
         return self.__upload_file(
             user, file, extension, util.get_proof_of_enrollment_path()
         )
 
     def upload_apartment_image(
         self, landlord: Landlord, apartment: Apartment, file: IO, filename: str
-    ):
+    ) -> Apartment:
         assert isinstance(landlord, Landlord)
         file_extension = filename.split(".")[-1]
         if file_extension not in SUPPORTED_IMAGE_EXTENSIONS:
@@ -275,7 +280,7 @@ class Application(ApplicationBase):
 
     def upload_apartment_video(
         self, landlord: Landlord, apartment: Apartment, file: IO, filename: str
-    ):
+    ) -> Apartment:
         assert isinstance(landlord, Landlord)
         file_extension = filename.split(".")[-1]
         if file_extension not in SUPPORTED_VIDEO_EXTENSIONS:
@@ -291,7 +296,7 @@ class Application(ApplicationBase):
 
     def apply_for_apartment(
         self, session: Session, tenant: Tenant, apartment: Apartment
-    ):
+    ) -> ApartmentApplication:
         awarded_application = (
             session.query(ApartmentApplication)
             .filter(ApartmentApplication.apartment_id == apartment.id)
@@ -318,7 +323,7 @@ class Application(ApplicationBase):
         session: Session,
         landlord: Landlord,
         tenant_application: ApartmentApplication,
-    ):
+    ) -> ApartmentApplication:
         apartment: Apartment = tenant_application.apartment
         if apartment.landlord_id != landlord.id:
             raise ApplicationError("Apartment not owned by landlord")
@@ -331,7 +336,7 @@ class Application(ApplicationBase):
         session: Session,
         landlord: Landlord,
         tenant_application: ApartmentApplication,
-    ):
+    ) -> ApartmentApplication:
         apartment: Apartment = tenant_application.apartment
         if apartment.landlord_id != landlord.id:
             raise ApplicationError("Apartment not owned by landlord")
@@ -344,7 +349,7 @@ class Application(ApplicationBase):
         session: Session,
         landlord: Landlord,
         tenant_application: ApartmentApplication,
-    ):
+    ) -> ApartmentApplication:
         apartment: Apartment = tenant_application.apartment
         if tenant_application.stage != ApartmentApplicationStage.CONSIDERED:
             raise ApplicationError("Application has not yet been considered")
@@ -357,4 +362,17 @@ class Application(ApplicationBase):
                 )
         return self.apartment_application_service.update(
             session, tenant_application, stage=ApartmentApplicationStage.AWARDED
+        )
+
+    def invite_tenant_to_apply(
+        self,
+        session: Session,
+        landlord: Landlord,
+        tenant: Tenant,
+        apartment: Apartment,
+    ) -> BookingRequest:
+        if apartment.landlord_id != landlord.id:
+            raise ApplicationError("Landlord does not own apartment")
+        return self.booking_request_service.create(
+            session, apartment_id=apartment.id, tenant_id=tenant.id
         )
