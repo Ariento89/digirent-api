@@ -206,7 +206,7 @@ class BookingRequest(Base, EntityMixin, TimestampMixin):
 
     def accept(self, apartment_application: ApartmentApplication):
         self.status = BookingRequestStatus.ACCEPTED
-        self.apartment_application_id = apartment_application.id
+        self.apartment_application = apartment_application
 
     def reject(self):
         self.status = BookingRequestStatus.REJECTED

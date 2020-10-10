@@ -875,3 +875,15 @@ def test_landlord_invite_tenant_to_apply(
     assert booking_request.tenant_id == tenant.id
     assert not booking_request.apartment_application_id
     assert booking_request.status == BookingRequestStatus.PENDING
+
+
+def test_tenant_accept_invitation_to_apply_for_apartment(
+    application: Application,
+    session: Session,
+    tenant: Tenant,
+    booking_request: BookingRequest,
+):
+    application.accept_application_invitation(session, tenant, booking_request)
+    booking_req = session.query(BookingRequest).get(booking_request.id)
+    assert booking_req.status == BookingRequestStatus.ACCEPTED
+    assert booking_req.apartment_application_id is not None

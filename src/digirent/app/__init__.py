@@ -376,3 +376,18 @@ class Application(ApplicationBase):
         return self.booking_request_service.create(
             session, apartment_id=apartment.id, tenant_id=tenant.id
         )
+
+    def accept_application_invitation(
+        self, session: Session, tenant: Tenant, booking_request: BookingRequest
+    ):
+        if booking_request.tenant_id != tenant.id:
+            raise ApplicationError("Request not for tenant")
+        apartment_application = self.apartment_application_service.create(
+            session,
+            apartment=booking_request.apartment,
+            tenant=booking_request.tenant,
+            commit=False,
+        )
+        booking_request.accept(apartment_application)
+        session.commit()
+        return booking_request

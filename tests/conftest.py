@@ -28,7 +28,12 @@ from digirent.database.models import (
     Tenant,
     User,
 )
-from digirent.database.enums import FurnishType, HouseType, UserRole
+from digirent.database.enums import (
+    BookingRequestStatus,
+    FurnishType,
+    HouseType,
+    UserRole,
+)
 from digirent.app.container import ApplicationContainer
 from digirent.database.base import SessionLocal, Base
 from digirent.database.services.user import UserService
@@ -368,3 +373,19 @@ def another_tenant_auth_header(client: TestClient, another_tenant: Tenant):
     assert "access_token" in result
     assert "token_type" in result
     return {"Authorization": f"Bearer {result['access_token']}"}
+
+
+@pytest.fixture
+def booking_request(
+    application: Application,
+    tenant: Tenant,
+    landlord: Landlord,
+    apartment: Apartment,
+    session: Session,
+):
+    booking_request = application.invite_tenant_to_apply(
+        session, landlord, tenant, apartment
+    )
+    assert booking_request.status == BookingRequestStatus.PENDING
+    assert not booking_request.apartment_application_id
+    return booking_request
