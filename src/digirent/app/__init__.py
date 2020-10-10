@@ -378,6 +378,14 @@ class Application(ApplicationBase):
     ) -> BookingRequest:
         if apartment.landlord_id != landlord.id:
             raise ApplicationError("Landlord does not own apartment")
+        awarded_application = (
+            session.query(ApartmentApplication)
+            .filter(ApartmentApplication.apartment_id == apartment.id)
+            .filter(ApartmentApplication.stage == ApartmentApplicationStage.AWARDED)
+            .first()
+        )
+        if awarded_application:
+            raise ApplicationError("Apartment has already been awarded")
         return self.booking_request_service.create(
             session, apartment_id=apartment.id, tenant_id=tenant.id
         )

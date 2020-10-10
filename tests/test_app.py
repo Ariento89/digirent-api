@@ -925,3 +925,26 @@ def test_tenant_accept_rejected_invitation_fail(
     )
     with pytest.raises(ApplicationError):
         application.accept_application_invitation(session, tenant, booking_req)
+
+
+def test_invite_tenant_for_already_awarded_apartment_fail(
+    application: Application,
+    session: Session,
+    tenant: Tenant,
+    another_tenant: Tenant,
+    landlord: Landlord,
+    apartment_application,
+):
+    apartment_application = application.consider_tenant_application(
+        session, landlord, apartment_application
+    )
+    assert apartment_application.tenant_id == tenant.id
+    assert apartment_application.stage == ApartmentApplicationStage.CONSIDERED
+    apartment_application = application.accept_tenant_application(
+        session, landlord, apartment_application
+    )
+    assert apartment_application.stage == ApartmentApplicationStage.AWARDED
+    with pytest.raises(ApplicationError):
+        application.invite_tenant_to_apply(
+            session, landlord, another_tenant, apartment_application.apartment
+        )
