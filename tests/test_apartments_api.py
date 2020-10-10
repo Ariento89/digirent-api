@@ -1,7 +1,7 @@
 from pathlib import Path
 from digirent.app import Application
 from digirent.core.services.file_service import FileService
-from digirent.database.enums import HouseType
+from digirent.database.enums import FurnishType, HouseType
 from sqlalchemy.orm.session import Session
 from fastapi.testclient import TestClient
 from digirent.database.models import Apartment, Landlord, Tenant
@@ -21,7 +21,7 @@ apartment_create_data = dict(
     bedrooms=3,
     bathrooms=4,
     size=1200,
-    furnishType="furnish type",
+    furnishType=FurnishType.FURNISHED,
     availableFrom=str(datetime.now().date()),
     availableTo=str(datetime.now().date()),
     amenities=[],
@@ -111,7 +111,7 @@ def test_landlord_update_not_owned_apartment_fail(
         bedrooms=3,
         bathrooms=4,
         size=1200,
-        furnish_type="furnish type",
+        furnish_type=FurnishType.FURNISHED,
         available_from=datetime.now().date(),
         available_to=datetime.now().date(),
         amenities=[],

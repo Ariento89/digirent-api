@@ -18,7 +18,18 @@ class HouseType(str, Enum):
     FLAT = "flat"
 
 
+class FurnishType(str, Enum):
+    FURNISHED = "furnished"
+    UNFURNISHED = "unfurnished"
+
+
 class ApartmentApplicationStage(str, Enum):
     REJECTED = "rejected"
     CONSIDERED = "considered"
     AWARDED = "awarded"
+
+
+class BookingRequestStatus(str, Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"

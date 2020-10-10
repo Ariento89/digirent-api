@@ -1,12 +1,18 @@
 from datetime import datetime
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
-from digirent.database.enums import HouseType, UserRole
+from digirent.database.enums import (
+    BookingRequestStatus,
+    FurnishType,
+    HouseType,
+    UserRole,
+)
 from digirent import util
 from digirent.database.models import (
     Amenity,
     Apartment,
     ApartmentApplication,
+    BookingRequest,
     Landlord,
     Tenant,
     LookingFor,
@@ -74,7 +80,7 @@ def test_landlord_apartment_relationship(session: Session, landlord: Landlord):
         bedrooms=3,
         bathrooms=3,
         size=1400,
-        furnish_type="some furnish type",
+        furnish_type=FurnishType.FURNISHED,
         available_from=datetime.now().date(),
         available_to=datetime.now().date(),
     )
@@ -103,7 +109,7 @@ def test_tenant_apartment_relationship(
         bedrooms=3,
         bathrooms=3,
         size=1400,
-        furnish_type="some furnish type",
+        furnish_type=FurnishType.UNFURNISHED,
         available_from=datetime.now().date(),
         available_to=datetime.now().date(),
     )
@@ -132,7 +138,7 @@ def test_apartment_amenity_relationship(session: Session, landlord: Landlord):
         bedrooms=3,
         bathrooms=3,
         size=1400,
-        furnish_type="some furnish type",
+        furnish_type=FurnishType.FURNISHED,
         available_from=datetime.now().date(),
         available_to=datetime.now().date(),
     )
@@ -188,3 +194,43 @@ def test_apartment_applications(tenant: Tenant, apartment: Apartment, session: S
     assert tenant.applications == [apartment_application]
     assert apartment.applications == [apartment_application]
     assert apartment_application.stage is None
+
+
+def test_booking_request_relationships(
+    apartment: Apartment,
+    session: Session,
+    tenant: Tenant,
+):
+    booking_request = BookingRequest(tenant_id=tenant.id, apartment_id=apartment.id)
+    session.add(booking_request)
+    session.commit()
+    assert booking_request.status == BookingRequestStatus.PENDING
+
+
+def test_accept_booking_request(
+    apartment: Apartment,
+    session: Session,
+    tenant: Tenant,
+    apartment_application: ApartmentApplication,
+):
+    booking_request = BookingRequest(tenant_id=tenant.id, apartment_id=apartment.id)
+    session.add(booking_request)
+    session.commit()
+    assert booking_request.status == BookingRequestStatus.PENDING
+    booking_request.accept(apartment_application)
+    session.commit()
+    assert booking_request.status == BookingRequestStatus.ACCEPTED
+    assert booking_request.apartment_application == apartment_application
+
+
+def test_reject_booking_request(
+    apartment: Apartment,
+    session: Session,
+    tenant: Tenant,
+):
+    booking_request = BookingRequest(tenant_id=tenant.id, apartment_id=apartment.id)
+    booking_request.reject()
+    session.add(booking_request)
+    session.commit()
+    assert booking_request.status == BookingRequestStatus.REJECTED
+    assert not booking_request.apartment_application

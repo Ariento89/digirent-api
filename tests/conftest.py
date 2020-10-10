@@ -28,7 +28,7 @@ from digirent.database.models import (
     Tenant,
     User,
 )
-from digirent.database.enums import HouseType, UserRole
+from digirent.database.enums import FurnishType, HouseType, UserRole
 from digirent.app.container import ApplicationContainer
 from digirent.database.base import SessionLocal, Base
 from digirent.database.services.user import UserService
@@ -294,7 +294,7 @@ def apartment(
         3,
         2,
         1200,
-        "ftype",
+        FurnishType.UNFURNISHED,
         datetime.utcnow().date(),
         datetime.utcnow().date(),
         [],

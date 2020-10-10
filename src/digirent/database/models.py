@@ -16,7 +16,14 @@ from digirent import util
 from digirent.core.config import SUPPORTED_FILE_EXTENSIONS
 from .base import Base
 from .mixins import EntityMixin, TimestampMixin
-from .enums import ApartmentApplicationStage, UserRole, Gender, HouseType
+from .enums import (
+    ApartmentApplicationStage,
+    BookingRequestStatus,
+    FurnishType,
+    UserRole,
+    Gender,
+    HouseType,
+)
 from .association_tables import apartments_amenities_association_table
 
 
@@ -135,10 +142,10 @@ class Apartment(Base, EntityMixin, TimestampMixin):
     city = Column(String, nullable=False)
     description = Column(String, nullable=False)
     house_type = Column(ChoiceType(HouseType, impl=String()), nullable=False)
+    furnish_type = Column(ChoiceType(FurnishType, impl=String()), nullable=False)
     bedrooms = Column(Integer, nullable=False)
     bathrooms = Column(Integer, nullable=False)
     size = Column(Float, nullable=False)
-    furnish_type = Column(String, nullable=False)
     available_from = Column(Date, nullable=False)
     available_to = Column(Date, nullable=False)
     amenities = relationship(
@@ -175,3 +182,32 @@ class ApartmentApplication(Base, EntityMixin, TimestampMixin):
     stage = Column(ChoiceType(ApartmentApplicationStage, impl=String()), nullable=True)
     apartment = relationship("Apartment", backref="applications")
     tenant = relationship("Tenant", backref="applications")
+    booking_request = relationship(
+        "BookingRequest", uselist=False, backref="apartment_application"
+    )
+
+
+class BookingRequest(Base, EntityMixin, TimestampMixin):
+    __tablename__ = "booking_requests"
+    tenant_id = Column(UUIDType(binary=False), ForeignKey("users.id"), nullable=False)
+    apartment_id = Column(
+        UUIDType(binary=False), ForeignKey("apartments.id"), nullable=False
+    )
+    apartment_application_id = Column(
+        UUIDType(binary=False), ForeignKey("apartment_applications.id"), nullable=True
+    )
+    status = Column(
+        ChoiceType(BookingRequestStatus, impl=String()),
+        nullable=False,
+        default=BookingRequestStatus.PENDING,
+    )
+    tenant = relationship("Tenant", backref="booking_requests")
+    apartment = relationship("Apartment", backref="booking_requests")
+
+    def accept(self, apartment_application: ApartmentApplication):
+        self.status = BookingRequestStatus.ACCEPTED
+        self.apartment_application_id = apartment_application.id
+
+    def reject(self):
+        self.status = BookingRequestStatus.REJECTED
+        self.apartment_application_id = None

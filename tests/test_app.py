@@ -7,7 +7,7 @@ from digirent.core.config import (
     NUMBER_OF_APARTMENT_VIDEOS,
 )
 import digirent.util as util
-from digirent.database.enums import ApartmentApplicationStage, HouseType
+from digirent.database.enums import ApartmentApplicationStage, FurnishType, HouseType
 from digirent.app.error import ApplicationError
 import pytest
 from digirent.app import Application
@@ -266,7 +266,7 @@ def test_create_apartment_ok(
         bedrooms=3,
         bathrooms=4,
         size=1200,
-        furnish_type="furnish type",
+        furnish_type=FurnishType.FURNISHED,
         available_from=datetime.now().date(),
         available_to=datetime.now().date(),
         amenities=[],
@@ -286,7 +286,7 @@ def test_create_apartment_ok(
     apartment.bedrooms == 3
     apartment.bathrooms == 4
     apartment.size == 1200
-    apartment.furnish_type == "furnish type"
+    apartment.furnish_type == FurnishType.FURNISHED
     apartment.available_from == datetime.now().date()
     apartment.available_to == datetime.now().date(),
     apartment.amenities == []
@@ -313,7 +313,7 @@ def test_update_apartment_ok(
         bedrooms=3,
         bathrooms=4,
         size=1200,
-        furnish_type="furnish type",
+        furnish_type=FurnishType.UNFURNISHED,
         available_from=datetime.now().date(),
         available_to=datetime.now().date(),
         amenities=[amenity1],
@@ -333,7 +333,7 @@ def test_update_apartment_ok(
     apartment.bedrooms == 3
     apartment.bathrooms == 4
     apartment.size == 1200
-    apartment.furnish_type == "furnish type"
+    apartment.furnish_type == FurnishType.UNFURNISHED
     apartment.available_from == datetime.now().date()
     apartment.available_to == datetime.now().date(),
     apartment.amenities == [amenity1]
