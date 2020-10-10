@@ -15,7 +15,12 @@ import digirent.util as util
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 
-from digirent.database.enums import ApartmentApplicationStage, Gender, HouseType
+from digirent.database.enums import (
+    ApartmentApplicationStage,
+    BookingRequestStatus,
+    Gender,
+    HouseType,
+)
 from .base import ApplicationBase
 from .error import ApplicationError
 from digirent.database.models import (
@@ -382,6 +387,8 @@ class Application(ApplicationBase):
     ):
         if booking_request.tenant_id != tenant.id:
             raise ApplicationError("Request not for tenant")
+        if booking_request.status == BookingRequestStatus.REJECTED:
+            raise ApplicationError("Invitation has been rejected")
         apartment_application = self.apartment_application_service.create(
             session,
             apartment=booking_request.apartment,
@@ -389,5 +396,19 @@ class Application(ApplicationBase):
             commit=False,
         )
         booking_request.accept(apartment_application)
+        session.commit()
+        return booking_request
+
+    def reject_application_invitation(
+        self,
+        session: Session,
+        tenant: Tenant,
+        booking_request: BookingRequest,
+    ):
+        if booking_request.tenant_id != tenant.id:
+            raise ApplicationError("Request not for tenant")
+        if booking_request.status == BookingRequestStatus.ACCEPTED:
+            raise ApplicationError("Invitation has been accepted")
+        booking_request.reject()
         session.commit()
         return booking_request

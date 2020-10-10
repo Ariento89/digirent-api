@@ -887,3 +887,41 @@ def test_tenant_accept_invitation_to_apply_for_apartment(
     booking_req = session.query(BookingRequest).get(booking_request.id)
     assert booking_req.status == BookingRequestStatus.ACCEPTED
     assert booking_req.apartment_application_id is not None
+
+
+def test_tenant_reject_invitation_to_apply_for_apartment(
+    application: Application,
+    session: Session,
+    tenant: Tenant,
+    booking_request: BookingRequest,
+):
+    application.reject_application_invitation(session, tenant, booking_request)
+    booking_req = session.query(BookingRequest).get(booking_request.id)
+    assert booking_req.status == BookingRequestStatus.REJECTED
+    assert not booking_req.apartment_application_id
+
+
+def test_tenant_reject_accepted_invitation_fail(
+    application: Application,
+    session: Session,
+    tenant: Tenant,
+    booking_request: BookingRequest,
+):
+    booking_req = application.accept_application_invitation(
+        session, tenant, booking_request
+    )
+    with pytest.raises(ApplicationError):
+        application.reject_application_invitation(session, tenant, booking_req)
+
+
+def test_tenant_accept_rejected_invitation_fail(
+    application: Application,
+    session: Session,
+    tenant: Tenant,
+    booking_request: BookingRequest,
+):
+    booking_req = application.reject_application_invitation(
+        session, tenant, booking_request
+    )
+    with pytest.raises(ApplicationError):
+        application.accept_application_invitation(session, tenant, booking_req)
