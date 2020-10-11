@@ -1,5 +1,7 @@
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm.session import Session
+from digirent.app import Application
 from digirent.database.enums import ApartmentApplicationStage
 from digirent.database.models import Tenant, Apartment, ApartmentApplication
 
@@ -51,7 +53,7 @@ def test_landlord_reject_tenants_application_ok(
     landlord_auth_header: dict,
 ):
     assert not apartment_application.stage
-    response = client.delete(
+    response = client.post(
         f"/api/applications/{apartment_application.id}/reject",
         headers=landlord_auth_header,
     )
@@ -72,7 +74,7 @@ def test_landlord_consider_tenants_application_ok(
     landlord_auth_header: dict,
 ):
     assert not apartment_application.stage
-    response = client.delete(
+    response = client.post(
         f"/api/applications/{apartment_application.id}/consider",
         headers=landlord_auth_header,
     )
@@ -93,7 +95,7 @@ def test_another_landlord_reject_tenants_application_fail(
     another_landlord_auth_header: dict,
 ):
     assert not apartment_application.stage
-    response = client.delete(
+    response = client.post(
         f"/api/applications/{apartment_application.id}/reject",
         headers=another_landlord_auth_header,
     )
@@ -112,7 +114,7 @@ def test_another_landlord_consider_tenants_application_fail(
     another_landlord_auth_header: dict,
 ):
     assert not apartment_application.stage
-    response = client.delete(
+    response = client.post(
         f"/api/applications/{apartment_application.id}/consider",
         headers=another_landlord_auth_header,
     )
@@ -122,3 +124,90 @@ def test_another_landlord_consider_tenants_application_fail(
         apartment_application.id
     )
     assert not apartment_application.stage
+
+
+@pytest.fixture
+def considered_apartment_application(
+    apartment_application, application: Application, session, landlord
+):
+    return application.consider_tenant_application(
+        session, landlord, apartment_application
+    )
+
+
+@pytest.fixture
+def rejected_apartment_application(
+    apartment_application, application: Application, session, landlord
+):
+    return application.reject_tenant_application(
+        session, landlord, apartment_application
+    )
+
+
+@pytest.fixture
+def awarded_apartment_application(
+    apartment_application, application: Application, session, landlord
+):
+    application.consider_tenant_application(session, landlord, apartment_application)
+    return application.accept_tenant_application(
+        session, landlord, apartment_application
+    )
+
+
+@pytest.fixture
+def another_considered_application(
+    apartment: Apartment, application: Application, session, another_tenant, landlord
+):
+    app = application.apply_for_apartment(session, another_tenant, apartment)
+    return application.consider_tenant_application(session, landlord, app)
+
+
+def test_accept_considered_application_ok(
+    client: TestClient,
+    considered_apartment_application: ApartmentApplication,
+    landlord_auth_header: dict,
+):
+    assert (
+        considered_apartment_application.stage == ApartmentApplicationStage.CONSIDERED
+    )
+    response = client.post(
+        f"/api/applications/{considered_apartment_application.id}/accept",
+        headers=landlord_auth_header,
+    )
+    assert response.status_code == 200
+    result = response.json()
+    assert "id" in result
+    assert "stage" in result
+    assert result["stage"] == ApartmentApplicationStage.AWARDED.value
+
+
+def test_accept_rejected_application_fail(
+    client: TestClient,
+    rejected_apartment_application: ApartmentApplication,
+    landlord_auth_header: dict,
+):
+    assert rejected_apartment_application.stage == ApartmentApplicationStage.REJECTED
+    response = client.post(
+        f"/api/applications/{rejected_apartment_application.id}/accept",
+        headers=landlord_auth_header,
+    )
+    assert response.status_code == 400
+    result = response.json()
+    assert "application has not yet been considered" in result["detail"].lower()
+
+
+def test_accept_another_application_when_apartment_has_been_awarded(
+    client: TestClient,
+    another_considered_application: ApartmentApplication,
+    awarded_apartment_application: ApartmentApplication,
+    landlord_auth_header: dict,
+):
+    assert awarded_apartment_application.stage == ApartmentApplicationStage.AWARDED
+    assert another_considered_application.stage == ApartmentApplicationStage.REJECTED
+    response = client.post(
+        f"/api/applications/{another_considered_application.id}/accept",
+        headers=landlord_auth_header,
+    )
+    assert response.status_code == 400
+    result = response.json()
+    assert "has not yet been considered" in result["detail"].lower()
