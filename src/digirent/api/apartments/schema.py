@@ -94,3 +94,4 @@ class ApartmentUpdateSchema(BaseSchema):
 
 class ApartmentSchema(OrmSchema, BaseApartmentSchema):
     amenity_titles: List[str]
+    total_price: float

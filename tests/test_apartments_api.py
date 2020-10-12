@@ -42,7 +42,7 @@ def test_landlord_create_apartments_ok(
         "/api/apartments/", json=create_data, headers=landlord_auth_header
     )
     result = response.json()
-    expected_keys = [*apartment_create_data.keys(), "id", "amenityTitles"]
+    expected_keys = [*apartment_create_data.keys(), "id", "amenityTitles", "totalPrice"]
     expected_keys.remove("amenities")
     assert all(key in result for key in expected_keys)
     assert isinstance(result, dict)
@@ -73,7 +73,7 @@ def test_landlord_update_apartments_ok(
         headers=landlord_auth_header,
     )
     result = response.json()
-    expected_keys = [*apartment_create_data.keys(), "id", "amenityTitles"]
+    expected_keys = [*apartment_create_data.keys(), "id", "amenityTitles", "totalPrice"]
     expected_keys.remove("amenities")
     assert all(key in result for key in expected_keys)
     assert response.status_code == 200

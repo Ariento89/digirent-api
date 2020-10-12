@@ -1,3 +1,4 @@
+from typing import List
 from sqlalchemy import (
     Column,
     String,
@@ -164,8 +165,12 @@ class Apartment(Base, EntityMixin, TimestampMixin):
     )
 
     @hybridproperty
-    def amenity_titles(self):
+    def amenity_titles(self) -> List[str]:
         return [amenity.title for amenity in self.amenities]
+
+    @hybridproperty
+    def total_price(self) -> float:
+        return self.monthly_price + self.utilities_price
 
 
 class Amenity(Base, EntityMixin, TimestampMixin):
