@@ -329,3 +329,103 @@ def test_landlord_upload_wrong_video_file_type_fail(
     assert response.status_code == 400
     assert len(file_service.list_files(video_folder_path)) == 0
     assert not file_path.exists()
+
+
+def test_create_apartment_with_negative_monthly_price_fail(
+    client: TestClient,
+    session: Session,
+    landlord_auth_header: dict,
+    application: Application,
+):
+    application.create_amenity(session, "first")
+    application.create_amenity(session, "second")
+    create_data = {
+        **apartment_create_data,
+        "monthlyPrice": -30,
+        "amenities": ["first", "second"],
+    }
+    assert not session.query(Apartment).count()
+    response = client.post(
+        "/api/apartments/", json=create_data, headers=landlord_auth_header
+    )
+    assert response.status_code == 422
+
+
+def test_create_apartment_with_negative_utility_price_fail(
+    client: TestClient,
+    session: Session,
+    landlord_auth_header: dict,
+    application: Application,
+):
+    application.create_amenity(session, "first")
+    application.create_amenity(session, "second")
+    create_data = {
+        **apartment_create_data,
+        "utilitiesPrice": 0,
+        "amenities": ["first", "second"],
+    }
+    assert not session.query(Apartment).count()
+    response = client.post(
+        "/api/apartments/", json=create_data, headers=landlord_auth_header
+    )
+    assert response.status_code == 422
+
+
+def test_create_apartment_with_negative_bedrooms_fail(
+    client: TestClient,
+    session: Session,
+    landlord_auth_header: dict,
+    application: Application,
+):
+    application.create_amenity(session, "first")
+    application.create_amenity(session, "second")
+    create_data = {
+        **apartment_create_data,
+        "bedrooms": -3,
+        "amenities": ["first", "second"],
+    }
+    assert not session.query(Apartment).count()
+    response = client.post(
+        "/api/apartments/", json=create_data, headers=landlord_auth_header
+    )
+    assert response.status_code == 422
+
+
+def test_create_apartment_with_negative_bathrooms_fail(
+    client: TestClient,
+    session: Session,
+    landlord_auth_header: dict,
+    application: Application,
+):
+    application.create_amenity(session, "first")
+    application.create_amenity(session, "second")
+    create_data = {
+        **apartment_create_data,
+        "bathrooms": -1,
+        "amenities": ["first", "second"],
+    }
+    assert not session.query(Apartment).count()
+    response = client.post(
+        "/api/apartments/", json=create_data, headers=landlord_auth_header
+    )
+    assert response.status_code == 422
+
+
+def test_create_apartment_with_negative_size_fail(
+    client: TestClient,
+    session: Session,
+    landlord_auth_header: dict,
+    application: Application,
+):
+    application.create_amenity(session, "first")
+    application.create_amenity(session, "second")
+    create_data = {
+        **apartment_create_data,
+        "size": 0,
+        "amenities": ["first", "second"],
+    }
+    assert not session.query(Apartment).count()
+    response = client.post(
+        "/api/apartments/", json=create_data, headers=landlord_auth_header
+    )
+    assert response.status_code == 422
