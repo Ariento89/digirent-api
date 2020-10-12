@@ -1,7 +1,5 @@
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm.session import Session
-from digirent.app import Application
 from digirent.database.enums import ApartmentApplicationStage
 from digirent.database.models import Tenant, Apartment, ApartmentApplication
 
@@ -124,42 +122,6 @@ def test_another_landlord_consider_tenants_application_fail(
         apartment_application.id
     )
     assert not apartment_application.stage
-
-
-@pytest.fixture
-def considered_apartment_application(
-    apartment_application, application: Application, session, landlord
-):
-    return application.consider_tenant_application(
-        session, landlord, apartment_application
-    )
-
-
-@pytest.fixture
-def rejected_apartment_application(
-    apartment_application, application: Application, session, landlord
-):
-    return application.reject_tenant_application(
-        session, landlord, apartment_application
-    )
-
-
-@pytest.fixture
-def awarded_apartment_application(
-    apartment_application, application: Application, session, landlord
-):
-    application.consider_tenant_application(session, landlord, apartment_application)
-    return application.accept_tenant_application(
-        session, landlord, apartment_application
-    )
-
-
-@pytest.fixture
-def another_considered_application(
-    apartment: Apartment, application: Application, session, another_tenant, landlord
-):
-    app = application.apply_for_apartment(session, another_tenant, apartment)
-    return application.consider_tenant_application(session, landlord, app)
 
 
 def test_accept_considered_application_ok(
