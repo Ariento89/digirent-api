@@ -5,7 +5,6 @@ from digirent.database.models import (
     Apartment,
     ApartmentApplication,
     BookingRequest,
-    Landlord,
     Tenant,
 )
 from digirent.database.enums import ApartmentApplicationStage, BookingRequestStatus
