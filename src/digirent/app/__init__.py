@@ -242,7 +242,7 @@ class Application(ApplicationBase):
     def __upload_file(
         self, user: User, file: IO, extension: str, folder_path: Path
     ) -> User:
-        if extension not in SUPPORTED_FILE_EXTENSIONS:
+        if extension.lower() not in SUPPORTED_FILE_EXTENSIONS:
             raise ApplicationError("Invalid file format")
         possible_filenames = [f"{user.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
         for filename in possible_filenames:
@@ -272,7 +272,7 @@ class Application(ApplicationBase):
     ) -> Apartment:
         assert isinstance(landlord, Landlord)
         file_extension = filename.split(".")[-1]
-        if file_extension not in SUPPORTED_IMAGE_EXTENSIONS:
+        if file_extension.lower() not in SUPPORTED_IMAGE_EXTENSIONS:
             raise ApplicationError("Unsupported image format")
         folder_path = (
             Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images"
@@ -288,7 +288,7 @@ class Application(ApplicationBase):
     ) -> Apartment:
         assert isinstance(landlord, Landlord)
         file_extension = filename.split(".")[-1]
-        if file_extension not in SUPPORTED_VIDEO_EXTENSIONS:
+        if file_extension.lower() not in SUPPORTED_VIDEO_EXTENSIONS:
             raise ApplicationError("Unsupported video format")
         folder_path = (
             Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/videos"
