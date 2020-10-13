@@ -1,6 +1,6 @@
+from datetime import datetime
 import sys
 from sqlalchemy.orm.session import Session
-from digirent.database.models import UserRole
 from digirent.database.base import SessionLocal
 from digirent.app import Application
 from digirent.app.error import ApplicationError
@@ -18,15 +18,14 @@ def __create_admin_user(
     app: Application = ApplicationContainer.app()
     session: Session = SessionLocal()
     try:
-        app.create_user(
+        app.create_admin(
             session,
             first_name,
             last_name,
-            username,
+            datetime.utcnow().date(),
             email,
             phonenumber,
             password,
-            UserRole.ADMIN,
         )
         session.close()
     except ApplicationError as e:
