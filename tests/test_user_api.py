@@ -84,3 +84,47 @@ def test_non_admin_get_users_fail(
     assert session.query(User).count() == 3
     response = client.get("/api/users/", headers=non_admin_user_auth_header)
     assert response.status_code == 403
+
+
+def test_tenant_fetch_landlords_ok(
+    tenant_auth_header: dict, landlord: Tenant, session: Session, client: TestClient
+):
+    assert session.query(Landlord).count() == 1
+    response = client.get("/api/users/landlords", headers=tenant_auth_header)
+    assert response.status_code == 200
+    result = response.json()
+    assert isinstance(result, list)
+    assert len(result) == 1
+
+
+def test_landlord_fetch_tenants_ok(
+    landlord_auth_header: dict, tenant: Tenant, session: Session, client: TestClient
+):
+    assert session.query(Tenant).count() == 1
+    response = client.get("/api/users/tenants", headers=landlord_auth_header)
+    assert response.status_code == 200
+    result = response.json()
+    assert isinstance(result, list)
+    assert len(result) == 1
+
+
+def test_admin_fetch_tenants_and_landlords_ok(
+    admin_auth_header: dict,
+    tenant: Tenant,
+    landlord: Landlord,
+    session: Session,
+    client: TestClient,
+):
+    assert session.query(Landlord).count() == 1
+    response = client.get("/api/users/landlords", headers=admin_auth_header)
+    assert response.status_code == 200
+    result = response.json()
+    assert isinstance(result, list)
+    assert len(result) == 1
+
+    assert session.query(Tenant).count() == 1
+    response = client.get("/api/users/tenants", headers=admin_auth_header)
+    assert response.status_code == 200
+    result = response.json()
+    assert isinstance(result, list)
+    assert len(result) == 1

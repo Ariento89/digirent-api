@@ -114,7 +114,41 @@ async def get_current_active_non_admin_user(
     current_non_admin_user: Union[Landlord, Tenant] = Depends(
         get_current_non_admin_user
     ),
-) -> Landlord:
+) -> Union[Landlord, Tenant]:
     if not current_non_admin_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_non_admin_user
+
+
+async def get_current_admin_or_tenant(
+    current_user: User = Depends(get_current_user),
+) -> Union[Admin, Tenant]:
+    if current_user.role not in [UserRole.TENANT, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return current_user
+
+
+async def get_current_active_admin_or_tenant(
+    current_admin_or_tenant: Union[Admin, Tenant] = Depends(get_current_admin_or_tenant)
+):
+    if not current_admin_or_tenant.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_admin_or_tenant
+
+
+async def get_current_admin_or_landlord(
+    current_user: User = Depends(get_current_user),
+) -> Union[Admin, Tenant]:
+    if current_user.role not in [UserRole.LANDLORD, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return current_user
+
+
+async def get_current_active_admin_or_landlord(
+    current_admin_or_landlord: Union[Admin, Landlord] = Depends(
+        get_current_admin_or_landlord
+    )
+):
+    if not current_admin_or_landlord.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_admin_or_landlord

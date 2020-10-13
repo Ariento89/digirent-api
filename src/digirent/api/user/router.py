@@ -4,7 +4,7 @@ from digirent.app.error import ApplicationError
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
-from digirent.database.models import Admin, User
+from digirent.database.models import Admin, Landlord, Tenant, User
 from .schema import UserCreateSchema, UserSchema
 
 router = APIRouter()
@@ -40,3 +40,21 @@ def fetch_all_users(
     session: Session = Depends(dependencies.get_database_session),
 ):
     return session.query(User).all()
+
+
+@router.get("/landlords", response_model=List[UserSchema])
+def fetch_all_landlords(
+    # TODO pagination
+    admin_or_tenant: Tenant = Depends(dependencies.get_current_admin_or_tenant),
+    session: Session = Depends(dependencies.get_database_session),
+):
+    return session.query(Landlord).all()
+
+
+@router.get("/tenants", response_model=List[UserSchema])
+def fetch_all_tenants(
+    # TODO pagination
+    admin_or_landlord: Landlord = Depends(dependencies.get_current_admin_or_landlord),
+    session: Session = Depends(dependencies.get_database_session),
+):
+    return session.query(Tenant).all()
