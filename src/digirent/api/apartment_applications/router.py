@@ -1,3 +1,4 @@
+from typing import List
 from uuid import UUID
 from sqlalchemy.orm.session import Session
 from fastapi import APIRouter, Depends, HTTPException
@@ -99,5 +100,46 @@ def accept_application(
             raise HTTPException(404, "application not found")
         return app.accept_tenant_application(session, landlord, apartment_application)
         # TODO fix the mixed usage of tenant_application and apartment_application
+    except ApplicationError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.get("/{apartment_id}", response_model=List[ApartmentApplicationSchema])
+def fetch_applications_for_apartments(
+    apartment_id: UUID,
+    landlord: Landlord = Depends(deps.get_current_landlord),
+    session: Session = Depends(deps.get_database_session),
+):
+    try:
+        apartment = (
+            session.query(Apartment)
+            .filter(Apartment.landlord_id == landlord.id)
+            .filter(Apartment.id == apartment_id)
+            .first()
+        )
+        if not apartment:
+            raise HTTPException(404, "Apartment not found")
+        return (
+            session.query(ApartmentApplication)
+            .join(Apartment)
+            .filter(Apartment.landlord_id == landlord.id)
+            .filter(ApartmentApplication.apartment_id == apartment_id)
+            .all()
+        )
+    except ApplicationError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.get("/", response_model=List[ApartmentApplicationSchema])
+def fetch_tenant_applications(
+    tenant: Tenant = Depends(deps.get_current_tenant),
+    session: Session = Depends(deps.get_database_session),
+):
+    try:
+        return (
+            session.query(ApartmentApplication)
+            .filter(ApartmentApplication.tenant_id == tenant.id)
+            .all()
+        )
     except ApplicationError as e:
         raise HTTPException(400, str(e))

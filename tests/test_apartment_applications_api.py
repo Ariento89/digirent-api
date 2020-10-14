@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from sqlalchemy.orm.session import Session
 from digirent.database.enums import ApartmentApplicationStage
-from digirent.database.models import Tenant, Apartment, ApartmentApplication
+from digirent.database.models import Landlord, Tenant, Apartment, ApartmentApplication
 
 
 def test_tenant_apply_for_apartment_ok(
@@ -173,3 +173,49 @@ def test_accept_another_application_when_apartment_has_been_awarded(
     assert response.status_code == 400
     result = response.json()
     assert "has not yet been considered" in result["detail"].lower()
+
+
+def test_landlord_fetch_apartment_applications(
+    client: TestClient,
+    apartment: Apartment,
+    session: Session,
+    apartment_application,
+    landlord: Landlord,
+    landlord_auth_header,
+):
+    assert (
+        session.query(ApartmentApplication)
+        .join(Apartment)
+        .filter(ApartmentApplication.apartment_id == apartment.id)
+        .filter(Apartment.landlord_id == landlord.id)
+        .count()
+    )
+    response = client.get(
+        f"/api/applications/{apartment.id}", headers=landlord_auth_header
+    )
+    assert response.status_code == 200
+    result = response.json()
+    assert isinstance(result, list)
+    assert len(result) == 1
+
+
+def test_tenant_fetch_applications(
+    client: TestClient,
+    apartment: Apartment,
+    session: Session,
+    apartment_application,
+    landlord: Landlord,
+    tenant_auth_header,
+):
+    assert (
+        session.query(ApartmentApplication)
+        .join(Apartment)
+        .filter(ApartmentApplication.apartment_id == apartment.id)
+        .filter(Apartment.landlord_id == landlord.id)
+        .count()
+    )
+    response = client.get("/api/applications/", headers=tenant_auth_header)
+    assert response.status_code == 200
+    result = response.json()
+    assert isinstance(result, list)
+    assert len(result) == 1

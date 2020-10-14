@@ -1,3 +1,4 @@
+import pytest
 from pathlib import Path
 from digirent.app import Application
 from digirent.core.services.file_service import FileService
@@ -429,3 +430,34 @@ def test_create_apartment_with_negative_size_fail(
         "/api/apartments/", json=create_data, headers=landlord_auth_header
     )
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "user_auth_header",
+    ["tenant_auth_header", "landlord_auth_header", "admin_auth_header"],
+    indirect=True,
+)
+def test_fetch_apartments(
+    session: Session, client: TestClient, apartment: Apartment, user_auth_header: dict
+):
+    assert session.query(Apartment).count() == 1
+    response = client.get("/api/apartments/", headers=user_auth_header)
+    assert response.status_code == 200
+    result = response.json()
+    assert isinstance(result, list)
+    assert len(result) == 1
+
+
+@pytest.mark.parametrize(
+    "user_auth_header",
+    ["tenant_auth_header", "landlord_auth_header", "admin_auth_header"],
+    indirect=True,
+)
+def test_get_apartment(
+    session: Session, client: TestClient, apartment: Apartment, user_auth_header: dict
+):
+    assert session.query(Apartment).count() == 1
+    response = client.get(f"/api/apartments/{apartment.id}", headers=user_auth_header)
+    assert response.status_code == 200
+    result = response.json()
+    assert isinstance(result, dict)

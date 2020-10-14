@@ -1,10 +1,11 @@
+from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from digirent.app.error import ApplicationError
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
-from digirent.database.models import Amenity, Apartment, Landlord
+from digirent.database.models import Amenity, Apartment, Landlord, User
 from .schema import ApartmentCreateSchema, ApartmentSchema, ApartmentUpdateSchema
 
 router = APIRouter()
@@ -107,3 +108,23 @@ def upload_videos(
         )
     except ApplicationError as e:
         raise HTTPException(400, str(e))
+
+
+@router.get("/", response_model=List[ApartmentSchema])
+def fetch_apartments(
+    session: Session = Depends(dependencies.get_database_session),
+    user: User = Depends(dependencies.get_current_user),
+):
+    return session.query(Apartment).all()
+
+
+@router.get("/{apartment_id}", response_model=ApartmentSchema)
+def get_apartment(
+    apartment_id: UUID,
+    session: Session = Depends(dependencies.get_database_session),
+    user: User = Depends(dependencies.get_current_user),
+):
+    apartment = session.query(Apartment).get(apartment_id)
+    if not apartment:
+        raise HTTPException(404, "Apartment not found")
+    return apartment
