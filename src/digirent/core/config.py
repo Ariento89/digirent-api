@@ -52,3 +52,5 @@ SUPPORTED_FILE_EXTENSIONS: List[str] = ["pdf", "doc", "docx"]
 SUPPORTED_IMAGE_EXTENSIONS: List[str] = ["jpg", "jpeg", "png"]
 
 SUPPORTED_VIDEO_EXTENSIONS: List[str] = ["mp4", "avi", "mkv"]
+
+SIGNREQUEST_API_KEY: str = config("SIGNREQUEST_API_KEY", cast=str)
