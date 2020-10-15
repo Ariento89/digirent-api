@@ -530,6 +530,20 @@ starkbank-ecdsa = ">=1.0.0"
 
 [[package]]
 category = "main"
+description = "SignRequest API"
+name = "signrequest-python-client"
+optional = false
+python-versions = "*"
+version = "2.1.0"
+
+[package.dependencies]
+certifi = ">=2017.4.17"
+python-dateutil = ">=2.1"
+six = ">=1.10"
+urllib3 = ">=1.23"
+
+[[package]]
+category = "main"
 description = "Python 2 and 3 compatibility utilities"
 name = "six"
 optional = false
@@ -626,7 +640,6 @@ version = ">=2.20"
 [[package]]
 category = "main"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
-marker = "python_version >= \"3.0\""
 name = "urllib3"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
@@ -681,7 +694,7 @@ python-versions = ">=3.6.1"
 version = "8.1"
 
 [metadata]
-content-hash = "d5e603af4227a9090162529372c719b8d570d29aed0b46145a9ac28b33b8e6ec"
+content-hash = "41c9a912ef106f07cd67ffd06e577d0d02a6e00398bd2949ddd955c541d1ce55"
 lock-version = "1.0"
 python-versions = "^3.8"
 
@@ -1055,6 +1068,10 @@ rfc3986 = [
 sendgrid = [
     {file = "sendgrid-6.4.7-py3-none-any.whl", hash = "sha256:177f959aab5882297fe07efe7db3c67d84fef2d55e3e1038edd4a20f3eb5f059"},
     {file = "sendgrid-6.4.7.tar.gz", hash = "sha256:f6a4608e696e5851dd12a716abf97240f947027855e2205dff112c3fdc1bc127"},
+]
+signrequest-python-client = [
+    {file = "signrequest-python-client-2.1.0.tar.gz", hash = "sha256:b480a9696e05b4099ad2002b181ec597980b4d41f4eb4170da7012e724893e2f"},
+    {file = "signrequest_python_client-2.1.0-py3-none-any.whl", hash = "sha256:29189d8898030dcd4343e2c2982b97d1a4c4b781bbe5fb68009c1418ef73cfcd"},
 ]
 six = [
     {file = "six-1.15.0-py2.py3-none-any.whl", hash = "sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced"},
