@@ -33,3 +33,8 @@ class BookingRequestStatus(str, Enum):
     PENDING = "pending"
     ACCEPTED = "accepted"
     REJECTED = "rejected"
+
+
+class SocialAccountType(str, Enum):
+    GOOGLE = "google"
+    FACEBOOK = "facebook"

@@ -21,6 +21,7 @@ from .enums import (
     ApartmentApplicationStage,
     BookingRequestStatus,
     FurnishType,
+    SocialAccountType,
     UserRole,
     Gender,
     HouseType,
@@ -33,9 +34,9 @@ class User(Base, EntityMixin, TimestampMixin):
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     dob = Column(Date, nullable=True)
-    phone_number = Column(String, nullable=False, unique=True)
+    phone_number = Column(String, nullable=True, unique=True)
     email = Column(EmailType, nullable=False, unique=True)
-    hashed_password = Column(Text, nullable=False)
+    hashed_password = Column(Text, nullable=True)
     email_verified = Column(Boolean, nullable=False, default=False)
     phone_verified = Column(Boolean, nullable=False, default=False)
     is_suspended = Column(Boolean, nullable=False, default=False)
@@ -216,3 +217,14 @@ class BookingRequest(Base, EntityMixin, TimestampMixin):
     def reject(self):
         self.status = BookingRequestStatus.REJECTED
         self.apartment_application_id = None
+
+
+class SocialAccount(Base, EntityMixin, TimestampMixin):
+    __tablename__ = "social_accounts"
+    id_token = Column(String, nullable=True, unique=True)
+    access_token = Column(String, nullable=True, unique=True)
+    account_type = Column(ChoiceType(SocialAccountType, impl=String()), nullable=False)
+
+    user_id = Column(UUIDType(binary=False), ForeignKey("users.id"), nullable=False)
+
+    user = relationship("User", foreign_keys=[user_id], backref="social_accounts")

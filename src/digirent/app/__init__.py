@@ -20,6 +20,7 @@ from digirent.database.enums import (
     BookingRequestStatus,
     Gender,
     HouseType,
+    SocialAccountType,
 )
 from .base import ApplicationBase
 from .error import ApplicationError
@@ -31,6 +32,7 @@ from digirent.database.models import (
     BookingRequest,
     Landlord,
     LookingFor,
+    SocialAccount,
     Tenant,
     User,
     UserRole,
@@ -117,6 +119,49 @@ class Application(ApplicationBase):
             return self.user_service.get(session, UUID(user_id))
         except PyJWTError:
             raise ApplicationError("Invalid token")
+
+    def authenticate_google(
+        self,
+        session: Session,
+        access_token: str,
+        id_token: str,
+        email: str,
+        first_name: str,
+        last_name: str,
+        role: UserRole,
+    ):
+        existing_user: User = self.user_service.get_by_email(session, email)
+        if not existing_user:
+            existing_user = self.user_service.create(
+                session,
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                role=role,
+                commit=False,
+            )
+            session.flush()
+
+        # refactor social account methods into service?
+        existing_google_social_account: Optional[SocialAccount] = (
+            session.query(SocialAccount)
+            .filter(SocialAccount.account_type == SocialAccountType.GOOGLE)
+            .filter(SocialAccount.user_id == existing_user.id)
+            .one_or_none()
+        )
+        if not existing_google_social_account:
+            existing_google_social_account = SocialAccount(
+                user_id=existing_user.id,
+                access_token=access_token,
+                id_token=id_token,
+                account_type=SocialAccountType.GOOGLE,
+            )
+            session.add(existing_google_social_account)
+        else:
+            existing_google_social_account.id_token = id_token
+            existing_google_social_account.access_token = access_token
+        session.commit()
+        return util.create_access_token(data={"sub": str(existing_user.id)})
 
     def update_profile(
         self,

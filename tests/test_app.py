@@ -12,6 +12,7 @@ from digirent.database.enums import (
     BookingRequestStatus,
     FurnishType,
     HouseType,
+    SocialAccountType,
 )
 from digirent.app.error import ApplicationError
 import pytest
@@ -23,6 +24,7 @@ from digirent.database.models import (
     ApartmentApplication,
     BookingRequest,
     Landlord,
+    SocialAccount,
     Tenant,
     User,
     UserRole,
@@ -948,3 +950,65 @@ def test_invite_tenant_for_already_awarded_apartment_fail(
         application.invite_tenant_to_apply(
             session, landlord, another_tenant, apartment_application.apartment
         )
+
+
+def test_authenticate_google_non_existing_user_ok(
+    session: Session, application: Application
+):
+    assert not session.query(User).count()
+    assert not session.query(SocialAccount).count()
+    access_token = "mock_access_token"
+    id_token = "mock_id_token"
+    email = "mock@email.com"
+    first_name = "mockfname"
+    last_name = "mocklname"
+    role = UserRole.TENANT
+    result = application.authenticate_google(
+        session, access_token, id_token, email, first_name, last_name, role
+    )
+    assert isinstance(result, bytes)
+    assert session.query(User).count()
+    assert session.query(SocialAccount).count()
+    user = session.query(User).all()[0]
+    account = session.query(SocialAccount).all()[0]
+    assert account in user.social_accounts
+    assert account.access_token == access_token
+    assert account.id_token == id_token
+    assert account.user == user
+    assert user.email == email
+    assert user.first_name == first_name
+    assert user.last_name == last_name
+    assert not user.hashed_password
+    assert user.role == UserRole.TENANT
+    assert account.account_type == SocialAccountType.GOOGLE
+
+
+def test_authenticate_google_existing_user_ok(
+    session: Session, application: Application, tenant: Tenant
+):
+    assert session.query(User).count() == 1
+    assert not session.query(SocialAccount).count()
+    access_token = "mock_access_token"
+    id_token = "mock_id_token"
+    email = tenant.email
+    first_name = "mockfname"
+    last_name = "mocklname"
+    role = UserRole.TENANT
+    result = application.authenticate_google(
+        session, access_token, id_token, email, first_name, last_name, role
+    )
+    assert isinstance(result, bytes)
+    assert session.query(User).count() == 1
+    assert session.query(SocialAccount).count() == 1
+    user = session.query(User).all()[0]
+    account = session.query(SocialAccount).all()[0]
+    assert account in user.social_accounts
+    assert account.access_token == access_token
+    assert account.id_token == id_token
+    assert account.user == user
+    assert user.email == email
+    assert user.first_name == tenant.first_name
+    assert user.last_name == tenant.last_name
+    assert user.hashed_password
+    assert user.role == UserRole.TENANT
+    assert account.account_type == SocialAccountType.GOOGLE
