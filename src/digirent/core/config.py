@@ -52,3 +52,7 @@ SUPPORTED_FILE_EXTENSIONS: List[str] = ["pdf", "doc", "docx"]
 SUPPORTED_IMAGE_EXTENSIONS: List[str] = ["jpg", "jpeg", "png"]
 
 SUPPORTED_VIDEO_EXTENSIONS: List[str] = ["mp4", "avi", "mkv"]
+
+GOOGLE_CLIENT_ID: str = config("GOOGLE_CLIENT_ID", cast=str)
+
+GOOGLE_CLIENT_SECRET: str = config("GOOGLE_CLIENT_SECRET", cast=str)
