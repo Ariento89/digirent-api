@@ -1,12 +1,18 @@
+import httpx
 from fastapi.requests import Request
 from sqlalchemy.orm.session import Session
 from digirent.database.enums import UserRole
 from digirent.app.social import oauth
 from digirent.app import Application
+from digirent.database.models import User
 
 
 async def get_token_from_google_auth(
-    request: Request, session: Session, app: Application, role: UserRole
+    request: Request,
+    session: Session,
+    app: Application,
+    role: UserRole,
+    authenticated_user: User,
 ) -> bytes:
     token = await oauth.google.authorize_access_token(request)
     access_token = token["access_token"]
@@ -17,6 +23,47 @@ async def get_token_from_google_auth(
     email = user["email"]
     # email_verified = user["email_verified"]  TODO should unverified emails be allowed?
     access_token = app.authenticate_google(
-        session, access_token, id_token, email, first_name, last_name, role
+        session,
+        access_token,
+        id_token,
+        email,
+        first_name,
+        last_name,
+        role,
+        authenticated_user,
     )
     return access_token
+
+
+async def get_token_from_facebook_auth(
+    request: Request,
+    session: Session,
+    app: Application,
+    role: UserRole,
+    authenticated_user: User,
+) -> bytes:
+    token = await oauth.facebook.authorize_access_token(request)
+    access_token = token["access_token"]
+    facebook_user = None
+    async with httpx.AsyncClient() as client:
+        result = await client.get(
+            "https://graph.facebook.com/me",
+            params={
+                "fields": "id,email,gender,name",
+                "access_token": access_token,
+            },
+        )
+        facebook_user = result.json()
+    facebook_user_id = facebook_user["id"]
+    firstname, lastname = facebook_user["name"].split(" ", maxsplit=1)
+    email = facebook_user["email"]
+    access_token = app.authenticate_facebook(
+        session,
+        facebook_user_id,
+        token,
+        email,
+        firstname,
+        lastname,
+        role,
+        authenticated_user,
+    )

@@ -1,6 +1,7 @@
-from typing import Union
+from typing import Optional, Union
 from fastapi import Depends, HTTPException
 from fastapi import status as status
+from fastapi.param_functions import Header, Query
 from fastapi.security import OAuth2PasswordBearer
 from digirent.app import Application
 from digirent.app.container import ApplicationContainer
@@ -152,3 +153,44 @@ async def get_current_active_admin_or_landlord(
     if not current_admin_or_landlord.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_admin_or_landlord
+
+
+async def get_optional_current_user_token(
+    authorization: Optional[str] = Header(None),
+):
+    """
+    Get and return authenticated user's access token if one is passed
+    """
+    if not authorization:
+        return
+    if "Bearer" not in authorization:
+        raise HTTPException(401, "Not authenticated")
+    return authorization.split("Bearer")[-1].strip()
+
+
+def get_optional_current_user_from_state(
+    session: Session = Depends(get_database_session),
+    application: Application = Depends(get_application),
+    state: Optional[str] = Query(None),
+):
+    """
+    Get and return user from state query parameter if any
+    """
+    if not state or state.strip() == "":
+        return
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        user: User = application.authenticate_token(session, state)
+        if user.role == UserRole.ADMIN:
+            user = session.query(Admin).get(user.id)
+        elif user.role == UserRole.TENANT:
+            user = session.query(Tenant).get(user.id)
+        elif user.role == UserRole.LANDLORD:
+            user = session.query(Landlord).get(user.id)
+    except ApplicationError:
+        raise credentials_exception
+    return user
