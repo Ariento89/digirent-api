@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Boolean,
     Date,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.util.langhelpers import hybridproperty
@@ -222,9 +223,14 @@ class BookingRequest(Base, EntityMixin, TimestampMixin):
 class SocialAccount(Base, EntityMixin, TimestampMixin):
     __tablename__ = "social_accounts"
     id_token = Column(String, nullable=True, unique=True)
+    account_id = Column(String, nullable=True)
+    account_email = Column(EmailType, nullable=True)
     access_token = Column(String, nullable=True, unique=True)
     account_type = Column(ChoiceType(SocialAccountType, impl=String()), nullable=False)
 
     user_id = Column(UUIDType(binary=False), ForeignKey("users.id"), nullable=False)
 
     user = relationship("User", foreign_keys=[user_id], backref="social_accounts")
+
+    UniqueConstraint(account_id, account_type, name="uix_id_type")
+    UniqueConstraint(account_email, account_type, name="uix_email_type")

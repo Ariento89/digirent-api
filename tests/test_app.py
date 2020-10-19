@@ -952,7 +952,7 @@ def test_invite_tenant_for_already_awarded_apartment_fail(
         )
 
 
-def test_authenticate_google_non_existing_user_ok(
+def test_non_authenticated_user_authenticate_google_non_existing_user_ok(
     session: Session, application: Application
 ):
     assert not session.query(User).count()
@@ -975,6 +975,8 @@ def test_authenticate_google_non_existing_user_ok(
     assert account.access_token == access_token
     assert account.id_token == id_token
     assert account.user == user
+    assert account.account_email == email
+    assert not account.account_id
     assert user.email == email
     assert user.first_name == first_name
     assert user.last_name == last_name
@@ -983,7 +985,50 @@ def test_authenticate_google_non_existing_user_ok(
     assert account.account_type == SocialAccountType.GOOGLE
 
 
-def test_authenticate_google_existing_user_ok(
+def test_authenticate_user_created_from_google_auth_ok(
+    session: Session, application: Application
+):
+    assert not session.query(User).count()
+    assert not session.query(SocialAccount).count()
+    access_token = "mock_access_token"
+    id_token = "mock_id_token"
+    email = "mock@email.com"
+    first_name = "mockfname"
+    last_name = "mocklname"
+    role = UserRole.TENANT
+    result = application.authenticate_google(
+        session, access_token, id_token, email, first_name, last_name, role
+    )
+    assert isinstance(result, bytes)
+    result = application.authenticate_google(
+        session,
+        "diff_access_tooken",
+        "diff_id_token",
+        email,
+        "diff_first_name",
+        "diff_last_name",
+        role,
+    )
+    assert isinstance(result, bytes)
+    assert session.query(User).count() == 1
+    assert session.query(SocialAccount).count() == 1
+    user = session.query(User).all()[0]
+    account = session.query(SocialAccount).all()[0]
+    assert account in user.social_accounts
+    assert account.access_token == "diff_access_tooken"
+    assert account.id_token == "diff_id_token"
+    assert account.user == user
+    assert account.account_email == email
+    assert not account.account_id
+    assert user.email == email
+    assert user.first_name == first_name
+    assert user.last_name == last_name
+    assert not user.hashed_password
+    assert user.role == UserRole.TENANT
+    assert account.account_type == SocialAccountType.GOOGLE
+
+
+def test_authenticated_user_link_google_acccount_to_existing_user_ok(
     session: Session, application: Application, tenant: Tenant
 ):
     assert session.query(User).count() == 1
@@ -995,7 +1040,14 @@ def test_authenticate_google_existing_user_ok(
     last_name = "mocklname"
     role = UserRole.TENANT
     result = application.authenticate_google(
-        session, access_token, id_token, email, first_name, last_name, role
+        session,
+        access_token,
+        id_token,
+        email,
+        first_name,
+        last_name,
+        role,
+        authenticated_user=tenant,
     )
     assert isinstance(result, bytes)
     assert session.query(User).count() == 1
@@ -1012,3 +1064,86 @@ def test_authenticate_google_existing_user_ok(
     assert user.hashed_password
     assert user.role == UserRole.TENANT
     assert account.account_type == SocialAccountType.GOOGLE
+
+
+def test_non_authenticated_user_sign_up_with_google_when_user_with_email_already_exists_fail(
+    tenant: Tenant, session: Session, application: Application
+):
+    assert session.query(User).count() == 1
+    assert not session.query(SocialAccount).count()
+    with pytest.raises(ApplicationError):
+        application.authenticate_google(
+            session,
+            "accesstoken",
+            "idtoken",
+            tenant.email,
+            "fname",
+            "lname",
+            UserRole.LANDLORD,
+        )
+
+
+def test_authenticated_user_link_google_account_already_linked_to_another_user_fail(
+    tenant: Tenant, landlord: Landlord, session: Session, application: Application
+):
+    assert session.query(User).count() == 2
+    assert not session.query(SocialAccount).count()
+    email = "someemail"
+    access_token = "someacctoken"
+    id_token = "someidtoken"
+    fname = "fname"
+    lname = "lname"
+    application.authenticate_google(
+        session, access_token, id_token, email, fname, lname, UserRole.TENANT, tenant
+    )
+    assert session.query(SocialAccount).count()
+    assert session.query(SocialAccount).all()[0].user == tenant
+    with pytest.raises(ApplicationError):
+        application.authenticate_google(
+            session,
+            "diff token",
+            "diff id_token",
+            email,
+            "diff fname",
+            "diff lname",
+            UserRole.LANDLORD,
+            landlord,
+        )
+
+
+def test_authenticated_user_link_a_different_google_account_from_already_linked_one_ok(
+    tenant: Tenant, session: Session, application: Application
+):
+    assert session.query(User).count() == 1
+    assert not session.query(SocialAccount).count()
+    application.authenticate_google(
+        session,
+        "oneaccess_token",
+        "oneid_token",
+        "one_email",
+        "onefname",
+        "onelname",
+        UserRole.TENANT,
+        tenant,
+    )
+    assert session.query(SocialAccount).count()
+    saccount = session.query(SocialAccount).all()[0]
+    assert saccount.user == tenant
+    assert saccount.account_email == "one_email"
+    assert saccount.access_token == "oneaccess_token"
+    assert saccount.id_token == "oneid_token"
+    application.authenticate_google(
+        session,
+        "diff token",
+        "diff id_token",
+        "diff email",
+        "diff fname",
+        "diff lname",
+        UserRole.LANDLORD,
+        tenant,
+    )
+    saccount = session.query(SocialAccount).all()[0]
+    assert saccount.user == tenant
+    assert saccount.account_email == "diff email"
+    assert saccount.access_token == "diff token"
+    assert saccount.id_token == "diff id_token"

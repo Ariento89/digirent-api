@@ -1,3 +1,4 @@
+import httpx
 from enum import Enum
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.requests import Request
@@ -62,3 +63,48 @@ async def login_with_google(who: SocialAccountLoginWho, request: Request):
     endpoint_name = f"{who.value}_google_authorization"
     redirect_uri = request.url_for(endpoint_name)
     return await oauth.google.authorize_redirect(request, redirect_uri)
+
+
+@router.get("/facebook")
+async def login_with_facebook(who: SocialAccountLoginWho, request: Request):
+    endpoint_name = f"{who.value}_facebook_authorization"
+    redirect_uri = request.url_for(endpoint_name)
+    return await oauth.facebook.authorize_redirect(request, redirect_uri)
+
+
+@router.get("/landlord/authorization/facebook")
+async def landlord_facebook_authorization(request: Request):
+    token = await oauth.facebook.authorize_access_token(request)
+    access_token = token["access_token"]
+    result = None
+    async with httpx.AsyncClient() as client:
+        result = await client.get(
+            "https://graph.facebook.com/me",
+            params={
+                "fields": ["id", "email", "gender", "name"],
+                "access_token": access_token,
+            },
+        )
+    # access_token = token["access_token"]
+    # id_token = token["id_token"]
+    # user = await oauth.google.parse_id_token(request, token)
+    return result.json()
+
+
+@router.get("/tenant/authorization/facebook")
+async def tenant_facebook_authorization(request: Request):
+    token = await oauth.facebook.authorize_access_token(request)
+    access_token = token["access_token"]
+    result = None
+    async with httpx.AsyncClient() as client:
+        result = await client.get(
+            "https://graph.facebook.com/me",
+            params={
+                "fields": ["id", "email"],
+                "access_token": access_token,
+            },
+        )
+    # access_token = token["access_token"]
+    # id_token = token["id_token"]
+    # user = await oauth.google.parse_id_token(request, token)
+    return result.json()
