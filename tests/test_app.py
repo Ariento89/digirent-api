@@ -1057,6 +1057,7 @@ def test_authenticated_user_link_google_acccount_to_existing_user_ok(
     assert account in user.social_accounts
     assert account.access_token == access_token
     assert account.id_token == id_token
+    assert account.account_email == email
     assert account.user == user
     assert user.email == email
     assert user.first_name == tenant.first_name
@@ -1147,3 +1148,202 @@ def test_authenticated_user_link_a_different_google_account_from_already_linked_
     assert saccount.account_email == "diff email"
     assert saccount.access_token == "diff token"
     assert saccount.id_token == "diff id_token"
+
+
+def test_non_authenticated_user_authenticate_facebook_non_existing_user_ok(
+    session: Session, application: Application
+):
+    assert not session.query(User).count()
+    assert not session.query(SocialAccount).count()
+    email = "mock@email.com"
+    first_name = "mockfname"
+    last_name = "mocklname"
+    mock_id = "mockfbid"
+    access_token = "acc_token"
+    role = UserRole.TENANT
+    result = application.authenticate_facebook(
+        session, mock_id, access_token, email, first_name, last_name, role
+    )
+    assert isinstance(result, bytes)
+    assert session.query(User).count()
+    assert session.query(SocialAccount).count()
+    user = session.query(User).all()[0]
+    account = session.query(SocialAccount).all()[0]
+    assert account in user.social_accounts
+    assert account.access_token == access_token
+    assert not account.id_token
+    assert account.user == user
+    assert account.account_email == email
+    assert account.account_id == mock_id
+    assert user.email == email
+    assert user.first_name == first_name
+    assert user.last_name == last_name
+    assert not user.hashed_password
+    assert user.role == UserRole.TENANT
+    assert account.account_type == SocialAccountType.FACEBOOK
+
+
+def test_authenticate_user_created_from_facebook_auth_ok(
+    session: Session, application: Application
+):
+    assert not session.query(User).count()
+    assert not session.query(SocialAccount).count()
+    mock_id = "mockid"
+    access_token = "acctoken"
+    email = "mock@email.com"
+    first_name = "mockfname"
+    last_name = "mocklname"
+    role = UserRole.TENANT
+    result = application.authenticate_facebook(
+        session, mock_id, access_token, email, first_name, last_name, role
+    )
+    assert isinstance(result, bytes)
+    result = application.authenticate_facebook(
+        session,
+        mock_id,
+        "diff_acc_token",
+        email,
+        "diff_first_name",
+        "diff_last_name",
+        role,
+    )
+    assert isinstance(result, bytes)
+    assert session.query(User).count() == 1
+    assert session.query(SocialAccount).count() == 1
+    user = session.query(User).all()[0]
+    account = session.query(SocialAccount).all()[0]
+    assert account in user.social_accounts
+    assert account.access_token == "diff_acc_token"
+    assert not account.id_token
+    assert account.user == user
+    assert account.account_email == email
+    assert account.account_id == mock_id
+    assert user.email == email
+    assert user.first_name == first_name
+    assert user.last_name == last_name
+    assert not user.hashed_password
+    assert user.role == UserRole.TENANT
+    assert account.account_type == SocialAccountType.FACEBOOK
+
+
+def test_authenticated_user_link_facebook_acccount_to_existing_user_ok(
+    session: Session, application: Application, tenant: Tenant
+):
+    assert session.query(User).count() == 1
+    assert not session.query(SocialAccount).count()
+    access_token = "mock_access_token"
+    mockid = "mock_id"
+    email = tenant.email
+    first_name = "mockfname"
+    last_name = "mocklname"
+    role = UserRole.TENANT
+    result = application.authenticate_facebook(
+        session,
+        mockid,
+        access_token,
+        email,
+        first_name,
+        last_name,
+        role,
+        authenticated_user=tenant,
+    )
+    assert isinstance(result, bytes)
+    assert session.query(User).count() == 1
+    assert session.query(SocialAccount).count() == 1
+    user = session.query(User).all()[0]
+    account = session.query(SocialAccount).all()[0]
+    assert account in user.social_accounts
+    assert account.access_token == access_token
+    assert not account.id_token
+    assert account.user == user
+    assert account.account_email == email
+    assert user.email == email
+    assert user.first_name == tenant.first_name
+    assert user.last_name == tenant.last_name
+    assert user.hashed_password
+    assert user.role == UserRole.TENANT
+    assert account.account_id == mockid
+    assert account.account_type == SocialAccountType.FACEBOOK
+
+
+def test_non_authenticated_user_sign_up_with_facebook_when_user_with_email_already_exists_fail(
+    tenant: Tenant, session: Session, application: Application
+):
+    assert session.query(User).count() == 1
+    assert not session.query(SocialAccount).count()
+    with pytest.raises(ApplicationError):
+        application.authenticate_facebook(
+            session,
+            "userid",
+            "accesstoken",
+            tenant.email,
+            "fname",
+            "lname",
+            UserRole.LANDLORD,
+        )
+
+
+def test_authenticated_user_link_facebook_account_already_linked_to_another_user_fail(
+    tenant: Tenant, landlord: Landlord, session: Session, application: Application
+):
+    assert session.query(User).count() == 2
+    assert not session.query(SocialAccount).count()
+    email = "someemail"
+    access_token = "someacctoken"
+    mockid = "someid"
+    fname = "fname"
+    lname = "lname"
+    application.authenticate_facebook(
+        session, mockid, access_token, email, fname, lname, UserRole.TENANT, tenant
+    )
+    assert session.query(SocialAccount).count()
+    assert session.query(SocialAccount).all()[0].user == tenant
+    with pytest.raises(ApplicationError):
+        application.authenticate_facebook(
+            session,
+            mockid,
+            "diff token",
+            "diff email",
+            "diff fname",
+            "diff lname",
+            UserRole.LANDLORD,
+            landlord,
+        )
+
+
+def test_authenticated_user_link_a_different_facebook_account_from_already_linked_one_ok(
+    tenant: Tenant, session: Session, application: Application
+):
+    assert session.query(User).count() == 1
+    assert not session.query(SocialAccount).count()
+    application.authenticate_facebook(
+        session,
+        "oneid",
+        "oneaccess_token",
+        "one_email",
+        "onefname",
+        "onelname",
+        UserRole.TENANT,
+        tenant,
+    )
+    assert session.query(SocialAccount).count()
+    saccount = session.query(SocialAccount).all()[0]
+    assert saccount.user == tenant
+    assert saccount.account_email == "one_email"
+    assert saccount.access_token == "oneaccess_token"
+    assert saccount.account_id == "oneid"
+    application.authenticate_facebook(
+        session,
+        "diff id",
+        "diff token",
+        "diff email",
+        "diff fname",
+        "diff lname",
+        UserRole.LANDLORD,
+        tenant,
+    )
+    saccount = session.query(SocialAccount).all()[0]
+    assert saccount.user == tenant
+    assert saccount.account_email == "diff email"
+    assert saccount.access_token == "diff token"
+    assert saccount.account_id == "diff id"

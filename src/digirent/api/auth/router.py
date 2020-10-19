@@ -76,35 +76,31 @@ async def login_with_facebook(who: SocialAccountLoginWho, request: Request):
 async def landlord_facebook_authorization(request: Request):
     token = await oauth.facebook.authorize_access_token(request)
     access_token = token["access_token"]
-    result = None
+    facebook_user = None
     async with httpx.AsyncClient() as client:
         result = await client.get(
             "https://graph.facebook.com/me",
             params={
-                "fields": ["id", "email", "gender", "name"],
+                "fields": "id,email,gender,name",
                 "access_token": access_token,
             },
         )
-    # access_token = token["access_token"]
-    # id_token = token["id_token"]
-    # user = await oauth.google.parse_id_token(request, token)
-    return result.json()
+        facebook_user = result.json()
+    return facebook_user
 
 
 @router.get("/tenant/authorization/facebook")
 async def tenant_facebook_authorization(request: Request):
     token = await oauth.facebook.authorize_access_token(request)
     access_token = token["access_token"]
-    result = None
+    facebook_user = None
     async with httpx.AsyncClient() as client:
         result = await client.get(
             "https://graph.facebook.com/me",
             params={
-                "fields": ["id", "email"],
+                "fields": "id,email,gender,name",
                 "access_token": access_token,
             },
         )
-    # access_token = token["access_token"]
-    # id_token = token["id_token"]
-    # user = await oauth.google.parse_id_token(request, token)
-    return result.json()
+        facebook_user = result.json()
+    return facebook_user

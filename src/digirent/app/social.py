@@ -13,5 +13,5 @@ oauth.register(
     name="facebook",
     authorize_url="https://www.facebook.com/v8.0/dialog/oauth",
     access_token_url="https://graph.facebook.com/v8.0/oauth/access_token",
-    client_kwargs={"scope": "email"},
+    client_kwargs={"scope": "email user_gender"},
 )
