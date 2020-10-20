@@ -20,6 +20,7 @@ from digirent.database.enums import (
     BookingRequestStatus,
     Gender,
     HouseType,
+    SocialAccountType,
 )
 from .base import ApplicationBase
 from .error import ApplicationError
@@ -31,6 +32,7 @@ from digirent.database.models import (
     BookingRequest,
     Landlord,
     LookingFor,
+    SocialAccount,
     Tenant,
     User,
     UserRole,
@@ -117,6 +119,186 @@ class Application(ApplicationBase):
             return self.user_service.get(session, UUID(user_id))
         except PyJWTError:
             raise ApplicationError("Invalid token")
+
+    def authenticate_google(
+        self,
+        session: Session,
+        access_token: str,
+        id_token: str,
+        email: str,
+        first_name: str,
+        last_name: str,
+        role: UserRole,
+        authenticated_user: User = None,
+    ):
+        user: User = None
+
+        # TODO refactor social account methods into service?
+        existing_google_social_account: Optional[SocialAccount] = (
+            session.query(SocialAccount)
+            .filter(SocialAccount.account_type == SocialAccountType.GOOGLE)
+            .filter(SocialAccount.account_email == email)
+            .one_or_none()
+        )
+
+        if not authenticated_user and existing_google_social_account:
+            # social account exists therefore user exists
+            # sing in with google
+            user: User = existing_google_social_account.user
+            existing_google_social_account.access_token = access_token
+            existing_google_social_account.id_token = id_token
+
+        elif not authenticated_user:
+            # sign up with google
+            user_with_email = self.user_service.get_by_email(session, email)
+            if user_with_email:
+                raise ApplicationError("User exists with this email address")
+            user = self.user_service.create(
+                session,
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                role=role,
+                commit=False,
+            )
+            session.flush()
+            existing_google_social_account = SocialAccount(
+                user_id=user.id,
+                access_token=access_token,
+                id_token=id_token,
+                account_email=email,
+                account_type=SocialAccountType.GOOGLE,
+            )
+            session.add(existing_google_social_account)
+
+        elif not existing_google_social_account:
+            # link google account
+            # does user already havea an existing google account
+            authenticated_users_existing_google_account = (
+                session.query(SocialAccount)
+                .filter(SocialAccount.user_id == authenticated_user.id)
+                .filter(SocialAccount.account_type == SocialAccountType.GOOGLE)
+                .one_or_none()
+            )
+            if authenticated_users_existing_google_account:
+                # update the account if yes
+                authenticated_users_existing_google_account.access_token = access_token
+                authenticated_users_existing_google_account.account_email = email
+                authenticated_users_existing_google_account.id_token = id_token
+            else:
+                # create a new one if not.
+                existing_google_social_account = SocialAccount(
+                    user_id=authenticated_user.id,
+                    access_token=access_token,
+                    id_token=id_token,
+                    account_email=email,
+                    account_type=SocialAccountType.GOOGLE,
+                )
+                session.add(existing_google_social_account)
+            user = authenticated_user
+
+        else:
+            # update google account
+            user: User = existing_google_social_account.user
+            if authenticated_user != user:
+                raise ApplicationError("Google Account is linked to another user")
+            existing_google_social_account.access_token = access_token
+            existing_google_social_account.id_token = id_token
+
+        session.commit()
+        return util.create_access_token(data={"sub": str(user.id)})
+
+    def authenticate_facebook(
+        self,
+        session: Session,
+        facebook_user_id: str,
+        access_token: str,
+        email: str,
+        first_name: str,
+        last_name: str,
+        role: UserRole,
+        authenticated_user: User = None,
+    ):
+        user: User = None
+
+        # TODO refactor social account methods into service?
+        existing_facebook_social_account: Optional[SocialAccount] = (
+            session.query(SocialAccount)
+            .filter(SocialAccount.account_type == SocialAccountType.FACEBOOK)
+            .filter(SocialAccount.account_id == facebook_user_id)
+            .one_or_none()
+        )
+
+        if not authenticated_user and existing_facebook_social_account:
+            # social account exists therefore user exists
+            # sing in with facebook
+            user: User = existing_facebook_social_account.user
+            existing_facebook_social_account.access_token = access_token
+            existing_facebook_social_account.account_email = email
+
+        elif not authenticated_user:
+            # sign up with facebook
+            user_with_email = self.user_service.get_by_email(session, email)
+            if user_with_email:
+                raise ApplicationError("User exists with this email address")
+            user = self.user_service.create(
+                session,
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                role=role,
+                commit=False,
+            )
+            session.flush()
+            existing_facebook_social_account = SocialAccount(
+                user_id=user.id,
+                access_token=access_token,
+                account_id=facebook_user_id,
+                account_email=email,
+                account_type=SocialAccountType.FACEBOOK,
+            )
+            session.add(existing_facebook_social_account)
+
+        elif not existing_facebook_social_account:
+            # link facebook account
+            # does user already havea an existing facebook account
+            authenticated_users_existing_facebook_account = (
+                session.query(SocialAccount)
+                .filter(SocialAccount.user_id == authenticated_user.id)
+                .filter(SocialAccount.account_type == SocialAccountType.FACEBOOK)
+                .one_or_none()
+            )
+            if authenticated_users_existing_facebook_account:
+                # update the account if yes
+                authenticated_users_existing_facebook_account.access_token = (
+                    access_token
+                )
+                authenticated_users_existing_facebook_account.account_email = email
+                authenticated_users_existing_facebook_account.account_id = (
+                    facebook_user_id
+                )
+            else:
+                # create a new one if not.
+                existing_facebook_social_account = SocialAccount(
+                    user_id=authenticated_user.id,
+                    access_token=access_token,
+                    account_id=facebook_user_id,
+                    account_email=email,
+                    account_type=SocialAccountType.FACEBOOK,
+                )
+                session.add(existing_facebook_social_account)
+            user = authenticated_user
+
+        else:
+            # update facebook account
+            user: User = existing_facebook_social_account.user
+            if authenticated_user != user:
+                raise ApplicationError("Facebook Account is linked to another user")
+            existing_facebook_social_account.access_token = access_token
+            existing_facebook_social_account.account_email = email
+
+        session.commit()
+        return util.create_access_token(data={"sub": str(user.id)})
 
     def update_profile(
         self,

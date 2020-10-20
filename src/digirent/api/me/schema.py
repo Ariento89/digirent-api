@@ -13,7 +13,7 @@ class ProfileSchema(OrmSchema):
     city: Optional[str]
     gender: Optional[Gender]
     email: str
-    phone_number: str
+    phone_number: Optional[str]
     role: UserRole
     is_active: bool
     profile_percentage: Optional[float]

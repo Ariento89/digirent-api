@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 import digirent.core.config as config
 from digirent.api.auth.router import router as auth_router
 from digirent.api.me.router import router as me_router
@@ -20,6 +21,7 @@ def get_app():
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(SessionMiddleware, secret_key=config.SECRET_KEY)
 
     app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
     app.include_router(me_router, prefix="/api/me", tags=["Me"])

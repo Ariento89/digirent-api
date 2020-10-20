@@ -7,8 +7,8 @@ from ..schema import BaseSchema, OrmSchema
 class BaseUserSchema(BaseSchema):
     first_name: str
     last_name: str
-    email: str
-    phone_number: str
+    email: Optional[str]
+    phone_number: Optional[str]
     dob: Optional[date]
 
 

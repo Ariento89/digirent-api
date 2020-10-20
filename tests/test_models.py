@@ -1,10 +1,13 @@
 from datetime import datetime
+import pytest
 from sqlalchemy.orm.session import Session
+from sqlalchemy.exc import IntegrityError
 from digirent.app import Application
 from digirent.database.enums import (
     BookingRequestStatus,
     FurnishType,
     HouseType,
+    SocialAccountType,
     UserRole,
 )
 from digirent import util
@@ -14,6 +17,7 @@ from digirent.database.models import (
     ApartmentApplication,
     BookingRequest,
     Landlord,
+    SocialAccount,
     Tenant,
     LookingFor,
     BankDetail,
@@ -234,3 +238,97 @@ def test_reject_booking_request(
     session.commit()
     assert booking_request.status == BookingRequestStatus.REJECTED
     assert not booking_request.apartment_application
+
+
+def test_social_account_with_multiple_rows_of_same_account_email_and_diff_account_type_ok(
+    tenant: Tenant, session: Session
+):
+    assert not session.query(SocialAccount).count()
+    email = "some@email.com"
+    sa1 = SocialAccount(
+        user=tenant, account_type=SocialAccountType.GOOGLE, account_email=email
+    )
+    session.add(sa1)
+    session.commit()
+    sa2 = SocialAccount(
+        user=tenant, account_type=SocialAccountType.FACEBOOK, account_email=email
+    )
+    session.add(sa2)
+    session.commit()
+
+
+def test_social_account_with_multiple_rows_of_diff_account_email_and_same_account_type_ok(
+    tenant: Tenant, session: Session
+):
+    assert not session.query(SocialAccount).count()
+    account_type = SocialAccountType.GOOGLE
+    sa1 = SocialAccount(
+        user=tenant, account_type=account_type, account_email="one@email.com"
+    )
+    session.add(sa1)
+    session.commit()
+    sa2 = SocialAccount(
+        user=tenant, account_type=account_type, account_email="two@email.com"
+    )
+    session.add(sa2)
+    session.commit()
+
+
+def test_social_account_with_multiple_rows_of_same_account_email_and_account_type_fail(
+    tenant: Tenant, session: Session
+):
+    assert not session.query(SocialAccount).count()
+    email = "some@email.com"
+    account_type = SocialAccountType.GOOGLE
+    sa1 = SocialAccount(user=tenant, account_type=account_type, account_email=email)
+    session.add(sa1)
+    session.commit()
+    sa2 = SocialAccount(user=tenant, account_type=account_type, account_email=email)
+    session.add(sa2)
+    with pytest.raises(IntegrityError):
+        session.commit()
+
+
+def test_social_account_with_multiple_rows_of_same_account_id_and_diff_account_type_ok(
+    tenant: Tenant, session: Session
+):
+    assert not session.query(SocialAccount).count()
+    acc_id = "someid"
+    sa1 = SocialAccount(
+        user=tenant, account_type=SocialAccountType.GOOGLE, account_id=acc_id
+    )
+    session.add(sa1)
+    session.commit()
+    sa2 = SocialAccount(
+        user=tenant, account_type=SocialAccountType.FACEBOOK, account_id=acc_id
+    )
+    session.add(sa2)
+    session.commit()
+
+
+def test_social_account_with_multiple_rows_of_diff_account_id_and_same_account_type_ok(
+    tenant: Tenant, session: Session
+):
+    assert not session.query(SocialAccount).count()
+    account_type = SocialAccountType.GOOGLE
+    sa1 = SocialAccount(user=tenant, account_type=account_type, account_id="oneid")
+    session.add(sa1)
+    session.commit()
+    sa2 = SocialAccount(user=tenant, account_type=account_type, account_id="twoid")
+    session.add(sa2)
+    session.commit()
+
+
+def test_social_account_with_multiple_rows_of_same_account_id_and_account_type_fail(
+    tenant: Tenant, session: Session
+):
+    assert not session.query(SocialAccount).count()
+    acc_id = "someid"
+    account_type = SocialAccountType.GOOGLE
+    sa1 = SocialAccount(user=tenant, account_type=account_type, account_id=acc_id)
+    session.add(sa1)
+    session.commit()
+    sa2 = SocialAccount(user=tenant, account_type=account_type, account_id=acc_id)
+    session.add(sa2)
+    with pytest.raises(IntegrityError):
+        session.commit()
