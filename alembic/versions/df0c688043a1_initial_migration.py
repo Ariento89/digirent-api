@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy_utils import UUIDType, ChoiceType, EmailType
 from digirent.database.enums import (
     UserRole,
-    ApartmentApplicationStage,
+    ApartmentApplicationStatus,
     BookingRequestStatus,
     SocialAccountType,
     Gender,
@@ -156,7 +156,7 @@ def upgrade():
         sa.Column("tenant_id", UUIDType(binary=False), nullable=False),
         sa.Column(
             "stage",
-            ChoiceType(ApartmentApplicationStage, impl=sa.String()),
+            ChoiceType(ApartmentApplicationStatus, impl=sa.String()),
             nullable=True,
         ),
         sa.ForeignKeyConstraint(

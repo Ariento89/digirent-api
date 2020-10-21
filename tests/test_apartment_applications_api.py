@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 from sqlalchemy.orm.session import Session
-from digirent.database.enums import ApartmentApplicationStage
+from digirent.database.enums import ApartmentApplicationStatus
 from digirent.database.models import Landlord, Tenant, Apartment, ApartmentApplication
 
 
@@ -50,7 +50,7 @@ def test_landlord_reject_tenants_application_ok(
     session: Session,
     landlord_auth_header: dict,
 ):
-    assert not apartment_application.stage
+    assert apartment_application.status == ApartmentApplicationStatus.NEW
     response = client.post(
         f"/api/applications/{apartment_application.id}/reject",
         headers=landlord_auth_header,
@@ -62,7 +62,7 @@ def test_landlord_reject_tenants_application_ok(
     apartment_application = session.query(ApartmentApplication).get(
         apartment_application.id
     )
-    assert apartment_application.stage == ApartmentApplicationStage.REJECTED
+    assert apartment_application.status == ApartmentApplicationStatus.REJECTED
 
 
 def test_landlord_consider_tenants_application_ok(
@@ -71,7 +71,7 @@ def test_landlord_consider_tenants_application_ok(
     session: Session,
     landlord_auth_header: dict,
 ):
-    assert not apartment_application.stage
+    assert apartment_application.status == ApartmentApplicationStatus.NEW
     response = client.post(
         f"/api/applications/{apartment_application.id}/consider",
         headers=landlord_auth_header,
@@ -83,7 +83,7 @@ def test_landlord_consider_tenants_application_ok(
     apartment_application = session.query(ApartmentApplication).get(
         apartment_application.id
     )
-    assert apartment_application.stage == ApartmentApplicationStage.CONSIDERED
+    assert apartment_application.status == ApartmentApplicationStatus.CONSIDERED
 
 
 def test_another_landlord_reject_tenants_application_fail(
@@ -92,7 +92,7 @@ def test_another_landlord_reject_tenants_application_fail(
     session: Session,
     another_landlord_auth_header: dict,
 ):
-    assert not apartment_application.stage
+    assert apartment_application.status == ApartmentApplicationStatus.NEW
     response = client.post(
         f"/api/applications/{apartment_application.id}/reject",
         headers=another_landlord_auth_header,
@@ -102,7 +102,7 @@ def test_another_landlord_reject_tenants_application_fail(
     apartment_application = session.query(ApartmentApplication).get(
         apartment_application.id
     )
-    assert not apartment_application.stage
+    assert apartment_application.status == ApartmentApplicationStatus.NEW
 
 
 def test_another_landlord_consider_tenants_application_fail(
@@ -111,7 +111,7 @@ def test_another_landlord_consider_tenants_application_fail(
     session: Session,
     another_landlord_auth_header: dict,
 ):
-    assert not apartment_application.stage
+    assert apartment_application.status == ApartmentApplicationStatus.NEW
     response = client.post(
         f"/api/applications/{apartment_application.id}/consider",
         headers=another_landlord_auth_header,
@@ -121,7 +121,7 @@ def test_another_landlord_consider_tenants_application_fail(
     apartment_application = session.query(ApartmentApplication).get(
         apartment_application.id
     )
-    assert not apartment_application.stage
+    assert apartment_application.status == ApartmentApplicationStatus.NEW
 
 
 def test_accept_considered_application_ok(
@@ -130,7 +130,7 @@ def test_accept_considered_application_ok(
     landlord_auth_header: dict,
 ):
     assert (
-        considered_apartment_application.stage == ApartmentApplicationStage.CONSIDERED
+        considered_apartment_application.status == ApartmentApplicationStatus.CONSIDERED
     )
     response = client.post(
         f"/api/applications/{considered_apartment_application.id}/accept",
@@ -139,8 +139,8 @@ def test_accept_considered_application_ok(
     assert response.status_code == 200
     result = response.json()
     assert "id" in result
-    assert "stage" in result
-    assert result["stage"] == ApartmentApplicationStage.AWARDED.value
+    assert "status" in result
+    assert result["status"] == ApartmentApplicationStatus.AWARDED.value
 
 
 def test_accept_rejected_application_fail(
@@ -148,7 +148,7 @@ def test_accept_rejected_application_fail(
     rejected_apartment_application: ApartmentApplication,
     landlord_auth_header: dict,
 ):
-    assert rejected_apartment_application.stage == ApartmentApplicationStage.REJECTED
+    assert rejected_apartment_application.stage == ApartmentApplicationStatus.REJECTED
     response = client.post(
         f"/api/applications/{rejected_apartment_application.id}/accept",
         headers=landlord_auth_header,
@@ -164,8 +164,8 @@ def test_accept_another_application_when_apartment_has_been_awarded(
     awarded_apartment_application: ApartmentApplication,
     landlord_auth_header: dict,
 ):
-    assert awarded_apartment_application.stage == ApartmentApplicationStage.AWARDED
-    assert another_considered_application.stage == ApartmentApplicationStage.REJECTED
+    assert awarded_apartment_application.stage == ApartmentApplicationStatus.AWARDED
+    assert another_considered_application.stage == ApartmentApplicationStatus.REJECTED
     response = client.post(
         f"/api/applications/{another_considered_application.id}/accept",
         headers=landlord_auth_header,

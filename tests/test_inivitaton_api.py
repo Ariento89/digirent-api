@@ -7,7 +7,7 @@ from digirent.database.models import (
     BookingRequest,
     Tenant,
 )
-from digirent.database.enums import ApartmentApplicationStage, BookingRequestStatus
+from digirent.database.enums import ApartmentApplicationStatus, BookingRequestStatus
 
 
 def test_landlord_invite_tenant_to_apply_for_apartment_ok(
@@ -38,7 +38,7 @@ def test_landlord_invite_tenant_to_apply_for_already_awarded_apartment_fail(
     another_tenant: Tenant,
     landlord_auth_header: dict,
 ):
-    assert awarded_apartment_application.stage == ApartmentApplicationStage.AWARDED
+    assert awarded_apartment_application.stage == ApartmentApplicationStatus.AWARDED
     assert not session.query(BookingRequest).count()
     response = client.post(
         "/api/invites/",

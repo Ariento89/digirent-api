@@ -16,7 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 
 from digirent.database.enums import (
-    ApartmentApplicationStage,
+    ApartmentApplicationStatus,
     BookingRequestStatus,
     Gender,
     HouseType,
@@ -30,6 +30,7 @@ from digirent.database.models import (
     ApartmentApplication,
     BankDetail,
     BookingRequest,
+    Contract,
     Landlord,
     LookingFor,
     SocialAccount,
@@ -484,11 +485,12 @@ class Application(ApplicationBase):
     def apply_for_apartment(
         self, session: Session, tenant: Tenant, apartment: Apartment
     ) -> ApartmentApplication:
+
         awarded_application = (
             session.query(ApartmentApplication)
             .filter(ApartmentApplication.apartment_id == apartment.id)
-            .filter(ApartmentApplication.stage == ApartmentApplicationStage.AWARDED)
-            .first()
+            .filter(ApartmentApplication.status == ApartmentApplicationStatus.AWARDED)
+            .one_or_none()
         )
         if awarded_application:
             raise ApplicationError("Apartment has already been awarded")
@@ -509,27 +511,65 @@ class Application(ApplicationBase):
         self,
         session: Session,
         landlord: Landlord,
-        tenant_application: ApartmentApplication,
+        apartment_application: ApartmentApplication,
     ) -> ApartmentApplication:
-        apartment: Apartment = tenant_application.apartment
+        apartment: Apartment = apartment_application.apartment
         if apartment.landlord_id != landlord.id:
             raise ApplicationError("Apartment not owned by landlord")
         return self.apartment_application_service.update(
-            session, tenant_application, stage=ApartmentApplicationStage.REJECTED
+            session, apartment_application, is_rejected=True
         )
 
     def consider_tenant_application(
         self,
         session: Session,
         landlord: Landlord,
-        tenant_application: ApartmentApplication,
+        apartment_application: ApartmentApplication,
     ) -> ApartmentApplication:
-        apartment: Apartment = tenant_application.apartment
+        apartment: Apartment = apartment_application.apartment
         if apartment.landlord_id != landlord.id:
             raise ApplicationError("Apartment not owned by landlord")
         return self.apartment_application_service.update(
-            session, tenant_application, stage=ApartmentApplicationStage.CONSIDERED
+            session, apartment_application, is_considered=True
         )
+
+    def process_apartment_application(
+        self,
+        session: Session,
+        apartment_application: ApartmentApplication,
+    ) -> ApartmentApplication:
+        contract = Contract(apartment_application_id=apartment_application.id)
+        session.add(contract)
+        session.commit()
+        return apartment_application
+
+    def tenant_signed_contract(self, session: Session, contract: Contract) -> Contract:
+        contract.tenant_has_signed = True
+        session.commit()
+        return contract
+
+    def landlord_signed_contract(
+        self, session: Session, contract: Contract
+    ) -> Contract:
+        contract.landlord_has_signed = True
+        session.commit()
+        return contract
+
+    def provide_keys_to_tenant(
+        self, session: Session, apartment_application: ApartmentApplication
+    ):
+        contract: Contract = apartment_application.contract
+        contract.landlord_has_provided_keys = True
+        session.commit()
+        return apartment_application
+
+    def tenant_receive_keys(
+        self, session: Session, apartment_application: ApartmentApplication
+    ):
+        contract: Contract = apartment_application.contract
+        contract.tenant_has_received_keys = True
+        session.commit()
+        return apartment_application
 
     def accept_tenant_application(
         self,
@@ -538,17 +578,20 @@ class Application(ApplicationBase):
         tenant_application: ApartmentApplication,
     ) -> ApartmentApplication:
         apartment: Apartment = tenant_application.apartment
-        if tenant_application.stage != ApartmentApplicationStage.CONSIDERED:
+        if tenant_application.status != ApartmentApplicationStatus.CONSIDERED:
             raise ApplicationError("Application has not yet been considered")
         if apartment.landlord_id != landlord.id:
             raise ApplicationError("Apartment not owned by landlord")
         for tenant_app in tenant_application.apartment.applications:
             if tenant_app.id != tenant_application.id:
                 self.apartment_application_service.update(
-                    session, tenant_app, False, stage=ApartmentApplicationStage.REJECTED
+                    session,
+                    tenant_app,
+                    False,
+                    stage=ApartmentApplicationStatus.REJECTED,
                 )
         return self.apartment_application_service.update(
-            session, tenant_application, stage=ApartmentApplicationStage.AWARDED
+            session, tenant_application, stage=ApartmentApplicationStatus.AWARDED
         )
 
     def invite_tenant_to_apply(
@@ -563,7 +606,7 @@ class Application(ApplicationBase):
         awarded_application = (
             session.query(ApartmentApplication)
             .filter(ApartmentApplication.apartment_id == apartment.id)
-            .filter(ApartmentApplication.stage == ApartmentApplicationStage.AWARDED)
+            .filter(ApartmentApplication.status == ApartmentApplicationStatus.AWARDED)
             .first()
         )
         if awarded_application:

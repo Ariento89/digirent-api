@@ -9,9 +9,13 @@ from sqlalchemy import (
     Boolean,
     Date,
     UniqueConstraint,
+    case,
+    not_,
+    and_,
+    or_,
 )
 from sqlalchemy.orm import backref, relationship
-from sqlalchemy.util.langhelpers import hybridproperty
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy_utils import ChoiceType, EmailType, UUIDType
 
 from digirent import util
@@ -19,8 +23,9 @@ from digirent.core.config import SUPPORTED_FILE_EXTENSIONS
 from .base import Base
 from .mixins import EntityMixin, TimestampMixin
 from .enums import (
-    ApartmentApplicationStage,
+    ApartmentApplicationStatus,
     BookingRequestStatus,
+    ContractStatus,
     FurnishType,
     SocialAccountType,
     UserRole,
@@ -65,7 +70,7 @@ class Tenant(User):
     looking_for = relationship("LookingFor", uselist=False, backref="tenant")
     __mapper_args__ = {"polymorphic_identity": UserRole.TENANT}
 
-    @hybridproperty
+    @hybrid_property
     def profile_percentage(self) -> float:
         result = 0
         possible_filenames = [f"{self.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
@@ -94,7 +99,7 @@ class Tenant(User):
 class Landlord(User):
     __mapper_args__ = {"polymorphic_identity": UserRole.LANDLORD}
 
-    @hybridproperty
+    @hybrid_property
     def profile_percentage(self) -> float:
         result = 0
         possible_filenames = [f"{self.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
@@ -166,11 +171,11 @@ class Apartment(Base, EntityMixin, TimestampMixin):
         "Tenant", foreign_keys=[tenant_id], backref=backref("apartment", uselist=False)
     )
 
-    @hybridproperty
+    @hybrid_property
     def amenity_titles(self) -> List[str]:
         return [amenity.title for amenity in self.amenities]
 
-    @hybridproperty
+    @hybrid_property
     def total_price(self) -> float:
         return self.monthly_price + self.utilities_price
 
@@ -186,12 +191,106 @@ class ApartmentApplication(Base, EntityMixin, TimestampMixin):
         UUIDType(binary=False), ForeignKey("apartments.id"), nullable=False
     )
     tenant_id = Column(UUIDType(binary=False), ForeignKey("users.id"), nullable=False)
-    stage = Column(ChoiceType(ApartmentApplicationStage, impl=String()), nullable=True)
+    is_rejected = Column(Boolean, nullable=False, default=False)
+    is_considered = Column(Boolean, nullable=False, default=False)
     apartment = relationship("Apartment", backref="applications")
     tenant = relationship("Tenant", backref="applications")
     booking_request = relationship(
         "BookingRequest", uselist=False, backref="apartment_application"
     )
+
+    contract = relationship("Contract", uselist=False, backref="apartment_application")
+
+    @hybrid_property
+    def status(self) -> ApartmentApplicationStatus:
+        if not any([self.is_considered, self.is_rejected]):
+            return ApartmentApplicationStatus.NEW
+        if self.is_rejected:
+            return ApartmentApplicationStatus.REJECTED
+        if not self.contract:
+            return ApartmentApplicationStatus.CONSIDERED
+        if self.contract.status == ContractStatus.NEW:
+            return ApartmentApplicationStatus.PROCESSING
+        if self.contract.status == ContractStatus.SIGNED:
+            return ApartmentApplicationStatus.AWARDED
+            # TODO is it awarded when contract is signed
+        if self.contract.status == ContractStatus.COMPLETED:
+            return ApartmentApplicationStatus.COMPLETED
+
+    @status.expression
+    def status(self):
+        return case(
+            [
+                (
+                    and_(
+                        self.is_considered == False, self.is_rejected == False  # noqa
+                    ),
+                    ApartmentApplicationStatus.NEW.value,
+                ),
+                (
+                    self.is_rejected,
+                    ApartmentApplicationStatus.REJECTED.value,
+                ),
+                (
+                    not_(Contract.apartment_application_id),
+                    ApartmentApplicationStatus.CONSIDERED.value,
+                ),
+                (
+                    Contract.status == ContractStatus.NEW,
+                    ApartmentApplicationStatus.PROCESSING.value,
+                ),
+                (
+                    Contract.status == ContractStatus.SIGNED,
+                    ApartmentApplicationStatus.AWARDED.value,
+                ),
+                (
+                    Contract.status == ContractStatus.COMPLETED,
+                    ApartmentApplicationStatus.COMPLETED.value,
+                ),
+            ]
+        )
+
+
+class Contract(Base, EntityMixin, TimestampMixin):
+    __tablename__ = "contracts"
+    apartment_application_id = Column(
+        UUIDType(binary=False), ForeignKey("apartment_applications.id")
+    )
+    landlord_has_signed = Column(Boolean, nullable=False, default=False)
+    tenant_has_signed = Column(Boolean, nullable=False, default=False)
+    landlord_has_provided_keys = Column(Boolean, nullable=False, default=False)
+    tenant_has_received_keys = Column(Boolean, nullable=False, default=False)
+
+    @hybrid_property
+    def status(self) -> ContractStatus:
+        if not all([self.landlord_has_signed, self.tenant_has_signed]):
+            return ContractStatus.NEW
+        elif not all([self.landlord_has_provided_keys, self.tenant_has_received_keys]):
+            return ContractStatus.SIGNED
+        else:
+            return ContractStatus.COMPLETED
+
+    @status.expression
+    def status(self):
+        return case(
+            [
+                (
+                    or_(
+                        self.landlord_has_signed == False,  # noqa
+                        self.tenant_has_signed == False,
+                    ),
+                    ContractStatus.NEW.value,
+                ),
+                (
+                    or_(
+                        self.landlord_has_provided_keys == False,
+                        self.tenant_has_received_keys == False,
+                    ),
+                    ContractStatus.SIGNED.value,
+                ),
+            ],
+            else_=ContractStatus.COMPLETED.value,
+        )
 
 
 class BookingRequest(Base, EntityMixin, TimestampMixin):

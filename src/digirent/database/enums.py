@@ -23,10 +23,13 @@ class FurnishType(str, Enum):
     UNFURNISHED = "unfurnished"
 
 
-class ApartmentApplicationStage(str, Enum):
+class ApartmentApplicationStatus(str, Enum):
+    NEW = "new"
     REJECTED = "rejected"
     CONSIDERED = "considered"
+    PROCESSING = "processing"
     AWARDED = "awarded"
+    COMPLETED = "completed"
 
 
 class BookingRequestStatus(str, Enum):
@@ -38,3 +41,9 @@ class BookingRequestStatus(str, Enum):
 class SocialAccountType(str, Enum):
     GOOGLE = "google"
     FACEBOOK = "facebook"
+
+
+class ContractStatus(str, Enum):
+    NEW = "new"
+    SIGNED = "signed"
+    COMPLETED = "completed"
