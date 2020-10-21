@@ -29,6 +29,7 @@ from digirent.database.models import (
     User,
 )
 from digirent.database.enums import (
+    ApartmentApplicationStatus,
     BookingRequestStatus,
     FurnishType,
     HouseType,
@@ -309,15 +310,6 @@ def apartment(
 
 
 @pytest.fixture
-def apartment_application(
-    session: Session, application: Application, tenant: Tenant, apartment: Apartment
-):
-    apartment_application = application.apply_for_apartment(session, tenant, apartment)
-    assert session.query(ApartmentApplication).get(apartment_application.id)
-    return apartment_application
-
-
-@pytest.fixture
 def another_landlord(session: Session, application: Application) -> Landlord:
     return application.create_landlord(
         session,
@@ -389,39 +381,3 @@ def booking_request(
     assert booking_request.status == BookingRequestStatus.PENDING
     assert not booking_request.apartment_application_id
     return booking_request
-
-
-@pytest.fixture
-def considered_apartment_application(
-    apartment_application, application: Application, session, landlord
-):
-    return application.consider_tenant_application(
-        session, landlord, apartment_application
-    )
-
-
-@pytest.fixture
-def rejected_apartment_application(
-    apartment_application, application: Application, session, landlord
-):
-    return application.reject_tenant_application(
-        session, landlord, apartment_application
-    )
-
-
-@pytest.fixture
-def awarded_apartment_application(
-    apartment_application, application: Application, session, landlord
-):
-    application.consider_tenant_application(session, landlord, apartment_application)
-    return application.accept_tenant_application(
-        session, landlord, apartment_application
-    )
-
-
-@pytest.fixture
-def another_considered_application(
-    apartment: Apartment, application: Application, session, another_tenant, landlord
-):
-    app = application.apply_for_apartment(session, another_tenant, apartment)
-    return application.consider_tenant_application(session, landlord, app)

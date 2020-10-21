@@ -18,6 +18,7 @@ from sqlalchemy.orm.session import Session
 from digirent.database.enums import (
     ApartmentApplicationStatus,
     BookingRequestStatus,
+    ContractStatus,
     Gender,
     HouseType,
     SocialAccountType,
@@ -507,15 +508,15 @@ class Application(ApplicationBase):
             session, tenant=tenant, apartment=apartment
         )
 
-    def reject_tenant_application(
+    def reject_apartment_application(
         self,
         session: Session,
-        landlord: Landlord,
         apartment_application: ApartmentApplication,
     ) -> ApartmentApplication:
-        apartment: Apartment = apartment_application.apartment
-        if apartment.landlord_id != landlord.id:
-            raise ApplicationError("Apartment not owned by landlord")
+        if apartment_application.status != ApartmentApplicationStatus.NEW:
+            raise ApplicationError(
+                "Apartment application can not be reject at this stage"
+            )
         return self.apartment_application_service.update(
             session, apartment_application, is_rejected=True
         )
@@ -523,12 +524,12 @@ class Application(ApplicationBase):
     def consider_tenant_application(
         self,
         session: Session,
-        landlord: Landlord,
         apartment_application: ApartmentApplication,
     ) -> ApartmentApplication:
-        apartment: Apartment = apartment_application.apartment
-        if apartment.landlord_id != landlord.id:
-            raise ApplicationError("Apartment not owned by landlord")
+        if apartment_application.status != ApartmentApplicationStatus.NEW:
+            raise ApplicationError(
+                "Apartment application can not be considered at this stage"
+            )
         return self.apartment_application_service.update(
             session, apartment_application, is_considered=True
         )
@@ -538,26 +539,48 @@ class Application(ApplicationBase):
         session: Session,
         apartment_application: ApartmentApplication,
     ) -> ApartmentApplication:
+        if apartment_application.status != ApartmentApplicationStatus.CONSIDERED:
+            raise ApplicationError("Apartment has not been considered")
+        currently_processed_application = (
+            session.query(ApartmentApplication)
+            .filter(
+                ApartmentApplication.apartment_id == apartment_application.apartment_id
+            )
+            .filter(
+                ApartmentApplication.status == ApartmentApplicationStatus.PROCESSING
+            )
+            .one_or_none()
+        )
+        if currently_processed_application:
+            raise ApplicationError("Another application is currently being processed")
         contract = Contract(apartment_application_id=apartment_application.id)
         session.add(contract)
         session.commit()
         return apartment_application
 
-    def tenant_signed_contract(self, session: Session, contract: Contract) -> Contract:
-        contract.tenant_has_signed = True
+    def tenant_signed_contract(
+        self, session: Session, apartment_application: ApartmentApplication
+    ) -> ApartmentApplication:
+        if apartment_application.status != ApartmentApplicationStatus.PROCESSING:
+            raise ApplicationError("Cannot sign contract at this stage")
+        apartment_application.contract.tenant_has_signed = True
         session.commit()
-        return contract
+        return apartment_application
 
     def landlord_signed_contract(
-        self, session: Session, contract: Contract
+        self, session: Session, apartment_application: ApartmentApplication
     ) -> Contract:
-        contract.landlord_has_signed = True
+        if apartment_application.status != ApartmentApplicationStatus.PROCESSING:
+            raise ApplicationError("Cannot sign contract at this stage")
+        apartment_application.contract.landlord_has_signed = True
         session.commit()
-        return contract
+        return apartment_application
 
     def provide_keys_to_tenant(
         self, session: Session, apartment_application: ApartmentApplication
     ):
+        if apartment_application.contract.status != ContractStatus.SIGNED:
+            raise ApplicationError("Contract is not signed")
         contract: Contract = apartment_application.contract
         contract.landlord_has_provided_keys = True
         session.commit()
@@ -566,6 +589,10 @@ class Application(ApplicationBase):
     def tenant_receive_keys(
         self, session: Session, apartment_application: ApartmentApplication
     ):
+        if apartment_application.contract.status != ContractStatus.SIGNED:
+            raise ApplicationError("Contract is not signed")
+        if not apartment_application.contract.landlord_has_provided_keys:
+            raise ApplicationError("Landlord has not provided keys")
         contract: Contract = apartment_application.contract
         contract.tenant_has_received_keys = True
         session.commit()

@@ -87,3 +87,14 @@ def awarded_apartment_application(
 ):
     assert process_apartment_application.status == ApartmentApplicationStatus.AWARDED
     return process_apartment_application
+
+
+@pytest.fixture
+def another_new_apartment_application(
+    another_tenant: Tenant, apartment: Apartment, session: Session
+) -> ApartmentApplication:
+    app = ApartmentApplication(tenant_id=another_tenant.id, apartment_id=apartment.id)
+    session.add(app)
+    session.commit()
+    assert app.status == ApartmentApplicationStatus.NEW
+    return app

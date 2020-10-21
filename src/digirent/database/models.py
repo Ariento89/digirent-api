@@ -10,7 +10,6 @@ from sqlalchemy import (
     Date,
     UniqueConstraint,
     case,
-    not_,
     and_,
     or_,
 )
@@ -232,7 +231,7 @@ class ApartmentApplication(Base, EntityMixin, TimestampMixin):
                     ApartmentApplicationStatus.REJECTED.value,
                 ),
                 (
-                    not_(Contract.apartment_application_id),
+                    self.contract == None,
                     ApartmentApplicationStatus.CONSIDERED.value,
                 ),
                 (
