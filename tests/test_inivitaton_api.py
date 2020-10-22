@@ -38,7 +38,7 @@ def test_landlord_invite_tenant_to_apply_for_already_awarded_apartment_fail(
     another_tenant: Tenant,
     landlord_auth_header: dict,
 ):
-    assert awarded_apartment_application.stage == ApartmentApplicationStatus.AWARDED
+    assert awarded_apartment_application.status == ApartmentApplicationStatus.AWARDED
     assert not session.query(BookingRequest).count()
     response = client.post(
         "/api/invites/",

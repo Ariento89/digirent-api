@@ -25,6 +25,7 @@ def test_tenant_apply_for_apartment_ok(
     assert result["apartmentId"] == str(apartment.id)
     assert session.query(ApartmentApplication).count()
     apartment_application = session.query(ApartmentApplication).get(result["id"])
+    assert apartment_application.status == ApartmentApplicationStatus.NEW
     assert apartment_application
     assert apartment_application.tenant == tenant
     assert apartment_application.apartment == apartment
@@ -46,140 +47,89 @@ def test_landlord_apply_for_apartment_fail(
 
 def test_landlord_reject_tenants_application_ok(
     client: TestClient,
-    apartment_application: ApartmentApplication,
+    new_apartment_application: ApartmentApplication,
     session: Session,
     landlord_auth_header: dict,
 ):
-    assert apartment_application.status == ApartmentApplicationStatus.NEW
+    assert new_apartment_application.status == ApartmentApplicationStatus.NEW
     response = client.post(
-        f"/api/applications/{apartment_application.id}/reject",
+        f"/api/applications/{new_apartment_application.id}/reject",
         headers=landlord_auth_header,
     )
     result = response.json()
     assert response.status_code == 200
     assert isinstance(result, dict)
     session.expire_all()
-    apartment_application = session.query(ApartmentApplication).get(
-        apartment_application.id
+    rejected_apartment_application = session.query(ApartmentApplication).get(
+        new_apartment_application.id
     )
-    assert apartment_application.status == ApartmentApplicationStatus.REJECTED
+    assert rejected_apartment_application.status == ApartmentApplicationStatus.REJECTED
 
 
 def test_landlord_consider_tenants_application_ok(
     client: TestClient,
-    apartment_application: ApartmentApplication,
+    new_apartment_application: ApartmentApplication,
     session: Session,
     landlord_auth_header: dict,
 ):
-    assert apartment_application.status == ApartmentApplicationStatus.NEW
+    assert new_apartment_application.status == ApartmentApplicationStatus.NEW
     response = client.post(
-        f"/api/applications/{apartment_application.id}/consider",
+        f"/api/applications/{new_apartment_application.id}/consider",
         headers=landlord_auth_header,
     )
     result = response.json()
     assert response.status_code == 200
     assert isinstance(result, dict)
     session.expire_all()
-    apartment_application = session.query(ApartmentApplication).get(
-        apartment_application.id
+    new_apartment_application = session.query(ApartmentApplication).get(
+        new_apartment_application.id
     )
-    assert apartment_application.status == ApartmentApplicationStatus.CONSIDERED
+    assert new_apartment_application.status == ApartmentApplicationStatus.CONSIDERED
 
 
 def test_another_landlord_reject_tenants_application_fail(
     client: TestClient,
-    apartment_application: ApartmentApplication,
+    new_apartment_application: ApartmentApplication,
     session: Session,
     another_landlord_auth_header: dict,
 ):
-    assert apartment_application.status == ApartmentApplicationStatus.NEW
+    assert new_apartment_application.status == ApartmentApplicationStatus.NEW
     response = client.post(
-        f"/api/applications/{apartment_application.id}/reject",
+        f"/api/applications/{new_apartment_application.id}/reject",
         headers=another_landlord_auth_header,
     )
     assert response.status_code == 404
     session.expire_all()
-    apartment_application = session.query(ApartmentApplication).get(
-        apartment_application.id
+    new_apartment_application = session.query(ApartmentApplication).get(
+        new_apartment_application.id
     )
-    assert apartment_application.status == ApartmentApplicationStatus.NEW
+    assert new_apartment_application.status == ApartmentApplicationStatus.NEW
 
 
 def test_another_landlord_consider_tenants_application_fail(
     client: TestClient,
-    apartment_application: ApartmentApplication,
+    new_apartment_application: ApartmentApplication,
     session: Session,
     another_landlord_auth_header: dict,
 ):
-    assert apartment_application.status == ApartmentApplicationStatus.NEW
+    assert new_apartment_application.status == ApartmentApplicationStatus.NEW
     response = client.post(
-        f"/api/applications/{apartment_application.id}/consider",
+        f"/api/applications/{new_apartment_application.id}/consider",
         headers=another_landlord_auth_header,
     )
     assert response.status_code == 404
     session.expire_all()
-    apartment_application = session.query(ApartmentApplication).get(
-        apartment_application.id
+    new_apartment_application = session.query(ApartmentApplication).get(
+        new_apartment_application.id
     )
-    assert apartment_application.status == ApartmentApplicationStatus.NEW
-
-
-def test_accept_considered_application_ok(
-    client: TestClient,
-    considered_apartment_application: ApartmentApplication,
-    landlord_auth_header: dict,
-):
-    assert (
-        considered_apartment_application.status == ApartmentApplicationStatus.CONSIDERED
-    )
-    response = client.post(
-        f"/api/applications/{considered_apartment_application.id}/accept",
-        headers=landlord_auth_header,
-    )
-    assert response.status_code == 200
-    result = response.json()
-    assert "id" in result
-    assert "status" in result
-    assert result["status"] == ApartmentApplicationStatus.AWARDED.value
-
-
-def test_accept_rejected_application_fail(
-    client: TestClient,
-    rejected_apartment_application: ApartmentApplication,
-    landlord_auth_header: dict,
-):
-    assert rejected_apartment_application.stage == ApartmentApplicationStatus.REJECTED
-    response = client.post(
-        f"/api/applications/{rejected_apartment_application.id}/accept",
-        headers=landlord_auth_header,
-    )
-    assert response.status_code == 400
-    result = response.json()
-    assert "application has not yet been considered" in result["detail"].lower()
-
-
-def test_accept_another_application_when_apartment_has_been_awarded(
-    client: TestClient,
-    another_considered_application: ApartmentApplication,
-    awarded_apartment_application: ApartmentApplication,
-    landlord_auth_header: dict,
-):
-    assert awarded_apartment_application.stage == ApartmentApplicationStatus.AWARDED
-    assert another_considered_application.stage == ApartmentApplicationStatus.REJECTED
-    response = client.post(
-        f"/api/applications/{another_considered_application.id}/accept",
-        headers=landlord_auth_header,
-    )
-    assert response.status_code == 400
-    result = response.json()
-    assert "has not yet been considered" in result["detail"].lower()
+    assert new_apartment_application.status == ApartmentApplicationStatus.NEW
 
 
 def test_landlord_fetch_apartment_applications(
     client: TestClient,
     apartment: Apartment,
     session: Session,
-    apartment_application,
+    new_apartment_application,
     landlord: Landlord,
     landlord_auth_header,
 ):
@@ -203,7 +153,7 @@ def test_tenant_fetch_applications(
     client: TestClient,
     apartment: Apartment,
     session: Session,
-    apartment_application,
+    new_apartment_application,
     landlord: Landlord,
     tenant_auth_header,
 ):

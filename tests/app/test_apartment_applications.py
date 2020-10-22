@@ -49,7 +49,7 @@ def test_landlord_consider_a_tenant_application_ok(
     application: Application,
     session: Session,
 ):
-    tenant_application = application.consider_tenant_application(
+    tenant_application = application.consider_apartment_application(
         session, new_apartment_application
     )
     assert tenant_application.status == ApartmentApplicationStatus.CONSIDERED
@@ -162,7 +162,9 @@ def test_landlord_consider_apartment_application_not_in_new_status_fail(
 ):
     assert awarded_apartment_application.status == ApartmentApplicationStatus.AWARDED
     with pytest.raises(ApplicationError):
-        application.consider_tenant_application(session, awarded_apartment_application)
+        application.consider_apartment_application(
+            session, awarded_apartment_application
+        )
 
 
 def test_landlord_start_move_in_process_for_application_not_in_considered_status_fail(
@@ -184,7 +186,9 @@ def test_landlord_start_move_in_process_for_another_apartment_application_when_t
     assert another_new_apartment_application.id != process_apartment_application.id
     assert process_apartment_application.status == ApartmentApplicationStatus.PROCESSING
     assert another_new_apartment_application.status == ApartmentApplicationStatus.NEW
-    application.consider_tenant_application(session, another_new_apartment_application)
+    application.consider_apartment_application(
+        session, another_new_apartment_application
+    )
     assert (
         another_new_apartment_application.status
         == ApartmentApplicationStatus.CONSIDERED

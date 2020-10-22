@@ -521,7 +521,7 @@ class Application(ApplicationBase):
             session, apartment_application, is_rejected=True
         )
 
-    def consider_tenant_application(
+    def consider_apartment_application(
         self,
         session: Session,
         apartment_application: ApartmentApplication,
@@ -597,29 +597,6 @@ class Application(ApplicationBase):
         contract.tenant_has_received_keys = True
         session.commit()
         return apartment_application
-
-    def accept_tenant_application(
-        self,
-        session: Session,
-        landlord: Landlord,
-        tenant_application: ApartmentApplication,
-    ) -> ApartmentApplication:
-        apartment: Apartment = tenant_application.apartment
-        if tenant_application.status != ApartmentApplicationStatus.CONSIDERED:
-            raise ApplicationError("Application has not yet been considered")
-        if apartment.landlord_id != landlord.id:
-            raise ApplicationError("Apartment not owned by landlord")
-        for tenant_app in tenant_application.apartment.applications:
-            if tenant_app.id != tenant_application.id:
-                self.apartment_application_service.update(
-                    session,
-                    tenant_app,
-                    False,
-                    stage=ApartmentApplicationStatus.REJECTED,
-                )
-        return self.apartment_application_service.update(
-            session, tenant_application, stage=ApartmentApplicationStatus.AWARDED
-        )
 
     def invite_tenant_to_apply(
         self,

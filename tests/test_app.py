@@ -8,7 +8,6 @@ from digirent.core.config import (
 )
 import digirent.util as util
 from digirent.database.enums import (
-    ApartmentApplicationStatus,
     BookingRequestStatus,
     FurnishType,
     HouseType,
@@ -640,20 +639,11 @@ def test_invite_tenant_for_already_awarded_apartment_fail(
     tenant: Tenant,
     another_tenant: Tenant,
     landlord: Landlord,
-    apartment_application,
+    awarded_apartment_application,
 ):
-    apartment_application = application.consider_tenant_application(
-        session, landlord, apartment_application
-    )
-    assert apartment_application.tenant_id == tenant.id
-    assert apartment_application.status == ApartmentApplicationStatus.CONSIDERED
-    apartment_application = application.accept_tenant_application(
-        session, landlord, apartment_application
-    )
-    assert apartment_application.status == ApartmentApplicationStatus.AWARDED
     with pytest.raises(ApplicationError):
         application.invite_tenant_to_apply(
-            session, landlord, another_tenant, apartment_application.apartment
+            session, landlord, another_tenant, awarded_apartment_application.apartment
         )
 
 

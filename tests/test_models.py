@@ -4,6 +4,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.exc import IntegrityError
 from digirent.app import Application
 from digirent.database.enums import (
+    ApartmentApplicationStatus,
     BookingRequestStatus,
     FurnishType,
     HouseType,
@@ -197,7 +198,7 @@ def test_apartment_applications(tenant: Tenant, apartment: Apartment, session: S
     session.commit()
     assert tenant.applications == [apartment_application]
     assert apartment.applications == [apartment_application]
-    assert apartment_application.stage is None
+    assert apartment_application.status == ApartmentApplicationStatus.NEW
 
 
 def test_booking_request_relationships(
@@ -215,16 +216,16 @@ def test_accept_booking_request(
     apartment: Apartment,
     session: Session,
     tenant: Tenant,
-    apartment_application: ApartmentApplication,
+    new_apartment_application: ApartmentApplication,
 ):
     booking_request = BookingRequest(tenant_id=tenant.id, apartment_id=apartment.id)
     session.add(booking_request)
     session.commit()
     assert booking_request.status == BookingRequestStatus.PENDING
-    booking_request.accept(apartment_application)
+    booking_request.accept(new_apartment_application)
     session.commit()
     assert booking_request.status == BookingRequestStatus.ACCEPTED
-    assert booking_request.apartment_application == apartment_application
+    assert booking_request.apartment_application == new_apartment_application
 
 
 def test_reject_booking_request(
