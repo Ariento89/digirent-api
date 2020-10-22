@@ -1,5 +1,8 @@
+from datetime import datetime
+from typing import List
 import pytest
 from sqlalchemy.orm.session import Session
+from digirent.app import Application
 from digirent.database.enums import ApartmentApplicationStatus, ContractStatus
 from digirent.database.models import Apartment, ApartmentApplication, Contract, Tenant
 
@@ -98,3 +101,22 @@ def another_new_apartment_application(
     session.commit()
     assert app.status == ApartmentApplicationStatus.NEW
     return app
+
+
+@pytest.fixture
+def new_apartment_applications(
+    session: Session, application: Application, apartment: Apartment
+) -> List[ApartmentApplication]:
+    applications = []
+    for i in range(5):
+        tenant = application.create_tenant(
+            session,
+            f"fname{i}",
+            f"lname{i}",
+            datetime.now().date(),
+            f"jdoe{i}#email.com",
+            f"012345{i}",
+            f"password{i}",
+        )
+        applications.append(application.apply_for_apartment(session, tenant, apartment))
+    return applications

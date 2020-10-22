@@ -1,3 +1,4 @@
+from typing import List
 from digirent.database.enums import (
     ApartmentApplicationStatus,
     ContractStatus,
@@ -137,8 +138,44 @@ def test_tenant_accept_keys_from_landlord_on_awarded_application_ok(
     assert apartment_application.contract.status == ContractStatus.COMPLETED
 
 
-def test_all_other_applications_rejected_on_application_completed_ok():
-    raise Exception()
+def test_all_other_applications_rejected_on_application_completed_ok(
+    session: Session,
+    application: Application,
+    new_apartment_applications: List[ApartmentApplication],
+):
+    assert len(new_apartment_applications) == 5
+    assert all(
+        app.status == ApartmentApplicationStatus.NEW
+        for app in new_apartment_applications
+    )
+    app1, app2, app3, app4, app5 = new_apartment_applications
+    application.reject_apartment_application(session, app1)
+    application.consider_apartment_application(session, app2)
+    application.consider_apartment_application(session, app3)
+    application.process_apartment_application(session, app3)
+    application.consider_apartment_application(session, app4)
+    application.consider_apartment_application(session, app5)
+    assert app1.status == ApartmentApplicationStatus.REJECTED
+    assert all(
+        app.status == ApartmentApplicationStatus.CONSIDERED
+        for app in (app2, app4, app5)
+    )
+    assert app3.status == ApartmentApplicationStatus.PROCESSING
+    application.tenant_signed_contract(session, app3)
+    application.landlord_signed_contract(session, app3)
+    assert app1.status == ApartmentApplicationStatus.REJECTED
+    assert all(
+        app.status == ApartmentApplicationStatus.CONSIDERED
+        for app in (app2, app4, app5)
+    )
+    assert app3.status == ApartmentApplicationStatus.AWARDED
+    application.provide_keys_to_tenant(session, app3)
+    application.tenant_receive_keys(session, app3)
+    assert all(
+        app.status == ApartmentApplicationStatus.REJECTED
+        for app in (app1, app2, app4, app5)
+    )
+    assert app3.status == ApartmentApplicationStatus.COMPLETED
 
 
 def test_landlord_reject_apartment_application_not_in_new_status_fail(

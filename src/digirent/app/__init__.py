@@ -593,6 +593,16 @@ class Application(ApplicationBase):
             raise ApplicationError("Contract is not signed")
         if not apartment_application.contract.landlord_has_provided_keys:
             raise ApplicationError("Landlord has not provided keys")
+        other_applications = (
+            session.query(ApartmentApplication)
+            .filter(
+                ApartmentApplication.apartment_id == apartment_application.apartment_id
+            )
+            .filter(ApartmentApplication.id != apartment_application.id)
+            .all()
+        )
+        for apartment_app in other_applications:
+            apartment_app.is_rejected = True
         contract: Contract = apartment_application.contract
         contract.tenant_has_received_keys = True
         session.commit()
