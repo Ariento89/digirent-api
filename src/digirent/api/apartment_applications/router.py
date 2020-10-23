@@ -3,12 +3,75 @@ from uuid import UUID
 from sqlalchemy.orm.session import Session
 from fastapi import APIRouter, Depends, HTTPException
 from digirent.api import dependencies as deps
-from digirent.api.apartment_applications.schema import ApartmentApplicationSchema
+from digirent.api.apartment_applications.schema import (
+    ApartmentApplicationSchema,
+    SignrequestEventSchema,
+)
 from digirent.app import Application
 from digirent.app.error import ApplicationError
 from digirent.database.models import Apartment, ApartmentApplication, Landlord, Tenant
 
 router = APIRouter()
+
+
+@router.post("/contract", status_code=200)
+def signrequest_contract_callback(
+    payload: SignrequestEventSchema,
+    session: Session = Depends(deps.get_database_session),
+    application: Application = Depends(deps.get_application)
+    # payload: dict = Body(...)
+):
+    # event_uuid = payload.uuid
+    # event_status = payload.status
+    # event_timestamp = payload.timestamp
+    # event_hash = payload.event_hash
+    # event_document_id = document.uuid
+    # document_status = document.status
+
+    # TODO verify hash
+    target_event_types = [
+        "declined",
+        "cancelled",
+        "expired",
+        "signed",
+        "signer_signed",
+        "signer_viewed_email",
+        "signer_viewed",
+    ]
+    event_type = payload.event_type
+    document = payload.document
+    document_signers = document.signrequest.signers
+    external_id = document.external_id
+    if event_type not in target_event_types:
+        return
+    apartment_application: ApartmentApplication = session.query(
+        ApartmentApplication
+    ).get(external_id)
+    if not apartment_application:
+        return
+    tenant: Tenant = apartment_application.tenant
+    landlord: Landlord = apartment_application.apartment.landlord
+    for signer in document_signers:
+        if not signer.needs_to_sign:
+            continue
+        # TODO store date time
+        # signed_on = signer.signed_on
+        # signer_declined_on = signer.declined_on
+        signer_email = signer.email
+        if tenant.email == signer_email:
+            if signer.declined:
+                # TODO tenant declined contract
+                pass
+            elif signer.signed:
+                application.tenant_signed_contract(session, apartment_application)
+
+        if landlord.email == signer_email:
+            if signer.declined:
+                # TODO landlord declined contract
+                pass
+            elif signer.signed:
+                application.landlord_signed_contract(session, apartment_application)
+    return
 
 
 @router.post(

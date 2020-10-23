@@ -4,6 +4,7 @@ from sqlalchemy import (
     String,
     Text,
     Float,
+    DateTime,
     Integer,
     ForeignKey,
     Boolean,
@@ -256,9 +257,17 @@ class Contract(Base, EntityMixin, TimestampMixin):
         UUIDType(binary=False), ForeignKey("apartment_applications.id")
     )
     landlord_has_signed = Column(Boolean, nullable=False, default=False)
+    landlord_signed_on = Column(DateTime, nullable=True)
     tenant_has_signed = Column(Boolean, nullable=False, default=False)
+    tenant_signed_on = Column(DateTime, nullable=True)
     landlord_has_provided_keys = Column(Boolean, nullable=False, default=False)
+    landlord_provided_keys_on = Column(DateTime, nullable=True)
     tenant_has_received_keys = Column(Boolean, nullable=False, default=False)
+    tenant_received_keys_on = Column(DateTime, nullable=True)
+    landlord_declined = Column(Boolean, nullable=False, default=False)
+    landlord_declined_on = Column(DateTime, nullable=True)
+    tenant_declined = Column(Boolean, nullable=False, default=False)
+    tenant_declined_on = Column(DateTime, nullable=True)
 
     @hybrid_property
     def status(self) -> ContractStatus:

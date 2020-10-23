@@ -55,6 +55,8 @@ SUPPORTED_VIDEO_EXTENSIONS: List[str] = ["mp4", "avi", "mkv"]
 
 SIGNREQUEST_API_KEY: str = config("SIGNREQUEST_API_KEY", cast=str)
 
+SIGNREQUEST_TEMPLATE_URL: str = config("SIGNREQUEST_TEMPLATE_URL", cast=str)
+
 GOOGLE_CLIENT_ID: str = config("GOOGLE_CLIENT_ID", cast=str)
 
 GOOGLE_CLIENT_SECRET: str = config("GOOGLE_CLIENT_SECRET", cast=str)

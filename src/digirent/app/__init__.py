@@ -10,6 +10,7 @@ from digirent.core.config import (
     SUPPORTED_IMAGE_EXTENSIONS,
     NUMBER_OF_APARTMENT_IMAGES,
     SUPPORTED_VIDEO_EXTENSIONS,
+    APP_ENV,
 )
 import digirent.util as util
 from sqlalchemy.exc import IntegrityError
@@ -39,6 +40,7 @@ from digirent.database.models import (
     User,
     UserRole,
 )
+from digirent.core.services.sign_request import send_contract_sign_request
 
 
 class Application(ApplicationBase):
@@ -556,6 +558,12 @@ class Application(ApplicationBase):
         contract = Contract(apartment_application_id=apartment_application.id)
         session.add(contract)
         session.commit()
+        if APP_ENV != "test":
+            send_contract_sign_request(
+                apartment_application.id,
+                apartment_application.apartment.landlord.email,
+                apartment_application.tenant.email,
+            )
         return apartment_application
 
     def tenant_signed_contract(
