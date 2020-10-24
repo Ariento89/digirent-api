@@ -92,6 +92,8 @@ class Tenant(User):
             result += 10
         if any(path.exists() for path in possible_proof_of_enrollment_file_paths):
             result += 10
+        if self.social_accounts:
+            result += 10
         assert result <= 100
         return result
 
@@ -109,6 +111,8 @@ class Landlord(User):
         ]
         if any(path.exists() for path in possible_copy_id_file_paths):
             result += 30
+        if self.social_accounts:
+            result += 20
         assert result <= 100
         return result
 

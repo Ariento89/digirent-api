@@ -42,10 +42,13 @@ async def tenant_google_authorization(
     session: Session = Depends(dependencies.get_database_session),
     user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
 ):
-    access_token = await get_token_from_google_auth(
-        request, session, app, UserRole.TENANT, user
-    )
-    return {"access_token": access_token}
+    try:
+        access_token = await get_token_from_google_auth(
+            request, session, app, UserRole.TENANT, user
+        )
+        return {"access_token": access_token}
+    except ApplicationError as e:
+        raise HTTPException(400, str(e))
 
 
 @router.get("/landlord/authorization/google", response_model=TokenSchema)
@@ -55,10 +58,13 @@ async def landlord_google_authorization(
     session: Session = Depends(dependencies.get_database_session),
     user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
 ):
-    access_token = await get_token_from_google_auth(
-        request, session, app, UserRole.LANDLORD, user
-    )
-    return {"access_token": access_token}
+    try:
+        access_token = await get_token_from_google_auth(
+            request, session, app, UserRole.LANDLORD, user
+        )
+        return {"access_token": access_token}
+    except ApplicationError as e:
+        raise HTTPException(400, str(e))
 
 
 @router.get("/google")
@@ -92,10 +98,13 @@ async def landlord_facebook_authorization(
     session: Session = Depends(dependencies.get_database_session),
     user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
 ):
-    access_token = await get_token_from_facebook_auth(
-        request, session, app, UserRole.LANDLORD, user
-    )
-    return {"access_token": access_token}
+    try:
+        access_token = await get_token_from_facebook_auth(
+            request, session, app, UserRole.LANDLORD, user
+        )
+        return {"access_token": access_token}
+    except ApplicationError as e:
+        raise HTTPException(400, str(e))
 
 
 @router.get("/tenant/authorization/facebook")
@@ -105,7 +114,10 @@ async def tenant_facebook_authorization(
     session: Session = Depends(dependencies.get_database_session),
     user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
 ):
-    access_token = await get_token_from_facebook_auth(
-        request, session, app, UserRole.TENANT, user
-    )
-    return {"access_token": access_token}
+    try:
+        access_token = await get_token_from_facebook_auth(
+            request, session, app, UserRole.TENANT, user
+        )
+        return {"access_token": access_token}
+    except ApplicationError as e:
+        raise HTTPException(400, str(e))

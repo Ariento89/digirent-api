@@ -60,3 +60,7 @@ SIGNREQUEST_TEMPLATE_URL: str = config("SIGNREQUEST_TEMPLATE_URL", cast=str)
 GOOGLE_CLIENT_ID: str = config("GOOGLE_CLIENT_ID", cast=str)
 
 GOOGLE_CLIENT_SECRET: str = config("GOOGLE_CLIENT_SECRET", cast=str)
+
+FACEBOOK_CLIENT_ID: str = config("FACEBOOK_CLIENT_ID", cast=str)
+
+FACEBOOK_CLIENT_SECRET: str = config("FACEBOOK_CLIENT_SECRET", cast=str)
