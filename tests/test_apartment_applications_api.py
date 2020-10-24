@@ -418,21 +418,36 @@ def test_event_handler_tenant_signed_document(client: TestClient):
     assert response.status_code == 200
 
 
-def test_event_handler_tenant_declined_document():
-    raise Exception()
+def test_landlord_confirm_keys_provided_to_tenant(
+    client: TestClient,
+    session: Session,
+    landlord_auth_header: dict,
+    awarded_apartment_application: ApartmentApplication,
+):
+    assert not awarded_apartment_application.contract.landlord_has_provided_keys
+    response = client.post(
+        f"/api/applications/{awarded_apartment_application.id}/keys/provided",
+        headers=landlord_auth_header,
+    )
+    assert response.status_code == 200
+    session.expire_all()
+    assert awarded_apartment_application.contract.landlord_has_provided_keys
 
 
-def test_event_handler_landlord_signed_document():
-    raise Exception()
-
-
-def test_event_handler_landlord_declined_document():
-    raise Exception()
-
-
-def test_landlord_confirm_keys_provided_to_tenant():
-    raise Exception()
-
-
-def test_tenant_confirm_apartment_keys_received_from_landlord():
-    raise Exception()
+def test_tenant_confirm_received_keys(
+    client: TestClient,
+    session: Session,
+    tenant_auth_header: dict,
+    awarded_apartment_application: ApartmentApplication,
+):
+    awarded_apartment_application.contract.landlord_has_provided_keys = True
+    session.commit()
+    assert not awarded_apartment_application.contract.tenant_has_received_keys
+    response = client.post(
+        f"/api/applications/{awarded_apartment_application.id}/keys/received",
+        headers=tenant_auth_header,
+    )
+    assert response.status_code == 200
+    session.expire_all()
+    assert awarded_apartment_application.contract.landlord_has_provided_keys
+    assert awarded_apartment_application.contract.tenant_has_received_keys

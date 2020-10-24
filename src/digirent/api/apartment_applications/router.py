@@ -170,6 +170,57 @@ def process_application(
         raise HTTPException(400, str(e))
 
 
+@router.post(
+    "/{application_id}/keys/provided",
+    status_code=200,
+    response_model=ApartmentApplicationSchema,
+)
+def landlord_provide_keys_to_tenant(
+    application_id: UUID,
+    landlord: Landlord = Depends(deps.get_current_landlord),
+    session: Session = Depends(deps.get_database_session),
+    app: Application = Depends(deps.get_application),
+):
+    try:
+        apartment_application: ApartmentApplication = (
+            session.query(ApartmentApplication)
+            .join(Apartment, ApartmentApplication.apartment_id == Apartment.id)
+            .filter(ApartmentApplication.id == application_id)
+            .filter(Apartment.landlord_id == landlord.id)
+            .one_or_none()
+        )
+        if not apartment_application:
+            raise HTTPException(404, "application not found")
+        return app.provide_keys_to_tenant(session, apartment_application)
+    except ApplicationError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post(
+    "/{application_id}/keys/received",
+    status_code=200,
+    response_model=ApartmentApplicationSchema,
+)
+def tenant_received_keys(
+    application_id: UUID,
+    tenant: Tenant = Depends(deps.get_current_tenant),
+    session: Session = Depends(deps.get_database_session),
+    app: Application = Depends(deps.get_application),
+):
+    try:
+        apartment_application: ApartmentApplication = (
+            session.query(ApartmentApplication)
+            .filter(ApartmentApplication.id == application_id)
+            .filter(ApartmentApplication.tenant_id == tenant.id)
+            .one_or_none()
+        )
+        if not apartment_application:
+            raise HTTPException(404, "application not found")
+        return app.tenant_receive_keys(session, apartment_application)
+    except ApplicationError as e:
+        raise HTTPException(400, str(e))
+
+
 @router.get("/{apartment_id}", response_model=List[ApartmentApplicationSchema])
 def fetch_applications_for_apartments(
     apartment_id: UUID,
