@@ -213,6 +213,12 @@ class ApartmentApplication(Base, EntityMixin, TimestampMixin):
             return ApartmentApplicationStatus.REJECTED
         if not self.contract:
             return ApartmentApplicationStatus.CONSIDERED
+        if self.contract.status in [
+            ContractStatus.DECLINED,
+            ContractStatus.CANCELED,
+            ContractStatus.EXPIRED,
+        ]:
+            return ApartmentApplicationStatus.FAILED
         if self.contract.status == ContractStatus.NEW:
             return ApartmentApplicationStatus.PROCESSING
         if self.contract.status == ContractStatus.SIGNED:
@@ -232,12 +238,20 @@ class ApartmentApplication(Base, EntityMixin, TimestampMixin):
                     ApartmentApplicationStatus.NEW.value,
                 ),
                 (
-                    self.is_rejected,
+                    self.is_rejected == True,
                     ApartmentApplicationStatus.REJECTED.value,
                 ),
                 (
                     self.contract == None,
                     ApartmentApplicationStatus.CONSIDERED.value,
+                ),
+                (
+                    or_(
+                        Contract.status == ContractStatus.DECLINED,
+                        Contract.status == ContractStatus.CANCELED,
+                        Contract.status == ContractStatus.EXPIRED,
+                    ),
+                    ApartmentApplicationStatus.FAILED.value,
                 ),
                 (
                     Contract.status == ContractStatus.NEW,
@@ -272,10 +286,20 @@ class Contract(Base, EntityMixin, TimestampMixin):
     landlord_declined_on = Column(DateTime, nullable=True)
     tenant_declined = Column(Boolean, nullable=False, default=False)
     tenant_declined_on = Column(DateTime, nullable=True)
+    canceled = Column(Boolean, nullable=False, default=False)
+    canceled_on = Column(DateTime, nullable=True)
+    expired = Column(Boolean, nullable=False, default=False)
+    expired_on = Column(DateTime, nullable=True)
 
     @hybrid_property
     def status(self) -> ContractStatus:
-        if not all([self.landlord_has_signed, self.tenant_has_signed]):
+        if any([self.tenant_declined, self.landlord_declined]):
+            return ContractStatus.DECLINED
+        elif self.expired:
+            return ContractStatus.EXPIRED
+        elif self.canceled:
+            return ContractStatus.CANCELED
+        elif not all([self.landlord_has_signed, self.tenant_has_signed]):
             return ContractStatus.NEW
         elif not all([self.landlord_has_provided_keys, self.tenant_has_received_keys]):
             return ContractStatus.SIGNED
@@ -286,6 +310,15 @@ class Contract(Base, EntityMixin, TimestampMixin):
     def status(self):
         return case(
             [
+                (
+                    or_(
+                        self.tenant_declined == True,  # noqa
+                        self.landlord_declined == True,
+                    ),
+                    ContractStatus.DECLINED.value,
+                ),
+                (self.expired == True, ContractStatus.EXPIRED.value),
+                (self.canceled == True, ContractStatus.CANCELED.value),
                 (
                     or_(
                         self.landlord_has_signed == False,  # noqa

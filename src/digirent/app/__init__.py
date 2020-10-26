@@ -1,7 +1,7 @@
 from pathlib import Path
-from typing import IO, List, Optional
+from typing import IO, List, Optional, Union
 from uuid import UUID, uuid4
-from datetime import date
+from datetime import date, datetime
 from jwt import PyJWTError
 from digirent.core.config import (
     NUMBER_OF_APARTMENT_VIDEOS,
@@ -15,6 +15,7 @@ from digirent.core.config import (
 import digirent.util as util
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
+from sqlalchemy import or_
 
 from digirent.database.enums import (
     ApartmentApplicationStatus,
@@ -489,14 +490,20 @@ class Application(ApplicationBase):
         self, session: Session, tenant: Tenant, apartment: Apartment
     ) -> ApartmentApplication:
 
-        awarded_application = (
+        awarded_or_completed_application = (
             session.query(ApartmentApplication)
+            .join(Contract)
             .filter(ApartmentApplication.apartment_id == apartment.id)
-            .filter(ApartmentApplication.status == ApartmentApplicationStatus.AWARDED)
+            .filter(
+                or_(
+                    ApartmentApplication.status == ApartmentApplicationStatus.AWARDED,
+                    ApartmentApplication.status == ApartmentApplicationStatus.COMPLETED,
+                )
+            )
             .one_or_none()
         )
-        if awarded_application:
-            raise ApplicationError("Apartment has already been awarded")
+        if awarded_or_completed_application:
+            raise ApplicationError("Apartment has already been awarded or completed")
         existing_application = (
             session.query(ApartmentApplication)
             .filter(ApartmentApplication.apartment_id == apartment.id)
@@ -504,7 +511,10 @@ class Application(ApplicationBase):
             .one_or_none()
         )
 
-        if existing_application:
+        if (
+            existing_application
+            and existing_application.status != ApartmentApplicationStatus.FAILED
+        ):
             raise ApplicationError("User already applied for this apartment")
         return self.apartment_application_service.create(
             session, tenant=tenant, apartment=apartment
@@ -545,11 +555,16 @@ class Application(ApplicationBase):
             raise ApplicationError("Apartment has not been considered")
         currently_processed_application = (
             session.query(ApartmentApplication)
+            .join(Contract)
             .filter(
                 ApartmentApplication.apartment_id == apartment_application.apartment_id
             )
             .filter(
-                ApartmentApplication.status == ApartmentApplicationStatus.PROCESSING
+                or_(
+                    ApartmentApplication.status
+                    == ApartmentApplicationStatus.PROCESSING,
+                    ApartmentApplication.status == ApartmentApplicationStatus.AWARDED,
+                )
             )
             .one_or_none()
         )
@@ -581,6 +596,54 @@ class Application(ApplicationBase):
         if apartment_application.status != ApartmentApplicationStatus.PROCESSING:
             raise ApplicationError("Cannot sign contract at this stage")
         apartment_application.contract.landlord_has_signed = True
+        session.commit()
+        return apartment_application
+
+    def decline_contract(
+        self,
+        session: Session,
+        apartment_application: ApartmentApplication,
+        declined_on: datetime,
+        by: User,
+    ):
+        assert by.role in [UserRole.TENANT, UserRole.LANDLORD]
+        if apartment_application.contract.status != ContractStatus.NEW:
+            raise ApplicationError("Contract can not be declined at this stage")
+        contract: Contract = apartment_application.contract
+        if by.role == UserRole.TENANT:
+            contract.tenant_declined_on = declined_on
+            contract.tenant_declined = True
+        else:
+            contract.landlord_declined = True
+            contract.landlord_declined_on = declined_on
+        session.commit()
+        return apartment_application
+
+    def expire_contract(
+        self,
+        session: Session,
+        apartment_application: ApartmentApplication,
+        expired_on: datetime,
+    ):
+        if apartment_application.contract.status != ContractStatus.NEW:
+            raise ApplicationError("Contract can not be declined at this stage")
+        contract: Contract = apartment_application.contract
+        contract.expired_on = expired_on
+        contract.expired = True
+        session.commit()
+        return apartment_application
+
+    def cancel_contract(
+        self,
+        session: Session,
+        apartment_application: ApartmentApplication,
+        canceled_on: datetime,
+    ):
+        if apartment_application.contract.status != ContractStatus.NEW:
+            raise ApplicationError("Contract can not be declined at this stage")
+        contract: Contract = apartment_application.contract
+        contract.canceled = True
+        contract.canceled_on = canceled_on
         session.commit()
         return apartment_application
 

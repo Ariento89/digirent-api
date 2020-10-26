@@ -93,6 +93,30 @@ def awarded_apartment_application(
 
 
 @pytest.fixture
+def failed_apartment_application(
+    process_apartment_application: ApartmentApplication, session: Session
+):
+    assert process_apartment_application.status == ApartmentApplicationStatus.PROCESSING
+    process_apartment_application.contract.canceled = True
+    process_apartment_application.contract.canceled_on = datetime.utcnow()
+    session.commit()
+    assert process_apartment_application.status == ApartmentApplicationStatus.FAILED
+    return process_apartment_application
+
+
+@pytest.fixture
+def completed_apartment_application(
+    awarded_apartment_application: ApartmentApplication,
+    application: Application,
+    session: Session,
+):
+    application.provide_keys_to_tenant(session, awarded_apartment_application)
+    application.tenant_receive_keys(session, awarded_apartment_application)
+    assert awarded_apartment_application.status == ApartmentApplicationStatus.COMPLETED
+    return awarded_apartment_application
+
+
+@pytest.fixture
 def another_new_apartment_application(
     another_tenant: Tenant, apartment: Apartment, session: Session
 ) -> ApartmentApplication:
@@ -101,6 +125,19 @@ def another_new_apartment_application(
     session.commit()
     assert app.status == ApartmentApplicationStatus.NEW
     return app
+
+
+@pytest.fixture
+def another_considered_apartment_application(
+    another_new_apartment_application: ApartmentApplication, session: Session
+):
+    another_new_apartment_application.is_considered = True
+    session.commit()
+    assert (
+        another_new_apartment_application.status
+        == ApartmentApplicationStatus.CONSIDERED
+    )
+    return another_new_apartment_application
 
 
 @pytest.fixture

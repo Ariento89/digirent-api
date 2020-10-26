@@ -29,6 +29,7 @@ class ApartmentApplicationStatus(str, Enum):
     CONSIDERED = "considered"
     PROCESSING = "processing"
     AWARDED = "awarded"
+    FAILED = "failed"
     COMPLETED = "completed"
 
 
@@ -46,4 +47,7 @@ class SocialAccountType(str, Enum):
 class ContractStatus(str, Enum):
     NEW = "new"
     SIGNED = "signed"
+    EXPIRED = "expired"
+    DECLINED = "declined"
+    CANCELED = "canceled"
     COMPLETED = "completed"

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 from digirent.database.enums import (
     ApartmentApplicationStatus,
@@ -7,6 +8,7 @@ from digirent.app.error import ApplicationError
 import pytest
 from digirent.app import Application
 from sqlalchemy.orm.session import Session
+from sqlalchemy import or_
 from digirent.database.models import (
     Apartment,
     ApartmentApplication,
@@ -261,6 +263,254 @@ def test_landlord_sign_contract_not_in_new_status_fail(
 ):
     with pytest.raises(ApplicationError):
         application.landlord_signed_contract(session, new_apartment_application)
+
+
+def test_landlord_process_another_application_when_one_application_is_complete_fail(
+    another_considered_apartment_application: ApartmentApplication,
+    completed_apartment_application: ApartmentApplication,
+    session: Session,
+    application: Application,
+):
+    with pytest.raises(ApplicationError):
+        application.process_apartment_application(
+            session, another_considered_apartment_application
+        )
+
+
+def test_another_tenant_apply_for_completed_apartment_application_fail(
+    another_tenant: Tenant,
+    session: Session,
+    completed_apartment_application: ApartmentApplication,
+    application: Application,
+):
+    with pytest.raises(ApplicationError):
+        application.apply_for_apartment(
+            session, another_tenant, completed_apartment_application.apartment
+        )
+
+
+def test_landlord_process_another_appliation_when_one_application_was_unsuccessful_ok(
+    session: Session,
+    application: Application,
+    failed_apartment_application: ApartmentApplication,
+    another_considered_apartment_application: ApartmentApplication,
+):
+    assert (
+        another_considered_apartment_application.status
+        == ApartmentApplicationStatus.CONSIDERED
+    )
+    assert (
+        not session.query(ApartmentApplication)
+        .join(Contract)
+        .filter(
+            or_(
+                ApartmentApplication.status == ApartmentApplicationStatus.PROCESSING,
+                ApartmentApplication.status == ApartmentApplicationStatus.AWARDED,
+            )
+        )
+        .count()
+    )
+    application.process_apartment_application(
+        session, another_considered_apartment_application
+    )
+    session.expire_all()
+    assert (
+        another_considered_apartment_application.status
+        == ApartmentApplicationStatus.PROCESSING
+    )
+    assert (
+        session.query(ApartmentApplication)
+        .join(Contract)
+        .filter(
+            or_(
+                ApartmentApplication.status == ApartmentApplicationStatus.PROCESSING,
+                ApartmentApplication.status == ApartmentApplicationStatus.AWARDED,
+            )
+        )
+        .count()
+        == 1
+    )
+
+
+def test_tenant_apply_for_apartment_if_previous_one_failed_ok(
+    session: Session,
+    application: Application,
+    failed_apartment_application: ApartmentApplication,
+):
+    assert failed_apartment_application.status == ApartmentApplicationStatus.FAILED
+    assert (
+        session.query(ApartmentApplication)
+        .filter(
+            ApartmentApplication.tenant_id == failed_apartment_application.tenant_id
+        )
+        .filter(
+            ApartmentApplication.apartment_id
+            == failed_apartment_application.apartment_id
+        )
+        .count()
+        == 1
+    )
+    second_app = application.apply_for_apartment(
+        session,
+        failed_apartment_application.tenant,
+        failed_apartment_application.apartment,
+    )
+    session.expire_all()
+    assert (
+        session.query(ApartmentApplication)
+        .filter(
+            ApartmentApplication.tenant_id == failed_apartment_application.tenant_id
+        )
+        .filter(
+            ApartmentApplication.apartment_id
+            == failed_apartment_application.apartment_id
+        )
+        .count()
+        == 2
+    )
+    assert (
+        session.query(ApartmentApplication).get(second_app.id).status
+        == ApartmentApplicationStatus.NEW
+    )
+
+
+def test_tenant_decline_new_contract_ok(
+    process_apartment_application: ApartmentApplication,
+    application: Application,
+    session: Session,
+):
+    declined_on = datetime.now()
+    assert process_apartment_application.contract.status == ContractStatus.NEW
+    assert not process_apartment_application.contract.tenant_declined
+    assert not process_apartment_application.contract.tenant_declined_on
+    application.decline_contract(
+        session,
+        process_apartment_application,
+        declined_on,
+        process_apartment_application.tenant,
+    )
+    session.expire_all()
+    apartment_application = session.query(ApartmentApplication).get(
+        process_apartment_application.id
+    )
+    assert apartment_application.status == ApartmentApplicationStatus.FAILED
+    assert apartment_application.contract.status == ContractStatus.DECLINED
+    assert apartment_application.contract.tenant_declined_on == declined_on
+    assert apartment_application.contract.tenant_declined
+
+
+def test_tenant_or_landlord_decline_already_signed_contract_fail(
+    awarded_apartment_application: ApartmentApplication,
+    session: Session,
+    application: Application,
+):
+    assert awarded_apartment_application.contract.status == ContractStatus.SIGNED
+    with pytest.raises(ApplicationError):
+        application.decline_contract(
+            session,
+            awarded_apartment_application,
+            datetime.utcnow(),
+            awarded_apartment_application.tenant,
+        )
+    with pytest.raises(ApplicationError):
+        application.decline_contract(
+            session,
+            awarded_apartment_application,
+            datetime.utcnow(),
+            awarded_apartment_application.apartment.landlord,
+        )
+
+
+def test_tenant_or_landlord_sign_already_declined_contract_fail(
+    process_apartment_application: ApartmentApplication,
+    session: Session,
+    application: Application,
+):
+    assert process_apartment_application.contract.status == ContractStatus.NEW
+    application.decline_contract(
+        session,
+        process_apartment_application,
+        datetime.now(),
+        process_apartment_application.tenant,
+    )
+    assert process_apartment_application.contract.status == ContractStatus.DECLINED
+    with pytest.raises(ApplicationError):
+        application.tenant_signed_contract(session, process_apartment_application)
+    with pytest.raises(ApplicationError):
+        application.landlord_signed_contract(session, process_apartment_application)
+
+
+def test_landlord_decline_new_contract_ok(
+    process_apartment_application: ApartmentApplication,
+    application: Application,
+    session: Session,
+):
+    declined_on = datetime.now()
+    assert process_apartment_application.contract.status == ContractStatus.NEW
+    assert not process_apartment_application.contract.tenant_declined
+    assert not process_apartment_application.contract.tenant_declined_on
+    application.decline_contract(
+        session,
+        process_apartment_application,
+        declined_on,
+        process_apartment_application.apartment.landlord,
+    )
+    session.expire_all()
+    apartment_application = session.query(ApartmentApplication).get(
+        process_apartment_application.id
+    )
+    assert apartment_application.status == ApartmentApplicationStatus.FAILED
+    assert apartment_application.contract.status == ContractStatus.DECLINED
+    assert apartment_application.contract.landlord_declined_on == declined_on
+    assert apartment_application.contract.landlord_declined
+
+
+def test_expire_contract_ok(
+    process_apartment_application: ApartmentApplication,
+    application: Application,
+    session: Session,
+):
+    expired_on = datetime.now()
+    assert process_apartment_application.contract.status == ContractStatus.NEW
+    assert not process_apartment_application.contract.tenant_declined
+    assert not process_apartment_application.contract.tenant_declined_on
+    application.expire_contract(
+        session,
+        process_apartment_application,
+        expired_on,
+    )
+    session.expire_all()
+    apartment_application = session.query(ApartmentApplication).get(
+        process_apartment_application.id
+    )
+    assert apartment_application.status == ApartmentApplicationStatus.FAILED
+    assert apartment_application.contract.status == ContractStatus.EXPIRED
+    assert apartment_application.contract.expired_on == expired_on
+    assert apartment_application.contract.expired
+
+
+def test_cancel_contract_ok(
+    process_apartment_application: ApartmentApplication,
+    application: Application,
+    session: Session,
+):
+    canceled_on = datetime.now()
+    assert process_apartment_application.contract.status == ContractStatus.NEW
+    assert not process_apartment_application.contract.tenant_declined
+    assert not process_apartment_application.contract.tenant_declined_on
+    application.cancel_contract(
+        session,
+        process_apartment_application,
+        canceled_on,
+    )
+    session.expire_all()
+    apartment_application = session.query(ApartmentApplication).get(
+        process_apartment_application.id
+    )
+    assert apartment_application.status == ApartmentApplicationStatus.FAILED
+    assert apartment_application.contract.status == ContractStatus.CANCELED
+    assert apartment_application.contract.canceled_on == canceled_on
+    assert apartment_application.contract.canceled
 
 
 def test_landlord_provide_keys_for_contract_not_signed_fail(
