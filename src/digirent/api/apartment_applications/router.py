@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 from uuid import UUID
 from sqlalchemy.orm.session import Session
@@ -49,28 +50,39 @@ def signrequest_contract_callback(
     ).get(external_id)
     if not apartment_application:
         return
+    if event_type == "expired":
+        # TODO get expired on
+        application.expire_contract(session, apartment_application, datetime.now())
+    elif event_type == "cancelled":
+        # TODO get canceld on
+        application.cancel_contract(session, apartment_application, datetime.now())
     tenant: Tenant = apartment_application.tenant
     landlord: Landlord = apartment_application.apartment.landlord
     for signer in document_signers:
         if not signer.needs_to_sign:
             continue
-        # TODO store date time
-        # signed_on = signer.signed_on
-        # signer_declined_on = signer.declined_on
+        signed_on = signer.signed_on
+        signer_declined_on = signer.declined_on
         signer_email = signer.email
         if tenant.email == signer_email:
             if signer.declined:
-                # TODO tenant declined contract
-                pass
+                application.decline_contract(
+                    session, apartment_application, signer_declined_on, tenant
+                )
             elif signer.signed:
-                application.tenant_signed_contract(session, apartment_application)
+                application.tenant_signed_contract(
+                    session, apartment_application, signed_on
+                )
 
         if landlord.email == signer_email:
             if signer.declined:
-                # TODO landlord declined contract
-                pass
+                application.decline_contract(
+                    session, apartment_application, signer_declined_on, landlord
+                )
             elif signer.signed:
-                application.landlord_signed_contract(session, apartment_application)
+                application.landlord_signed_contract(
+                    session, apartment_application, signed_on
+                )
     return
 
 
