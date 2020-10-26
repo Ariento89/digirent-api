@@ -85,11 +85,15 @@ def test_tenant_sign_contract_for_move_in_process_ok(
     application: Application,
     session: Session,
 ):
+    signed_on = datetime.utcnow()
     assert process_apartment_application.status == ApartmentApplicationStatus.PROCESSING
     assert process_apartment_application.contract.status == ContractStatus.NEW
     assert not process_apartment_application.contract.tenant_has_signed
-    application.tenant_signed_contract(session, process_apartment_application)
+    application.tenant_signed_contract(
+        session, process_apartment_application, signed_on
+    )
     assert process_apartment_application.contract.tenant_has_signed
+    assert process_apartment_application.contract.tenant_signed_on == signed_on
     assert process_apartment_application.contract.status == ContractStatus.NEW
 
 
@@ -98,11 +102,15 @@ def test_landlord_sign_contract_for_move_in_process_ok(
     application: Application,
     session: Session,
 ):
+    signed_on = datetime.utcnow()
     assert process_apartment_application.status == ApartmentApplicationStatus.PROCESSING
     assert process_apartment_application.contract.status == ContractStatus.NEW
     assert not process_apartment_application.contract.landlord_has_signed
-    application.landlord_signed_contract(session, process_apartment_application)
+    application.landlord_signed_contract(
+        session, process_apartment_application, signed_on
+    )
     assert process_apartment_application.contract.landlord_has_signed
+    assert process_apartment_application.contract.landlord_signed_on == signed_on
     assert process_apartment_application.contract.status == ContractStatus.NEW
 
 
@@ -163,8 +171,8 @@ def test_all_other_applications_rejected_on_application_completed_ok(
         for app in (app2, app4, app5)
     )
     assert app3.status == ApartmentApplicationStatus.PROCESSING
-    application.tenant_signed_contract(session, app3)
-    application.landlord_signed_contract(session, app3)
+    application.tenant_signed_contract(session, app3, datetime.now())
+    application.landlord_signed_contract(session, app3, datetime.now())
     assert app1.status == ApartmentApplicationStatus.REJECTED
     assert all(
         app.status == ApartmentApplicationStatus.CONSIDERED
@@ -243,8 +251,11 @@ def test_tenant_sign_contract_for_application_not_in_processing_status_fail(
     session: Session,
     application: Application,
 ):
+    signed_on = datetime.utcnow()
     with pytest.raises(ApplicationError):
-        application.tenant_signed_contract(session, new_apartment_application)
+        application.tenant_signed_contract(
+            session, new_apartment_application, signed_on
+        )
 
 
 def test_tenant_sign_contract_not_in_new_status_fail(
@@ -252,8 +263,11 @@ def test_tenant_sign_contract_not_in_new_status_fail(
     session: Session,
     application: Application,
 ):
+    signed_on = datetime.utcnow()
     with pytest.raises(ApplicationError):
-        application.tenant_signed_contract(session, awarded_apartment_application)
+        application.tenant_signed_contract(
+            session, awarded_apartment_application, signed_on
+        )
 
 
 def test_landlord_sign_contract_not_in_new_status_fail(
@@ -261,8 +275,11 @@ def test_landlord_sign_contract_not_in_new_status_fail(
     session: Session,
     application: Application,
 ):
+    signed_on = datetime.utcnow()
     with pytest.raises(ApplicationError):
-        application.landlord_signed_contract(session, new_apartment_application)
+        application.landlord_signed_contract(
+            session, new_apartment_application, signed_on
+        )
 
 
 def test_landlord_process_another_application_when_one_application_is_complete_fail(
@@ -435,9 +452,13 @@ def test_tenant_or_landlord_sign_already_declined_contract_fail(
     )
     assert process_apartment_application.contract.status == ContractStatus.DECLINED
     with pytest.raises(ApplicationError):
-        application.tenant_signed_contract(session, process_apartment_application)
+        application.tenant_signed_contract(
+            session, process_apartment_application, datetime.now()
+        )
     with pytest.raises(ApplicationError):
-        application.landlord_signed_contract(session, process_apartment_application)
+        application.landlord_signed_contract(
+            session, process_apartment_application, datetime.now()
+        )
 
 
 def test_landlord_decline_new_contract_ok(

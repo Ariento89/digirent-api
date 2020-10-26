@@ -582,20 +582,28 @@ class Application(ApplicationBase):
         return apartment_application
 
     def tenant_signed_contract(
-        self, session: Session, apartment_application: ApartmentApplication
+        self,
+        session: Session,
+        apartment_application: ApartmentApplication,
+        signed_on: datetime,
     ) -> ApartmentApplication:
         if apartment_application.status != ApartmentApplicationStatus.PROCESSING:
             raise ApplicationError("Cannot sign contract at this stage")
         apartment_application.contract.tenant_has_signed = True
+        apartment_application.contract.tenant_signed_on = signed_on
         session.commit()
         return apartment_application
 
     def landlord_signed_contract(
-        self, session: Session, apartment_application: ApartmentApplication
+        self,
+        session: Session,
+        apartment_application: ApartmentApplication,
+        signed_on: datetime,
     ) -> Contract:
         if apartment_application.status != ApartmentApplicationStatus.PROCESSING:
             raise ApplicationError("Cannot sign contract at this stage")
         apartment_application.contract.landlord_has_signed = True
+        apartment_application.contract.landlord_signed_on = signed_on
         session.commit()
         return apartment_application
 
