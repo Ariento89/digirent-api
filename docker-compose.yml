@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
     digirentdb:
-        image: postgres:12-alpine
+        image: mdillon/postgis:11-alpine
         container_name: digirentdb
         ports:
             - "5432:5432"

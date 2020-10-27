@@ -28,6 +28,7 @@ inflection = "^0.5.1"
 signrequest-python-client = "^2.1.0"
 Authlib = "^0.15.1"
 httpx = "^0.16.1"
+GeoAlchemy2 = "^0.8.4"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

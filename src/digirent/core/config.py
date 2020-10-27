@@ -13,6 +13,12 @@ config: Config = Config(p if p.exists() else None)
 
 PROJECT_NAME: str = "Digi Rent"
 
+IS_DEVELOPMENT: bool = APP_ENV == "dev"
+
+IS_TEST: bool = APP_ENV == "test"
+
+IS_PRODUCTION: bool = APP_ENV == "prod"
+
 ALLOWED_HOSTS: CommaSeparatedStrings = config(
     "ALLOWED_HOSTS", cast=CommaSeparatedStrings, default="localhost"
 )

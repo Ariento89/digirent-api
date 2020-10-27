@@ -14,6 +14,7 @@ from sqlalchemy import (
     and_,
     or_,
 )
+from geoalchemy2 import Geometry
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy_utils import ChoiceType, EmailType, UUIDType
@@ -160,6 +161,8 @@ class Apartment(Base, EntityMixin, TimestampMixin):
     size = Column(Float, nullable=False)
     available_from = Column(Date, nullable=False)
     available_to = Column(Date, nullable=False)
+    location = Column(Geometry("POINT"))
+
     amenities = relationship(
         "Amenity",
         secondary=apartments_amenities_association_table,
