@@ -388,11 +388,14 @@ class Application(ApplicationBase):
         bedrooms: int,
         bathrooms: int,
         size: float,
+        longitude: float,
+        latitude: float,
         furnish_type: str,
         available_from: date,
         available_to: date,
         amenities: List[Amenity],
     ) -> Apartment:
+        location = "POINT({} {})".format(longitude, latitude)
         return self.apartment_service.create(
             session,
             amenities=amenities,
@@ -409,6 +412,7 @@ class Application(ApplicationBase):
             bedrooms=bedrooms,
             bathrooms=bathrooms,
             size=size,
+            location=location,
             furnish_type=furnish_type,
             available_from=available_from,
             available_to=available_to,
@@ -424,6 +428,15 @@ class Application(ApplicationBase):
             raise ApplicationError("Apartment not owned by user")
         if apartment.tenant_id:
             raise ApplicationError("Apartment has been subletted")
+        if all(x in kwargs for x in ["longitude", "latitude"]):
+            # TODO allow updating either longitude or latitude
+            location = "POINT({} {})".format(kwargs["longitude"], kwargs["latitude"])
+            kwargs["location"] = location
+        try:
+            del kwargs["longitude"]
+            del kwargs["latitude"]
+        except KeyError:
+            pass
         return self.apartment_service.update(session, apartment, **kwargs)
 
     def __upload_file(

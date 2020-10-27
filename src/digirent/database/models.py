@@ -161,7 +161,7 @@ class Apartment(Base, EntityMixin, TimestampMixin):
     size = Column(Float, nullable=False)
     available_from = Column(Date, nullable=False)
     available_to = Column(Date, nullable=False)
-    location = Column(Geometry("POINT"))
+    location = Column(Geometry("POINT", management=True))
 
     amenities = relationship(
         "Amenity",

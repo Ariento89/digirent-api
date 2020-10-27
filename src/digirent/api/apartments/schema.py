@@ -50,6 +50,8 @@ class BaseApartmentSchema(BaseSchema):
 
 
 class ApartmentCreateSchema(BaseApartmentSchema):
+    longitude: float
+    latitude: float
     amenities: List[str]
 
 
@@ -66,6 +68,8 @@ class ApartmentUpdateSchema(BaseSchema):
     bedrooms: Optional[int]
     bathrooms: Optional[int]
     size: Optional[float]
+    longitude: Optional[float]
+    latitude: Optional[float]
     furnish_type: Optional[str]
     available_from: Optional[date]
     available_to: Optional[date]

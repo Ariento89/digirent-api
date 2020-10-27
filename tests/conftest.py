@@ -5,7 +5,7 @@ import io
 import shutil
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import MetaData
 from sqlalchemy.orm.session import Session
 from starlette.config import environ
 from pathlib import Path
@@ -15,7 +15,7 @@ from digirent.core.services.file_service import FileService
 
 environ["APP_ENV"] = "test"
 
-from digirent.core.config import DATABASE_URL, UPLOAD_PATH
+from digirent.core.config import UPLOAD_PATH
 import digirent.util as util
 from digirent.database.services.base import DBService
 from digirent.web_app import get_app
@@ -38,7 +38,7 @@ from digirent.database.enums import (
     UserRole,
 )
 from digirent.app.container import ApplicationContainer
-from digirent.database.base import SessionLocal, Base
+from digirent.database.base import SessionLocal, Base, engine
 from digirent.database.services.user import UserService
 from digirent.app import Application
 
@@ -46,8 +46,6 @@ from digirent.app import Application
 @pytest.fixture(autouse=True)
 def create_test_database():
     metadata: MetaData = Base.metadata
-    url = str(DATABASE_URL)
-    engine = create_engine(url)
     metadata.create_all(engine)
     yield  # Run the tests.
     metadata.drop_all(engine)
@@ -302,6 +300,8 @@ def apartment(
         3,
         2,
         1200,
+        1324,
+        345.4,
         FurnishType.UNFURNISHED,
         datetime.utcnow().date(),
         datetime.utcnow().date(),

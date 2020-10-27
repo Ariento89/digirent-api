@@ -22,6 +22,8 @@ apartment_create_data = dict(
     bedrooms=3,
     bathrooms=4,
     size=1200,
+    longitude=1347.5,
+    latitude=345.7,
     furnishType=FurnishType.FURNISHED,
     availableFrom=str(datetime.now().date()),
     availableTo=str(datetime.now().date()),
@@ -45,6 +47,8 @@ def test_landlord_create_apartments_ok(
     result = response.json()
     expected_keys = [*apartment_create_data.keys(), "id", "amenityTitles", "totalPrice"]
     expected_keys.remove("amenities")
+    expected_keys.remove("longitude")
+    expected_keys.remove("latitude")
     assert all(key in result for key in expected_keys)
     assert isinstance(result, dict)
     assert response.status_code == 201
@@ -76,6 +80,8 @@ def test_landlord_update_apartments_ok(
     result = response.json()
     expected_keys = [*apartment_create_data.keys(), "id", "amenityTitles", "totalPrice"]
     expected_keys.remove("amenities")
+    expected_keys.remove("longitude")
+    expected_keys.remove("latitude")
     assert all(key in result for key in expected_keys)
     assert response.status_code == 200
     session.expire_all()
@@ -112,6 +118,8 @@ def test_landlord_update_not_owned_apartment_fail(
         bedrooms=3,
         bathrooms=4,
         size=1200,
+        longitude=1245.7,
+        latitude=234.9,
         furnish_type=FurnishType.FURNISHED,
         available_from=datetime.now().date(),
         available_to=datetime.now().date(),
@@ -197,6 +205,8 @@ def test_landlord_upload_apartment_image_ok(
     result = response.json()
     expected_keys = [*apartment_create_data.keys(), "id", "amenityTitles"]
     expected_keys.remove("amenities")
+    expected_keys.remove("longitude")
+    expected_keys.remove("latitude")
     assert all(key in result for key in expected_keys)
     assert response.status_code == 200
     assert len(file_service.list_files(image_folder_path)) == 1
@@ -226,6 +236,8 @@ def test_landlord_upload_apartment_video_ok(
     result = response.json()
     expected_keys = [*apartment_create_data.keys(), "id", "amenityTitles"]
     expected_keys.remove("amenities")
+    expected_keys.remove("longitude")
+    expected_keys.remove("latitude")
     assert all(key in result for key in expected_keys)
     assert response.status_code == 200
     assert len(file_service.list_files(video_folder_path)) == 1
