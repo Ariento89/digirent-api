@@ -2,15 +2,19 @@ from typing import Optional, Union
 from fastapi import Depends, HTTPException
 from fastapi import status as status
 from fastapi.param_functions import Header, Query
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from digirent.app import Application
 from digirent.app.container import ApplicationContainer
 from sqlalchemy.orm.session import Session
 from digirent.app.error import ApplicationError
 from digirent.database.models import Admin, Landlord, Tenant, User, UserRole
 from digirent.database.base import SessionLocal
+import digirent.api.scopes as digirent_scope
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/")
+
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/api/auth/", scopes=digirent_scope.scope_dict
+)
 
 
 def get_database_session() -> Session:
@@ -26,24 +30,36 @@ def get_application() -> Application:
 
 
 async def get_current_user(
+    security_scopes: SecurityScopes,
     token: bytes = Depends(oauth2_scheme),
     session: Session = Depends(get_database_session),
     application: Application = Depends(get_application),
 ) -> User:
     # todo? change to application method instead of service method?
+    if security_scopes.scopes:
+        authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
+    else:
+        authenticate_value = "Bearer"
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
+        headers={"WWW-Authenticate": authenticate_value},
     )
     try:
-        user: User = application.authenticate_token(session, token)
+        user, token_scopes = application.authenticate_token(session, token)
         if user.role == UserRole.ADMIN:
             user = session.query(Admin).get(user.id)
         elif user.role == UserRole.TENANT:
             user = session.query(Tenant).get(user.id)
         elif user.role == UserRole.LANDLORD:
             user = session.query(Landlord).get(user.id)
+        for scope in security_scopes.scopes:
+            if not digirent_scope.is_allowed(scope, token_scopes):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Not enough permissions",
+                    headers={"WWW-Authenticate": authenticate_value},
+                )
     except ApplicationError:
         raise credentials_exception
     return user

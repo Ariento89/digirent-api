@@ -12,6 +12,15 @@ from digirent.app import Application
 from digirent.app.social import oauth
 from .helper import get_token_from_facebook_auth, get_token_from_google_auth
 import digirent.api.dependencies as dependencies
+from digirent import util
+from digirent.api import scopes as digirent_scope
+
+
+role_scope_mapping = {
+    UserRole.ADMIN: digirent_scope.ADMIN_SCOPES,
+    UserRole.TENANT: digirent_scope.TENANT_SCOPES,
+    UserRole.LANDLORD: digirent_scope.LANDLORD_SCOPES,
+}
 
 
 class SocialAccountLoginWho(str, Enum):
@@ -29,8 +38,13 @@ async def login(
     session: Session = Depends(dependencies.get_database_session),
 ):
     try:
-        token = application.authenticate_user(session, data.username, data.password)
-        return TokenSchema(access_token=token, token_type="bearer")
+        user = application.authenticate_user(session, data.username, data.password)
+        permitted_scopes = role_scope_mapping[user.role]
+        token_scopes = [scope for scope in data.scopes if scope in permitted_scopes]
+        access_token = util.create_access_token(
+            data={"sub": str(user.id), "scopes": token_scopes}
+        )
+        return TokenSchema(access_token=access_token, token_type="bearer")
     except ApplicationError as e:
         raise HTTPException(401, str(e))
 
@@ -43,8 +57,11 @@ async def tenant_google_authorization(
     user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
 ):
     try:
-        access_token = await get_token_from_google_auth(
+        user = await get_token_from_google_auth(
             request, session, app, UserRole.TENANT, user
+        )
+        access_token = util.create_access_token(
+            data={"sub": str(user.id), "scopes": role_scope_mapping[user.role]}
         )
         return {"access_token": access_token}
     except ApplicationError as e:
@@ -59,8 +76,11 @@ async def landlord_google_authorization(
     user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
 ):
     try:
-        access_token = await get_token_from_google_auth(
+        user = await get_token_from_google_auth(
             request, session, app, UserRole.LANDLORD, user
+        )
+        access_token = util.create_access_token(
+            data={"sub": str(user.id), "scopes": role_scope_mapping[user.role]}
         )
         return {"access_token": access_token}
     except ApplicationError as e:
@@ -99,8 +119,11 @@ async def landlord_facebook_authorization(
     user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
 ):
     try:
-        access_token = await get_token_from_facebook_auth(
+        user = await get_token_from_facebook_auth(
             request, session, app, UserRole.LANDLORD, user
+        )
+        access_token = util.create_access_token(
+            data={"sub": str(user.id), "scopes": role_scope_mapping[user.role]}
         )
         return {"access_token": access_token}
     except ApplicationError as e:
@@ -115,8 +138,11 @@ async def tenant_facebook_authorization(
     user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
 ):
     try:
-        access_token = await get_token_from_facebook_auth(
+        user = await get_token_from_facebook_auth(
             request, session, app, UserRole.TENANT, user
+        )
+        access_token = util.create_access_token(
+            data={"sub": str(user.id), "scopes": role_scope_mapping[user.role]}
         )
         return {"access_token": access_token}
     except ApplicationError as e:

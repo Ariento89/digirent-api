@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import IO, List, Optional, Union
+from typing import IO, List, Optional, Tuple, Union
 from uuid import UUID, uuid4
 from datetime import date, datetime
 from jwt import PyJWTError
@@ -108,7 +108,7 @@ class Application(ApplicationBase):
             hashed_password=hashed_password,
         )
 
-    def authenticate_user(self, session: Session, login: str, password: str) -> bytes:
+    def authenticate_user(self, session: Session, login: str, password: str) -> User:
         existing_user: Optional[User] = self.user_service.get_by_email(
             session, login
         ) or self.user_service.get_by_phone_number(session, login)
@@ -116,12 +116,18 @@ class Application(ApplicationBase):
             raise ApplicationError("Invalid login credentials")
         if not util.password_is_match(password, existing_user.hashed_password):
             raise ApplicationError("Invalid login credentials")
-        return util.create_access_token(data={"sub": str(existing_user.id)})
+        return existing_user
 
-    def authenticate_token(self, session: Session, token: bytes) -> User:
+    def authenticate_token(
+        self, session: Session, token: bytes
+    ) -> Tuple[User, List[str]]:
         try:
-            user_id: str = util.decode_access_token(token)
-            return self.user_service.get(session, UUID(user_id))
+            payload: dict = util.decode_access_token(token)
+            user_id: str = payload.get("sub")  # type: ignore
+            scopes = payload.get("scopes", [])
+            if not user_id:
+                raise ApplicationError("Invalid token")
+            return self.user_service.get(session, UUID(user_id)), scopes
         except PyJWTError:
             raise ApplicationError("Invalid token")
 
@@ -135,7 +141,7 @@ class Application(ApplicationBase):
         last_name: str,
         role: UserRole,
         authenticated_user: User = None,
-    ):
+    ) -> User:
         user: User = None
 
         # TODO refactor social account methods into service?
@@ -211,7 +217,7 @@ class Application(ApplicationBase):
             existing_google_social_account.id_token = id_token
 
         session.commit()
-        return util.create_access_token(data={"sub": str(user.id)})
+        return user
 
     def authenticate_facebook(
         self,
@@ -223,7 +229,7 @@ class Application(ApplicationBase):
         last_name: str,
         role: UserRole,
         authenticated_user: User = None,
-    ):
+    ) -> User:
         user: User = None
 
         # TODO refactor social account methods into service?
@@ -303,7 +309,7 @@ class Application(ApplicationBase):
             existing_facebook_social_account.account_email = email
 
         session.commit()
-        return util.create_access_token(data={"sub": str(user.id)})
+        return user
 
     def update_profile(
         self,

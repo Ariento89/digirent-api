@@ -27,8 +27,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 def decode_access_token(token: Union[str, bytes]) -> str:
     # scenario token is not valid
     payload = jwt.decode(token, SECRET_KEY, algorithms=[JWT_ALGORITHM])
-    user_id: str = payload.get("sub")  # type: ignore
-    return user_id
+    return payload
 
 
 def password_is_match(plain_password: str, hashed_password: str):

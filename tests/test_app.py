@@ -446,7 +446,7 @@ def test_non_authenticated_user_authenticate_google_non_existing_user_ok(
     result = application.authenticate_google(
         session, access_token, id_token, email, first_name, last_name, role
     )
-    assert isinstance(result, bytes)
+    assert isinstance(result, User)
     assert session.query(User).count()
     assert session.query(SocialAccount).count()
     user = session.query(User).all()[0]
@@ -479,7 +479,7 @@ def test_authenticate_user_created_from_google_auth_ok(
     result = application.authenticate_google(
         session, access_token, id_token, email, first_name, last_name, role
     )
-    assert isinstance(result, bytes)
+    assert isinstance(result, User)
     result = application.authenticate_google(
         session,
         "diff_access_tooken",
@@ -489,7 +489,7 @@ def test_authenticate_user_created_from_google_auth_ok(
         "diff_last_name",
         role,
     )
-    assert isinstance(result, bytes)
+    assert isinstance(result, User)
     assert session.query(User).count() == 1
     assert session.query(SocialAccount).count() == 1
     user = session.query(User).all()[0]
@@ -529,7 +529,7 @@ def test_authenticated_user_link_google_acccount_to_existing_user_ok(
         role,
         authenticated_user=tenant,
     )
-    assert isinstance(result, bytes)
+    assert isinstance(result, User)
     assert session.query(User).count() == 1
     assert session.query(SocialAccount).count() == 1
     user = session.query(User).all()[0]
@@ -644,7 +644,7 @@ def test_non_authenticated_user_authenticate_facebook_non_existing_user_ok(
     result = application.authenticate_facebook(
         session, mock_id, access_token, email, first_name, last_name, role
     )
-    assert isinstance(result, bytes)
+    assert isinstance(result, User)
     assert session.query(User).count()
     assert session.query(SocialAccount).count()
     user = session.query(User).all()[0]
@@ -677,7 +677,7 @@ def test_authenticate_user_created_from_facebook_auth_ok(
     result = application.authenticate_facebook(
         session, mock_id, access_token, email, first_name, last_name, role
     )
-    assert isinstance(result, bytes)
+    assert isinstance(result, User)
     result = application.authenticate_facebook(
         session,
         mock_id,
@@ -687,7 +687,7 @@ def test_authenticate_user_created_from_facebook_auth_ok(
         "diff_last_name",
         role,
     )
-    assert isinstance(result, bytes)
+    assert isinstance(result, User)
     assert session.query(User).count() == 1
     assert session.query(SocialAccount).count() == 1
     user = session.query(User).all()[0]
@@ -727,7 +727,7 @@ def test_authenticated_user_link_facebook_acccount_to_existing_user_ok(
         role,
         authenticated_user=tenant,
     )
-    assert isinstance(result, bytes)
+    assert isinstance(result, User)
     assert session.query(User).count() == 1
     assert session.query(SocialAccount).count() == 1
     user = session.query(User).all()[0]
