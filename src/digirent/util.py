@@ -72,3 +72,10 @@ def get_apartment_videos_folder_path(landlord, apartment) -> Path:
     Get videos folder path of a landlord's apartment
     """
     return Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/videos"
+
+
+def get_profile_path() -> Path:
+    """
+    Get profile folder
+    """
+    return Path(UPLOAD_PATH) / "profile_images"

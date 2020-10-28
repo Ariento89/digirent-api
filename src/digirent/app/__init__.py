@@ -452,6 +452,19 @@ class Application(ApplicationBase):
         self.file_service.store_file(folder_path, filename, file)
         return user
 
+    def upload_profile_image(self, user: User, file: IO, filename: str):
+        file_extension = filename.split(".")[-1]
+        if file_extension.lower() not in SUPPORTED_IMAGE_EXTENSIONS:
+            raise ApplicationError("Unsupported image format")
+        folder_path = util.get_profile_path()
+        possible_filenames = [f"{user.id}.{ext}" for ext in SUPPORTED_IMAGE_EXTENSIONS]
+        for filename in possible_filenames:
+            if self.file_service.get(filename, folder_path):
+                self.file_service.delete(filename, folder_path)
+        filename = f"{user.id}.{file_extension}"
+        self.file_service.store_file(folder_path, filename, file)
+        return user
+
     def upload_copy_id(self, user: User, file: IO, extension: str) -> User:
         return self.__upload_file(user, file, extension, util.get_copy_ids_path())
 
