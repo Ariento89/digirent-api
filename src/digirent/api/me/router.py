@@ -131,3 +131,17 @@ def upload_proof_of_enrollment(
         if "not found" in str(e).lower():
             raise HTTPException(404, str(e))
         raise HTTPException(400, str(e))
+
+
+@router.post("/upload/profile-image", status_code=201, response_model=ProfileSchema)
+def upload_profile_photo(
+    file: UploadFile = File(...),
+    user: User = Depends(dependencies.get_current_user),
+    app: Application = Depends(dependencies.get_application),
+):
+    try:
+        return app.upload_profile_image(user, file.file, file.filename)
+    except ApplicationError as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(404, str(e))
+        raise HTTPException(400, str(e))

@@ -422,3 +422,30 @@ def test_user_upload_copy_id_with_unsupported_file_type_fail(
     )
     assert response.status_code == 400
     assert not target_path.exists()
+
+
+@pytest.mark.parametrize(
+    "user, user_auth_header",
+    [
+        ("tenant", "tenant_auth_header"),
+        ("landlord", "landlord_auth_header"),
+        ("admin", "admin_auth_header"),
+    ],
+    indirect=True,
+)
+def test_user_upload_profile_photo_ok(
+    client: TestClient,
+    file,
+    user,
+    user_auth_header: dict,
+    clear_upload,
+):
+    target_path = Path(UPLOAD_PATH) / f"profile_images/{user.id}.jpg"
+    assert not target_path.exists()
+    response = client.post(
+        "/api/me/upload/profile-image",
+        files={"file": ("myprofile_photo.jpg", file, "image/jpeg")},
+        headers=user_auth_header,
+    )
+    assert response.status_code == 201
+    assert target_path.exists()
