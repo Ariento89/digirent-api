@@ -1,9 +1,9 @@
 from digirent.core.services.file_service import FileService
 from digirent.database.services.user import UserService
+from digirent.database.services.apartment import ApartmentService
 from digirent.database.models import (
     Admin,
     Amenity,
-    Apartment,
     ApartmentApplication,
     BookingRequest,
     Landlord,
@@ -18,7 +18,7 @@ class ApplicationBase:
         user_service: UserService,
         landlord_service: DBService[Landlord],
         tenant_service: DBService[Tenant],
-        apartment_service: DBService[Apartment],
+        apartment_service: ApartmentService,
         amenity_service: DBService[Amenity],
         admin_service: DBService[Admin],
         apartment_application_service: DBService[ApartmentApplication],

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from digirent.app.error import ApplicationError
@@ -114,8 +114,38 @@ def upload_videos(
 def fetch_apartments(
     session: Session = Depends(dependencies.get_database_session),
     user: User = Depends(dependencies.get_current_user),
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    min_size: Optional[float] = None,
+    max_size: Optional[float] = None,
+    min_bedrooms: Optional[int] = None,
+    max_bedrooms: Optional[int] = None,
+    min_bathrooms: Optional[int] = None,
+    max_bathrooms: Optional[int] = None,
 ):
-    return session.query(Apartment).all()
+    query = session.query(Apartment)
+    if min_price:
+        query = query.filter(Apartment.monthly_price >= min_price)
+    if max_price:
+        query = query.filter(Apartment.monthly_price <= max_price)
+    if min_size:
+        query = query.filter(Apartment.size >= min_size)
+    if max_size:
+        query = query.filter(Apartment.size <= max_size)
+    if min_bedrooms:
+        query = query.filter(Apartment.bedrooms >= min_bedrooms)
+    if max_bedrooms:
+        query = query.filter(Apartment.bedrooms <= max_bedrooms)
+    if min_bathrooms:
+        query = query.filter(Apartment.bathrooms >= min_bathrooms)
+    if max_bathrooms:
+        query = query.filter(Apartment.bathrooms <= max_bathrooms)
+    if latitude and longitude:
+        center = "POINT({} {})".format(longitude, latitude)
+        query = query.filter(Apartment.location.ST_Distance_Sphere(center) < 5000)
+    return query.all()
 
 
 @router.get("/{apartment_id}", response_model=ApartmentSchema)

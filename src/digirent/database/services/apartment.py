@@ -1,6 +1,5 @@
 from typing import List
 from sqlalchemy.orm.session import Session
-from sqlalchemy import func
 from .base import DBService
 from ..models import Apartment
 
@@ -16,6 +15,6 @@ class ApartmentService(DBService[Apartment]):
         center = "POINT({} {})".format(longitude, latitude)
         return (
             session.query(Apartment)
-            .filter(func.ST_Distance_Sphere(Apartment.location, center) < radius)
+            .filter(Apartment.location.ST_Distance_Sphere(center) < radius)
             .all()
         )
