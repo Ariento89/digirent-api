@@ -72,3 +72,5 @@ FACEBOOK_CLIENT_ID: str = config("FACEBOOK_CLIENT_ID", cast=str)
 FACEBOOK_CLIENT_SECRET: str = config("FACEBOOK_CLIENT_SECRET", cast=str)
 
 SQLALCHEMY_LOG: bool = config("SQLALCHEMY_LOG", cast=bool, default=False)
+
+MOLLIE_API_KEY: str = config("MOLLIE_API_KEY", cast=str)
