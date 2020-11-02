@@ -51,3 +51,14 @@ class ContractStatus(str, Enum):
     DECLINED = "declined"
     CANCELED = "canceled"
     COMPLETED = "completed"
+
+
+class InvoiceType(str, Enum):
+    RENT = "rent"
+    SUBSCRIPTION = "subscription"
+
+
+class InvoiceStatus(str, Enum):
+    PAID = "paid"
+    PENDING = "pending"
+    FAILED = "failed"

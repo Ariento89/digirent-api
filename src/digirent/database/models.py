@@ -28,6 +28,8 @@ from .enums import (
     BookingRequestStatus,
     ContractStatus,
     FurnishType,
+    InvoiceStatus,
+    InvoiceType,
     SocialAccountType,
     UserRole,
     Gender,
@@ -381,3 +383,19 @@ class SocialAccount(Base, EntityMixin, TimestampMixin):
 
     UniqueConstraint(account_id, account_type, name="uix_id_type")
     UniqueConstraint(account_email, account_type, name="uix_email_type")
+
+
+class Invoice(Base, EntityMixin, TimestampMixin):
+    __tablename__ = "invoices"
+    type = Column(ChoiceType(InvoiceType, impl=String()), nullable=False)
+    status = Column(
+        ChoiceType(InvoiceStatus, impl=String()),
+        nullable=False,
+        default=InvoiceStatus.PENDING,
+    )
+    apartment_application_id = Column(
+        UUIDType(binary=False), ForeignKey("apartment_applications.id"), nullable=True
+    )
+    user_id = Column(UUIDType(binary=False), ForeignKey("users.id"), nullable=True)
+    amount = Column(Float, nullable=False)
+    payment_id = Column(String, nullable=True)
