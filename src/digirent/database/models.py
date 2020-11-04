@@ -29,7 +29,6 @@ from .enums import (
     ContractStatus,
     FurnishType,
     InvoiceStatus,
-    InvoiceType,
     SocialAccountType,
     UserRole,
     Gender,
@@ -385,17 +384,33 @@ class SocialAccount(Base, EntityMixin, TimestampMixin):
     UniqueConstraint(account_email, account_type, name="uix_email_type")
 
 
-class Invoice(Base, EntityMixin, TimestampMixin):
-    __tablename__ = "invoices"
-    type = Column(ChoiceType(InvoiceType, impl=String()), nullable=False)
+class RentInvoice(Base, EntityMixin, TimestampMixin):
+    __tablename__ = "rent_invoices"
     status = Column(
         ChoiceType(InvoiceStatus, impl=String()),
         nullable=False,
         default=InvoiceStatus.PENDING,
     )
     apartment_application_id = Column(
-        UUIDType(binary=False), ForeignKey("apartment_applications.id"), nullable=True
+        UUIDType(binary=False), ForeignKey("apartment_applications.id")
     )
-    user_id = Column(UUIDType(binary=False), ForeignKey("users.id"), nullable=True)
     amount = Column(Float, nullable=False)
+    description = Column(String, nullable=True)
     payment_id = Column(String, nullable=True)
+    next_due_date = Column(DateTime, nullable=False)
+
+    apartment_application = relationship(ApartmentApplication, backref="invoices")
+
+
+class SubscriptionInvoice(Base, EntityMixin, TimestampMixin):
+    __tablename__ = "subscription_invoices"
+    status = Column(
+        ChoiceType(InvoiceStatus, impl=String()),
+        nullable=False,
+        default=InvoiceStatus.PENDING,
+    )
+    user_id = Column(UUIDType(binary=False), ForeignKey("users.id"), nullable=False)
+    amount = Column(Float, nullable=False)
+    description = Column(String, nullable=True)
+    payment_id = Column(String, nullable=True)
+    next_due_date = Column(DateTime, nullable=False)

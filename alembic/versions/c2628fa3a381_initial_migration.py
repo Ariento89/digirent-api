@@ -1,25 +1,18 @@
-"""Initial migration
+"""initial migration
 
-Revision ID: df0c688043a1
+Revision ID: c2628fa3a381
 Revises:
-Create Date: 2020-10-17 19:37:51.237474
+Create Date: 2020-11-04 22:05:55.474012
 
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy_utils import UUIDType, ChoiceType, EmailType
-from digirent.database.enums import (
-    UserRole,
-    ApartmentApplicationStatus,
-    BookingRequestStatus,
-    SocialAccountType,
-    Gender,
-    HouseType,
-    FurnishType,
-)
+from sqlalchemy_utils import ChoiceType, UUIDType, EmailType
+from geoalchemy2 import Geometry
+from digirent.database import enums
 
 # revision identifiers, used by Alembic.
-revision = "df0c688043a1"
+revision = "c2628fa3a381"
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -51,8 +44,8 @@ def upgrade():
         sa.Column("phone_verified", sa.Boolean(), nullable=False),
         sa.Column("is_suspended", sa.Boolean(), nullable=False),
         sa.Column("suspended_reason", sa.String(), nullable=True),
-        sa.Column("role", ChoiceType(UserRole, impl=sa.String()), nullable=False),
-        sa.Column("gender", ChoiceType(Gender, impl=sa.String()), nullable=True),
+        sa.Column("role", ChoiceType(enums.UserRole, impl=sa.String()), nullable=False),
+        sa.Column("gender", ChoiceType(enums.Gender, impl=sa.String()), nullable=True),
         sa.Column("city", sa.String(), nullable=True),
         sa.Column("description", sa.String(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
@@ -73,18 +66,38 @@ def upgrade():
         sa.Column("city", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column(
-            "house_type", ChoiceType(HouseType, impl=sa.String()), nullable=False
+            "house_type", ChoiceType(enums.HouseType, impl=sa.String()), nullable=False
         ),
         sa.Column(
-            "furnish_type", ChoiceType(FurnishType, impl=sa.String()), nullable=False
+            "furnish_type",
+            ChoiceType(enums.FurnishType, impl=sa.String()),
+            nullable=False,
         ),
         sa.Column("bedrooms", sa.Integer(), nullable=False),
         sa.Column("bathrooms", sa.Integer(), nullable=False),
         sa.Column("size", sa.Float(), nullable=False),
         sa.Column("available_from", sa.Date(), nullable=False),
         sa.Column("available_to", sa.Date(), nullable=False),
-        sa.Column("landlord_id", UUIDType(binary=False), nullable=False),
-        sa.Column("tenant_id", UUIDType(binary=False), nullable=True),
+        sa.Column(
+            "location",
+            Geometry(
+                geometry_type="POINT",
+                management=True,
+                from_text="ST_GeomFromEWKT",
+                name="geometry",
+            ),
+            nullable=True,
+        ),
+        sa.Column(
+            "landlord_id",
+            UUIDType(binary=False),
+            nullable=False,
+        ),
+        sa.Column(
+            "tenant_id",
+            UUIDType(binary=False),
+            nullable=True,
+        ),
         sa.ForeignKeyConstraint(
             ["landlord_id"],
             ["users.id"],
@@ -114,9 +127,13 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=True),
         sa.Column("id", UUIDType(binary=False), nullable=False),
-        sa.Column("tenant_id", UUIDType(binary=False), nullable=True),
         sa.Column(
-            "house_type", ChoiceType(HouseType, impl=sa.String()), nullable=False
+            "tenant_id",
+            UUIDType(binary=False),
+            nullable=True,
+        ),
+        sa.Column(
+            "house_type", ChoiceType(enums.HouseType, impl=sa.String()), nullable=False
         ),
         sa.Column("city", sa.String(), nullable=False),
         sa.Column("max_budget", sa.Float(), nullable=False),
@@ -132,33 +149,73 @@ def upgrade():
         sa.Column("updated_at", sa.DateTime(), nullable=True),
         sa.Column("id", UUIDType(binary=False), nullable=False),
         sa.Column("id_token", sa.String(), nullable=True),
+        sa.Column("account_id", sa.String(), nullable=True),
+        sa.Column(
+            "account_email",
+            EmailType(length=255),
+            nullable=True,
+        ),
         sa.Column("access_token", sa.String(), nullable=True),
         sa.Column(
             "account_type",
-            ChoiceType(SocialAccountType, impl=sa.String()),
+            ChoiceType(enums.SocialAccountType, impl=sa.String()),
             nullable=False,
         ),
-        sa.Column("user_id", UUIDType(binary=False), nullable=False),
+        sa.Column(
+            "user_id",
+            UUIDType(binary=False),
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(
             ["user_id"],
             ["users.id"],
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("access_token"),
+        sa.UniqueConstraint("account_email", "account_type", name="uix_email_type"),
+        sa.UniqueConstraint("account_id", "account_type", name="uix_id_type"),
         sa.UniqueConstraint("id_token"),
+    )
+    op.create_table(
+        "subscription_invoices",
+        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(), nullable=True),
+        sa.Column("id", UUIDType(binary=False), nullable=False),
+        sa.Column(
+            "status", ChoiceType(enums.InvoiceStatus, impl=sa.String()), nullable=False
+        ),
+        sa.Column(
+            "user_id",
+            UUIDType(binary=False),
+            nullable=False,
+        ),
+        sa.Column("amount", sa.Float(), nullable=False),
+        sa.Column("description", sa.String(), nullable=True),
+        sa.Column("payment_id", sa.String(), nullable=True),
+        sa.Column("next_due_date", sa.DateTime(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
         "apartment_applications",
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=True),
         sa.Column("id", UUIDType(binary=False), nullable=False),
-        sa.Column("apartment_id", UUIDType(binary=False), nullable=False),
-        sa.Column("tenant_id", UUIDType(binary=False), nullable=False),
         sa.Column(
-            "stage",
-            ChoiceType(ApartmentApplicationStatus, impl=sa.String()),
-            nullable=True,
+            "apartment_id",
+            UUIDType(binary=False),
+            nullable=False,
         ),
+        sa.Column(
+            "tenant_id",
+            UUIDType(binary=False),
+            nullable=False,
+        ),
+        sa.Column("is_rejected", sa.Boolean(), nullable=False),
+        sa.Column("is_considered", sa.Boolean(), nullable=False),
         sa.ForeignKeyConstraint(
             ["apartment_id"],
             ["apartments.id"],
@@ -171,8 +228,16 @@ def upgrade():
     )
     op.create_table(
         "apartments_amenities_association",
-        sa.Column("apartment_id", UUIDType(binary=False), nullable=True),
-        sa.Column("amenity_id", UUIDType(binary=False), nullable=True),
+        sa.Column(
+            "apartment_id",
+            UUIDType(binary=False),
+            nullable=True,
+        ),
+        sa.Column(
+            "amenity_id",
+            UUIDType(binary=False),
+            nullable=True,
+        ),
         sa.ForeignKeyConstraint(
             ["amenity_id"],
             ["amenities.id"],
@@ -187,11 +252,25 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=True),
         sa.Column("id", UUIDType(binary=False), nullable=False),
-        sa.Column("tenant_id", UUIDType(binary=False), nullable=False),
-        sa.Column("apartment_id", UUIDType(binary=False), nullable=False),
-        sa.Column("apartment_application_id", UUIDType(binary=False), nullable=True),
         sa.Column(
-            "status", ChoiceType(BookingRequestStatus, impl=sa.String()), nullable=False
+            "tenant_id",
+            UUIDType(binary=False),
+            nullable=False,
+        ),
+        sa.Column(
+            "apartment_id",
+            UUIDType(binary=False),
+            nullable=False,
+        ),
+        sa.Column(
+            "apartment_application_id",
+            UUIDType(binary=False),
+            nullable=True,
+        ),
+        sa.Column(
+            "status",
+            ChoiceType(enums.BookingRequestStatus, impl=sa.String()),
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
             ["apartment_application_id"],
@@ -207,14 +286,72 @@ def upgrade():
         ),
         sa.PrimaryKeyConstraint("id"),
     )
+    op.create_table(
+        "contracts",
+        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(), nullable=True),
+        sa.Column("id", UUIDType(binary=False), nullable=False),
+        sa.Column(
+            "apartment_application_id",
+            UUIDType(binary=False),
+            nullable=True,
+        ),
+        sa.Column("landlord_has_signed", sa.Boolean(), nullable=False),
+        sa.Column("landlord_signed_on", sa.DateTime(), nullable=True),
+        sa.Column("tenant_has_signed", sa.Boolean(), nullable=False),
+        sa.Column("tenant_signed_on", sa.DateTime(), nullable=True),
+        sa.Column("landlord_has_provided_keys", sa.Boolean(), nullable=False),
+        sa.Column("landlord_provided_keys_on", sa.DateTime(), nullable=True),
+        sa.Column("tenant_has_received_keys", sa.Boolean(), nullable=False),
+        sa.Column("tenant_received_keys_on", sa.DateTime(), nullable=True),
+        sa.Column("landlord_declined", sa.Boolean(), nullable=False),
+        sa.Column("landlord_declined_on", sa.DateTime(), nullable=True),
+        sa.Column("tenant_declined", sa.Boolean(), nullable=False),
+        sa.Column("tenant_declined_on", sa.DateTime(), nullable=True),
+        sa.Column("canceled", sa.Boolean(), nullable=False),
+        sa.Column("canceled_on", sa.DateTime(), nullable=True),
+        sa.Column("expired", sa.Boolean(), nullable=False),
+        sa.Column("expired_on", sa.DateTime(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["apartment_application_id"],
+            ["apartment_applications.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_table(
+        "rent_invoices",
+        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("updated_at", sa.DateTime(), nullable=True),
+        sa.Column("id", UUIDType(binary=False), nullable=False),
+        sa.Column(
+            "status", ChoiceType(enums.InvoiceStatus, impl=sa.String()), nullable=False
+        ),
+        sa.Column(
+            "apartment_application_id",
+            UUIDType(binary=False),
+            nullable=True,
+        ),
+        sa.Column("amount", sa.Float(), nullable=False),
+        sa.Column("description", sa.String(), nullable=True),
+        sa.Column("payment_id", sa.String(), nullable=True),
+        sa.Column("next_due_date", sa.DateTime(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["apartment_application_id"],
+            ["apartment_applications.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
     # ### end Alembic commands ###
 
 
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table("rent_invoices")
+    op.drop_table("contracts")
     op.drop_table("booking_requests")
     op.drop_table("apartments_amenities_association")
     op.drop_table("apartment_applications")
+    op.drop_table("subscription_invoices")
     op.drop_table("social_accounts")
     op.drop_table("looking_for")
     op.drop_table("bank_details")

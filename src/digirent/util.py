@@ -1,7 +1,7 @@
 from pathlib import Path
 import jwt
 from typing import Union
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from passlib.context import CryptContext
 from digirent.core.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -79,3 +79,15 @@ def get_profile_path() -> Path:
     Get profile folder
     """
     return Path(UPLOAD_PATH) / "profile_images"
+
+
+def get_current_date() -> date:
+    return datetime.utcnow().date()
+
+
+def get_date_x_days_from(date: date, days: int = 30) -> date:
+    return date + timedelta(days=days)
+
+
+def get_human_readable_date(date: date) -> str:
+    return date.strftime("%B %d %Y")

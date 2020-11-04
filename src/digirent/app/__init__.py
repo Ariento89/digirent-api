@@ -1,17 +1,9 @@
 from pathlib import Path
-from typing import IO, List, Optional, Union
+from typing import IO, List, Optional
 from uuid import UUID, uuid4
 from datetime import date, datetime
 from jwt import PyJWTError
-from digirent.core.config import (
-    NUMBER_OF_APARTMENT_VIDEOS,
-    SUPPORTED_FILE_EXTENSIONS,
-    UPLOAD_PATH,
-    SUPPORTED_IMAGE_EXTENSIONS,
-    NUMBER_OF_APARTMENT_IMAGES,
-    SUPPORTED_VIDEO_EXTENSIONS,
-    APP_ENV,
-)
+from digirent.core import config
 import digirent.util as util
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
@@ -23,6 +15,7 @@ from digirent.database.enums import (
     ContractStatus,
     Gender,
     HouseType,
+    InvoiceStatus,
     SocialAccountType,
 )
 from .base import ApplicationBase
@@ -36,12 +29,18 @@ from digirent.database.models import (
     Contract,
     Landlord,
     LookingFor,
+    RentInvoice,
     SocialAccount,
     Tenant,
     User,
     UserRole,
 )
 from digirent.core.services.sign_request import send_contract_sign_request
+from mollie.api.client import Client
+
+
+mollie_client = Client()
+mollie_client.set_api_key(config.MOLLIE_API_KEY)
 
 
 class Application(ApplicationBase):
@@ -442,9 +441,11 @@ class Application(ApplicationBase):
     def __upload_file(
         self, user: User, file: IO, extension: str, folder_path: Path
     ) -> User:
-        if extension.lower() not in SUPPORTED_FILE_EXTENSIONS:
+        if extension.lower() not in config.SUPPORTED_FILE_EXTENSIONS:
             raise ApplicationError("Invalid file format")
-        possible_filenames = [f"{user.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
+        possible_filenames = [
+            f"{user.id}.{ext}" for ext in config.SUPPORTED_FILE_EXTENSIONS
+        ]
         for filename in possible_filenames:
             if self.file_service.get(filename, folder_path):
                 self.file_service.delete(filename, folder_path)
@@ -454,10 +455,12 @@ class Application(ApplicationBase):
 
     def upload_profile_image(self, user: User, file: IO, filename: str):
         file_extension = filename.split(".")[-1]
-        if file_extension.lower() not in SUPPORTED_IMAGE_EXTENSIONS:
+        if file_extension.lower() not in config.SUPPORTED_IMAGE_EXTENSIONS:
             raise ApplicationError("Unsupported image format")
         folder_path = util.get_profile_path()
-        possible_filenames = [f"{user.id}.{ext}" for ext in SUPPORTED_IMAGE_EXTENSIONS]
+        possible_filenames = [
+            f"{user.id}.{ext}" for ext in config.SUPPORTED_IMAGE_EXTENSIONS
+        ]
         for filename in possible_filenames:
             if self.file_service.get(filename, folder_path):
                 self.file_service.delete(filename, folder_path)
@@ -485,13 +488,13 @@ class Application(ApplicationBase):
     ) -> Apartment:
         assert isinstance(landlord, Landlord)
         file_extension = filename.split(".")[-1]
-        if file_extension.lower() not in SUPPORTED_IMAGE_EXTENSIONS:
+        if file_extension.lower() not in config.SUPPORTED_IMAGE_EXTENSIONS:
             raise ApplicationError("Unsupported image format")
         folder_path = (
-            Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images"
+            Path(config.UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images"
         )
         files = self.file_service.list_files(folder_path)
-        if len(files) == NUMBER_OF_APARTMENT_IMAGES:
+        if len(files) == config.NUMBER_OF_APARTMENT_IMAGES:
             raise ApplicationError("Maximum number of apartment images reached")
         self.file_service.store_file(folder_path, filename, file)
         return apartment
@@ -501,13 +504,13 @@ class Application(ApplicationBase):
     ) -> Apartment:
         assert isinstance(landlord, Landlord)
         file_extension = filename.split(".")[-1]
-        if file_extension.lower() not in SUPPORTED_VIDEO_EXTENSIONS:
+        if file_extension.lower() not in config.SUPPORTED_VIDEO_EXTENSIONS:
             raise ApplicationError("Unsupported video format")
         folder_path = (
-            Path(UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/videos"
+            Path(config.UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/videos"
         )
         files = self.file_service.list_files(folder_path)
-        if len(files) == NUMBER_OF_APARTMENT_VIDEOS:
+        if len(files) == config.NUMBER_OF_APARTMENT_VIDEOS:
             raise ApplicationError("Maximum number of apartment vidoes reached")
         self.file_service.store_file(folder_path, filename, file)
         return apartment
@@ -599,7 +602,7 @@ class Application(ApplicationBase):
         contract = Contract(apartment_application_id=apartment_application.id)
         session.add(contract)
         session.commit()
-        if APP_ENV != "test":
+        if config.APP_ENV != "test":
             send_contract_sign_request(
                 apartment_application.id,
                 apartment_application.apartment.landlord.email,
@@ -617,6 +620,50 @@ class Application(ApplicationBase):
             raise ApplicationError("Cannot sign contract at this stage")
         apartment_application.contract.tenant_has_signed = True
         apartment_application.contract.tenant_signed_on = signed_on
+        has_invoice = bool(
+            session.query(RentInvoice)
+            .filter(RentInvoice.apartment_application_id == apartment_application.id)
+            .count()
+        )
+        if (
+            not has_invoice
+            and apartment_application.status == ApartmentApplicationStatus.AWARDED
+        ):
+            redirect_url: str = config.MOLLIE_REDIRECT_URL
+            webhook_url: str = config.MOLLIE_WEBHOOK_URL
+            start_date = util.get_current_date()
+            start_date_text = util.get_human_readable_date(start_date)
+            next_date = util.get_date_x_days_from(
+                start_date, config.RENT_PAYMENT_DURATION_DAYS
+            )
+            next_date_text = util.get_human_readable_date(next_date)
+            description = (
+                f"Invoice for payment from {start_date_text} to {next_date_text}"
+            )
+            invoice = RentInvoice(
+                apartment_application_id=apartment_application.id,
+                status=InvoiceStatus.PENDING,
+                amount=apartment_application.apartment.total_price,
+                description=description,
+                next_due_date=next_date,
+            )
+            session.add(invoice)
+            session.flush()
+            payment = mollie_client.payments.create(
+                {
+                    "amount": {"currency": "EUR", "value": invoice.amount},
+                    "description": "description",
+                    "redirectUrl": redirect_url,
+                    "webhookUrl": webhook_url,
+                    "metadata": {
+                        "type": "rent",
+                        "invoice_id": str(invoice.id),
+                        "awarded_date": str(start_date),
+                        "next_due_data": str(next_date),
+                    },
+                }
+            )
+            invoice.payment_id = payment.id
         session.commit()
         return apartment_application
 
@@ -630,6 +677,50 @@ class Application(ApplicationBase):
             raise ApplicationError("Cannot sign contract at this stage")
         apartment_application.contract.landlord_has_signed = True
         apartment_application.contract.landlord_signed_on = signed_on
+        has_invoice = bool(
+            session.query(RentInvoice)
+            .filter(RentInvoice.apartment_application_id == apartment_application.id)
+            .count()
+        )
+        if (
+            not has_invoice
+            and apartment_application.status == ApartmentApplicationStatus.AWARDED
+        ):
+            redirect_url: str = config.MOLLIE_REDIRECT_URL
+            webhook_url: str = config.MOLLIE_WEBHOOK_URL
+            start_date = util.get_current_date()
+            start_date_text = util.get_human_readable_date(start_date)
+            next_date = util.get_date_x_days_from(
+                start_date, config.RENT_PAYMENT_DURATION_DAYS
+            )
+            next_date_text = util.get_human_readable_date(next_date)
+            description = (
+                f"Invoice for payment from {start_date_text} to {next_date_text}"
+            )
+            invoice = RentInvoice(
+                apartment_application_id=apartment_application.id,
+                status=InvoiceStatus.PENDING,
+                amount=apartment_application.apartment.total_price,
+                description=description,
+                next_due_date=next_date,
+            )
+            session.add(invoice)
+            session.flush()
+            payment = mollie_client.payments.create(
+                {
+                    "amount": {"currency": "EUR", "value": invoice.amount},
+                    "description": "description",
+                    "redirectUrl": redirect_url,
+                    "webhookUrl": webhook_url,
+                    "metadata": {
+                        "type": "rent",
+                        "invoice_id": str(invoice.id),
+                        "awarded_date": str(start_date),
+                        "next_due_data": str(next_date),
+                    },
+                }
+            )
+            invoice.payment_id = payment.id
         session.commit()
         return apartment_application
 
@@ -686,6 +777,14 @@ class Application(ApplicationBase):
     ):
         if apartment_application.contract.status != ContractStatus.SIGNED:
             raise ApplicationError("Contract is not signed")
+        rent_invoice: RentInvoice = (
+            session.query(RentInvoice)
+            .filter(RentInvoice.apartment_application_id == apartment_application.id)
+            .order_by(RentInvoice.created_at.desc())
+            .first()
+        )
+        if not rent_invoice or rent_invoice.status != InvoiceStatus.PAID:
+            raise ApplicationError("Payment has not been made")
         contract: Contract = apartment_application.contract
         contract.landlord_has_provided_keys = True
         session.commit()

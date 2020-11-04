@@ -74,3 +74,13 @@ FACEBOOK_CLIENT_SECRET: str = config("FACEBOOK_CLIENT_SECRET", cast=str)
 SQLALCHEMY_LOG: bool = config("SQLALCHEMY_LOG", cast=bool, default=False)
 
 MOLLIE_API_KEY: str = config("MOLLIE_API_KEY", cast=str)
+
+MOLLIE_WEBHOOK_URL: str = config("MOLLIE_WEBHOOK_URL", cast=str)
+
+MOLLIE_REDIRECT_URL: str = config("MOLLIE_REDIRECT_URL", cast=str)
+
+RENT_PAYMENT_DURATION_DAYS: int = config("RENT_PAYMENT_DURATION_DAYS", cast=int)
+
+SUBSCRIPTION_PAYMENT_DURATION_DAYS: int = config(
+    "SUBSCRIPTION_PAYMENT_DURATION_DAYS", cast=int
+)
