@@ -125,3 +125,16 @@ def send_email(
         print("Sendgrid failed")
         print(str(e))
         print("\n\n\n\n")
+
+
+def float_to_mollie_amount(amount: float) -> str:
+    splitted_amount = str(amount).split(".")
+    if len(splitted_amount) == 1:
+        return f"{amount}.00"
+    before_decimal, after_decimal = str(amount).split(".")
+    if len(after_decimal) > 1:
+        return str(amount)
+    elif len(after_decimal) == 1:
+        return f"{before_decimal}.{after_decimal}0"
+    else:
+        return f"{before_decimal}.00"
