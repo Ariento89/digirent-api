@@ -1,6 +1,6 @@
 from pathlib import Path
 import jwt
-from typing import Union
+from typing import Optional, Union
 from datetime import datetime, timedelta, date
 from passlib.context import CryptContext
 from digirent.core.config import (
@@ -8,7 +8,11 @@ from digirent.core.config import (
     SECRET_KEY,
     JWT_ALGORITHM,
     UPLOAD_PATH,
+    IS_TEST,
+    SENDGRID_API_KEY,
 )
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -91,3 +95,33 @@ def get_date_x_days_from(date: date, days: int = 30) -> date:
 
 def get_human_readable_date(date: date) -> str:
     return date.strftime("%B %d %Y")
+
+
+def send_email(
+    to: str,
+    subject: str,
+    message: str,
+    html: Optional[str] = None,
+):
+    """
+    Send out email with sendgrid
+    """
+    try:
+        msg = Mail(
+            from_email="noreply@digirent.com",
+            to_emails=to,
+            subject=subject,
+            plain_text_content=message,
+            html_content=html,
+        )
+        if not IS_TEST:
+            print("\n\n\n\n")
+            print(str(msg))
+            print("\n\n\n\n")
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        sg.send(msg)
+    except Exception as e:
+        print("\n\n\n\n")
+        print("Sendgrid failed")
+        print(str(e))
+        print("\n\n\n\n")

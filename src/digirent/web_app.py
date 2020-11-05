@@ -9,6 +9,7 @@ from digirent.api.amenity.router import router as amenity_router
 from digirent.api.apartments.router import router as apartments_router
 from digirent.api.apartment_applications.router import router as applications_router
 from digirent.api.invites.router import router as invites_router
+from digirent.api.signrequest.router import router as signerequest_router
 
 
 def get_app():
@@ -32,6 +33,9 @@ def get_app():
         applications_router, prefix="/api/applications", tags=["Apartment Applications"]
     )
     app.include_router(invites_router, prefix="/api/invites", tags=["Invites"])
+    app.include_router(
+        signerequest_router, prefix="/api/signrequest", tags=["Signrequest Helpers"]
+    )
     return app
 
 

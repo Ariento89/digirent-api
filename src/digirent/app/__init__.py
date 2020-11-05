@@ -649,9 +649,12 @@ class Application(ApplicationBase):
             )
             session.add(invoice)
             session.flush()
+            print("\n\n\n\n")
+            print(f"Amount to charge is {invoice.amount}")
+            print("\n\n\n\n")
             payment = mollie_client.payments.create(
                 {
-                    "amount": {"currency": "EUR", "value": invoice.amount},
+                    "amount": {"currency": "EUR", "value": str(invoice.amount)},
                     "description": "description",
                     "redirectUrl": redirect_url,
                     "webhookUrl": webhook_url,
@@ -706,9 +709,12 @@ class Application(ApplicationBase):
             )
             session.add(invoice)
             session.flush()
+            print("\n\n\n\n")
+            print(f"Amount to charge is {invoice.amount}")
+            print("\n\n\n\n")
             payment = mollie_client.payments.create(
                 {
-                    "amount": {"currency": "EUR", "value": invoice.amount},
+                    "amount": {"currency": "EUR", "value": str(invoice.amount)},
                     "description": "description",
                     "redirectUrl": redirect_url,
                     "webhookUrl": webhook_url,
