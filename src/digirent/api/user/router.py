@@ -17,6 +17,18 @@ async def register_tenant(
     session: Session = Depends(dependencies.get_database_session),
 ):
     try:
+        existing_user_with_email = (
+            session.query(User).filter(User.email == data.email).one_or_none()
+        )
+        if existing_user_with_email:
+            raise HTTPException(409, "User with email already exists")
+        existing_user_with_phonenumber = (
+            session.query(User)
+            .filter(User.phone_number == data.phone_number)
+            .one_or_none()
+        )
+        if existing_user_with_phonenumber:
+            raise HTTPException(409, "User with phone number aready exists")
         return application.create_tenant(session, **data.dict())
     except ApplicationError as e:
         raise HTTPException(401, str(e))
@@ -29,6 +41,18 @@ async def register_landlord(
     session: Session = Depends(dependencies.get_database_session),
 ):
     try:
+        existing_user_with_email = (
+            session.query(User).filter(User.email == data.email).one_or_none()
+        )
+        if existing_user_with_email:
+            raise HTTPException(409, "User with email already exists")
+        existing_user_with_phonenumber = (
+            session.query(User)
+            .filter(User.phone_number == data.phone_number)
+            .one_or_none()
+        )
+        if existing_user_with_phonenumber:
+            raise HTTPException(409, "User with phone number aready exists")
         return application.create_landlord(session, **data.dict())
     except ApplicationError as e:
         raise HTTPException(401, str(e))

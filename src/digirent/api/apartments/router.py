@@ -24,12 +24,11 @@ async def create_apartment(
 ):
     try:
         payload = data.dict()
-        amenities = payload["amenities"]
+        amenities = data.amenities
         if amenities:
-            amenities = [
-                session.query(Amenity).filter(Amenity.title == x).first()
-                for x in amenities
-            ]
+            amenities = [session.query(Amenity).get(x) for x in amenities]
+            if any(x is None for x in amenities):
+                raise HTTPException(404, "Amenity not found")
         payload["amenities"] = amenities
         return application.create_apartment(session, landlord, **payload)
     except ApplicationError as e:

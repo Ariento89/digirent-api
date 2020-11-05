@@ -1,4 +1,5 @@
 from datetime import date
+from uuid import UUID
 from typing import List, Optional
 from pydantic import validator
 from digirent.database.enums import HouseType
@@ -52,7 +53,7 @@ class BaseApartmentSchema(BaseSchema):
 class ApartmentCreateSchema(BaseApartmentSchema):
     longitude: float
     latitude: float
-    amenities: List[str]
+    amenities: List[UUID]
 
 
 class ApartmentUpdateSchema(BaseSchema):
@@ -73,7 +74,7 @@ class ApartmentUpdateSchema(BaseSchema):
     furnish_type: Optional[str]
     available_from: Optional[date]
     available_to: Optional[date]
-    amenities: Optional[List[str]]
+    amenities: Optional[List[UUID]]
 
     @validator("monthly_price")
     def monthly_price_must_be_greater_than_zero(cls, v):

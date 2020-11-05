@@ -1,9 +1,11 @@
+from typing import List
 from fastapi import APIRouter, Depends, File, UploadFile
 from fastapi.exceptions import HTTPException
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 from digirent.app.error import ApplicationError
-from digirent.database.models import Tenant, User
+from digirent.database.enums import UserRole
+from digirent.database.models import Apartment, ApartmentApplication, Tenant, User
 from .schema import (
     BankDetailSchema,
     LookingForSchema,
@@ -12,6 +14,7 @@ from .schema import (
     ProfileUpdateSchema,
 )
 import digirent.api.dependencies as dependencies
+from digirent.api.apartment_applications import schema as apartment_applications_schema
 
 
 router = APIRouter()
@@ -145,3 +148,29 @@ def upload_profile_photo(
         if "not found" in str(e).lower():
             raise HTTPException(404, str(e))
         raise HTTPException(400, str(e))
+
+
+@router.get(
+    "/applciations",
+    status_code=200,
+    response_model=List[apartment_applications_schema.ApartmentApplicationSchema],
+)
+def fetch_my_apartment_applications(
+    user: User = Depends(dependencies.get_current_user),
+    session: Session = Depends(dependencies.get_database_session),
+):
+    if user.role == UserRole.TENANT:
+        return (
+            session.query(ApartmentApplication)
+            .filter(ApartmentApplication.tenant_id == user.id)
+            .all()
+        )
+    elif user.role == UserRole.LANDLORD:
+        return (
+            session.query(ApartmentApplication)
+            .join(Apartment)
+            .filter(Apartment.landlord_id == user.id)
+            .all()
+        )
+    else:
+        raise HTTPException(403, "Forbidden")
