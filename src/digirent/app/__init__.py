@@ -16,6 +16,7 @@ from digirent.database.enums import (
     Gender,
     HouseType,
     InvoiceStatus,
+    InvoiceType,
     SocialAccountType,
 )
 from .base import ApplicationBase
@@ -27,9 +28,9 @@ from digirent.database.models import (
     BankDetail,
     BookingRequest,
     Contract,
+    Invoice,
     Landlord,
     LookingFor,
-    RentInvoice,
     SocialAccount,
     Tenant,
     User,
@@ -610,19 +611,11 @@ class Application(ApplicationBase):
             )
         return apartment_application
 
-    def tenant_signed_contract(
-        self,
-        session: Session,
-        apartment_application: ApartmentApplication,
-        signed_on: datetime,
-    ) -> ApartmentApplication:
-        if apartment_application.status != ApartmentApplicationStatus.PROCESSING:
-            raise ApplicationError("Cannot sign contract at this stage")
-        apartment_application.contract.tenant_has_signed = True
-        apartment_application.contract.tenant_signed_on = signed_on
+    def __confirm_and_create_invoice(self, session: Session, apartment_application):
         has_invoice = bool(
-            session.query(RentInvoice)
-            .filter(RentInvoice.apartment_application_id == apartment_application.id)
+            session.query(Invoice)
+            .filter(Invoice.type == InvoiceType.RENT)
+            .filter(Invoice.apartment_application_id == apartment_application.id)
             .count()
         )
         if (
@@ -640,12 +633,14 @@ class Application(ApplicationBase):
             description = (
                 f"Invoice for payment from {start_date_text} to {next_date_text}"
             )
-            invoice = RentInvoice(
+            amount = round(apartment_application.apartment.total_price, 2)
+            invoice = Invoice(
                 apartment_application_id=apartment_application.id,
+                type=InvoiceType.RENT,
                 status=InvoiceStatus.PENDING,
-                amount=apartment_application.apartment.total_price,
+                amount=amount,
                 description=description,
-                next_due_date=next_date,
+                next_date=next_date,
             )
             session.add(invoice)
             session.flush()
@@ -660,14 +655,26 @@ class Application(ApplicationBase):
                     "redirectUrl": redirect_url,
                     "webhookUrl": webhook_url,
                     "metadata": {
-                        "type": "rent",
+                        "type": invoice.type,
                         "invoice_id": str(invoice.id),
-                        "awarded_date": str(start_date),
-                        "next_due_data": str(next_date),
+                        "created_date": str(start_date),
+                        "next_date": str(next_date),
                     },
                 }
             )
             invoice.payment_id = payment.id
+
+    def tenant_signed_contract(
+        self,
+        session: Session,
+        apartment_application: ApartmentApplication,
+        signed_on: datetime,
+    ) -> ApartmentApplication:
+        if apartment_application.status != ApartmentApplicationStatus.PROCESSING:
+            raise ApplicationError("Cannot sign contract at this stage")
+        apartment_application.contract.tenant_has_signed = True
+        apartment_application.contract.tenant_signed_on = signed_on
+        self.__confirm_and_create_invoice(session, apartment_application)
         session.commit()
         return apartment_application
 
@@ -681,54 +688,7 @@ class Application(ApplicationBase):
             raise ApplicationError("Cannot sign contract at this stage")
         apartment_application.contract.landlord_has_signed = True
         apartment_application.contract.landlord_signed_on = signed_on
-        has_invoice = bool(
-            session.query(RentInvoice)
-            .filter(RentInvoice.apartment_application_id == apartment_application.id)
-            .count()
-        )
-        if (
-            not has_invoice
-            and apartment_application.status == ApartmentApplicationStatus.AWARDED
-        ):
-            redirect_url: str = config.MOLLIE_REDIRECT_URL
-            webhook_url: str = config.MOLLIE_WEBHOOK_URL
-            start_date = util.get_current_date()
-            start_date_text = util.get_human_readable_date(start_date)
-            next_date = util.get_date_x_days_from(
-                start_date, config.RENT_PAYMENT_DURATION_DAYS
-            )
-            next_date_text = util.get_human_readable_date(next_date)
-            description = (
-                f"Invoice for payment from {start_date_text} to {next_date_text}"
-            )
-            invoice = RentInvoice(
-                apartment_application_id=apartment_application.id,
-                status=InvoiceStatus.PENDING,
-                amount=apartment_application.apartment.total_price,
-                description=description,
-                next_due_date=next_date,
-            )
-            session.add(invoice)
-            session.flush()
-            mollie_amount = util.float_to_mollie_amount(invoice.amount)
-            print("\n\n\n\n")
-            print(f"Amount to charge is {mollie_amount}")
-            print("\n\n\n\n")
-            payment = mollie_client.payments.create(
-                {
-                    "amount": {"currency": "EUR", "value": mollie_amount},
-                    "description": "description",
-                    "redirectUrl": redirect_url,
-                    "webhookUrl": webhook_url,
-                    "metadata": {
-                        "type": "rent",
-                        "invoice_id": str(invoice.id),
-                        "awarded_date": str(start_date),
-                        "next_due_data": str(next_date),
-                    },
-                }
-            )
-            invoice.payment_id = payment.id
+        self.__confirm_and_create_invoice(session, apartment_application)
         session.commit()
         return apartment_application
 
@@ -785,10 +745,11 @@ class Application(ApplicationBase):
     ):
         if apartment_application.contract.status != ContractStatus.SIGNED:
             raise ApplicationError("Contract is not signed")
-        rent_invoice: RentInvoice = (
-            session.query(RentInvoice)
-            .filter(RentInvoice.apartment_application_id == apartment_application.id)
-            .order_by(RentInvoice.created_at.desc())
+        rent_invoice: Invoice = (
+            session.query(Invoice)
+            .filter(Invoice.type == InvoiceType.RENT)
+            .filter(Invoice.apartment_application_id == apartment_application.id)
+            .order_by(Invoice.created_at.desc())
             .first()
         )
         if not rent_invoice or rent_invoice.status != InvoiceStatus.PAID:

@@ -273,7 +273,7 @@ def fetch_applications_for_apartments(
     session: Session = Depends(deps.get_database_session),
 ):
     try:
-        apartment = session.query(Apartment).filter(Apartment.id == apartment_id)
+        apartment = session.query(Apartment).get(apartment_id)
         if not apartment or (
             user.role == UserRole.LANDLORD and apartment.landlord_id != user.id
         ):

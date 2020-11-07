@@ -2,7 +2,7 @@ from datetime import date
 from uuid import UUID
 from typing import List, Optional
 from pydantic import validator
-from digirent.database.enums import HouseType
+from digirent.database.enums import FurnishType, HouseType
 from ..schema import BaseSchema, OrmSchema
 
 
@@ -25,7 +25,7 @@ class BaseApartmentSchema(BaseSchema):
     bedrooms: int
     bathrooms: int
     size: float
-    furnish_type: str
+    furnish_type: FurnishType
     available_from: date
     available_to: date
 
