@@ -30,3 +30,32 @@ services:
             - "5050:80"
         depends_on:
             - digirentdb
+    digirent-redis:
+        container_name: digirent-redis
+        image: redis:6.0.9-alpine
+    digirent-rent-worker:
+        container_name: digirent-rent-worker
+        build:
+            context: .
+            dockerfile: dockerfile
+        volumes:
+            - .:/src/digirent/
+        env_file:
+            - env/.env.dev
+        depends_on:
+            - digirentdb
+            - digirent-redis
+        command: bash -c "export APP_ENV=dev && celery worker --app=slimchat.extensions.worker.celery:app -l info"
+    digirent-subscription-worker:
+        container_name: digirent-subscription-worker
+        build:
+            context: .
+            dockerfile: dockerfile
+        volumes:
+            - .:/src/digirent/
+        env_file:
+            - env/.env.dev
+        depends_on:
+            - digirentdb
+            - digirent-redis
+        command: bash -c "export APP_ENV=dev && celery worker --app=slimchat.extensions.worker.celery:app -l info"
