@@ -22,7 +22,22 @@ bash:
 	docker-compose run digirent bash
 
 logs:
+	docker-compose logs -f
+
+api-logs:
 	docker-compose logs -f digirent
+
+rent-worker-logs:
+	docker-compose logs -f digirent-rent-worker
+
+subscription-worker-logs:
+	docker-compose logs -f digirent-subscription-worker
+
+redis-logs:
+	docker-compose logs -f digirent-redis
+
+beat-logs:
+	docker-compose logs -f digirent-beat
 
 reset:
 	docker-compose rm -fsv

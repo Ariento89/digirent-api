@@ -44,8 +44,8 @@ services:
             - env/.env.dev
         depends_on:
             - digirentdb
-            - digirent-redis
-        command: bash -c "export APP_ENV=dev && celery worker --app=slimchat.extensions.worker.celery:app -l info"
+            - digirent-redis 
+        command: bash -c "export APP_ENV=dev && celery --app=digirent.worker.app:app worker -Q rent-queue -l info"
     digirent-subscription-worker:
         container_name: digirent-subscription-worker
         build:
@@ -58,4 +58,17 @@ services:
         depends_on:
             - digirentdb
             - digirent-redis
-        command: bash -c "export APP_ENV=dev && celery worker --app=slimchat.extensions.worker.celery:app -l info"
+        command: bash -c "export APP_ENV=dev && celery --app=digirent.worker.app:app worker -Q subscription-queue -l info"
+    digirent-beat:
+        container_name: digirent-beat
+        build:
+            context: .
+            dockerfile: dockerfile
+        volumes:
+            - .:/src/digirent/
+        env_file:
+            - env/.env.dev
+        depends_on:
+            - digirent-subscription-worker
+            - digirent-rent-worker
+        command: bash -c "export APP_ENV=dev && celery --app=digirent.worker.app:app beat -l info"
