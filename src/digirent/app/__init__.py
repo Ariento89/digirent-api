@@ -651,7 +651,7 @@ class Application(ApplicationBase):
             payment = mollie_client.payments.create(
                 {
                     "amount": {"currency": "EUR", "value": mollie_amount},
-                    "description": "description",
+                    "description": invoice.description,
                     "redirectUrl": redirect_url,
                     "webhookUrl": webhook_url,
                     "metadata": {

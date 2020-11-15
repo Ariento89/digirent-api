@@ -20,12 +20,12 @@ app.conf.update(
     },
     beat_schedule={
         "create_rent_invoice": {
-            "task": "digirent.worker.rent.create_rent_invoice",
-            "schedule": 10.0,
+            "task": "digirent.worker.rent.generate_rent_invoices",
+            "schedule": 300,
         },
         "create_subscription_invoice": {
-            "task": "digirent.worker.subscription.create_subscription_invoice",
-            "schedule": 10.0,
+            "task": "digirent.worker.subscription.generate_subscription_invoices",
+            "schedule": 300,
         },
     },
 )
