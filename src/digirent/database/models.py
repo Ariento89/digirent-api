@@ -407,3 +407,18 @@ class Invoice(Base, EntityMixin, TimestampMixin):
 
     apartment_application = relationship(ApartmentApplication, backref="invoices")
     user = relationship(User, backref="invoices")
+
+
+class ChatMessage(Base, EntityMixin, TimestampMixin):
+    __tablename__ = "chat_messages"
+    from_user = Column(
+        UUIDType(binary=False),
+        ForeignKey("users.id"),
+        nullable=False,
+    )
+    to_user = Column(
+        UUIDType(binary=False),
+        ForeignKey("users.id"),
+        nullable=False,
+    )
+    message = Column(String, nullable=False)

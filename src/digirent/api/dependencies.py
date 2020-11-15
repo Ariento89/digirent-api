@@ -194,3 +194,21 @@ def get_optional_current_user_from_state(
     except ApplicationError:
         raise credentials_exception
     return user
+
+
+async def user_from_websocket(
+    token: str,
+    application: Application = Depends(get_application),
+    session: Session = Depends(get_database_session),
+) -> Optional[User]:
+    try:
+        user = application.authenticate_token(session, token)
+        if user.role == UserRole.ADMIN:
+            user = session.query(Admin).get(user.id)
+        elif user.role == UserRole.TENANT:
+            user = session.query(Tenant).get(user.id)
+        elif user.role == UserRole.LANDLORD:
+            user = session.query(Landlord).get(user.id)
+    except Exception:
+        return
+    return user

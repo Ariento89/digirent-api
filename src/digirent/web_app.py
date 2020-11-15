@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from digirent.api.middlewares import ChatManagerMiddleware
 import digirent.core.config as config
 from digirent.api.auth.router import router as auth_router
 from digirent.api.me.router import router as me_router
@@ -12,6 +13,7 @@ from digirent.api.invites.router import router as invites_router
 from digirent.api.signrequest.router import router as signerequest_router
 from digirent.api.payments.router import router as payments_router
 from digirent.api.invoices.router import router as invoice_router
+from digirent.api.chat.router import router as chat_router
 
 
 def get_app():
@@ -25,6 +27,7 @@ def get_app():
         allow_headers=["*"],
     )
     app.add_middleware(SessionMiddleware, secret_key=config.SECRET_KEY)
+    app.add_middleware(ChatManagerMiddleware)
 
     app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
     app.include_router(me_router, prefix="/api/me", tags=["Me"])
@@ -40,6 +43,7 @@ def get_app():
     )
     app.include_router(payments_router, prefix="/api/payments", tags=["Payments"])
     app.include_router(invoice_router, prefix="/api/invoices", tags=["Invoices"])
+    app.include_router(chat_router, prefix="/api/chat", tags=["Chat"])
     return app
 
 
