@@ -72,6 +72,8 @@ class ChatManager:
             # user has sent message
             to: UUID = UUID(data["to"])
             from_user: UUID = user.id
+            if from_user == to:
+                return
             message: str = data["message"]
             await self.send_message_to_user(to, from_user, message)
         elif event_type == ChatEventType.USER_DISCONNECTED:
