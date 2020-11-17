@@ -25,5 +25,3 @@ RUN poetry install
 RUN useradd -m digirent_user
 
 USER digirent_user
-
-CMD alembic upgrade head && uvicorn digirent.web_app:app --reload --workers 1 --host 0.0.0.0 --port 5000

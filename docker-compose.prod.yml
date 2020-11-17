@@ -9,26 +9,24 @@ services:
         ports:
             - "5432:5432"
         env_file: 
-            - env/.db.env
+            - env/.db.prod.env
     digirent:
         build:
             context: .
             dockerfile: dockerfile
         container_name: digirent
-        volumes:
-            - .:/src/digirent/
-        ports:
-            - "5000:5000"
+        expose:
+            - 5000
         env_file:
-            - env/.env.dev
+            - env/.env.prod
         depends_on:
             - digirentdb
-        command: bash -c "export APP_ENV=dev && alembic upgrade head && uvicorn digirent.web_app:app --reload --workers 1 --host 0.0.0.0 --port 5000"
+        command: bash -c "export APP_ENV=prod && uvicorn digirent.web_app:app --reload --workers 1 --host 0.0.0.0 --port 5000"
     digirent-pgadmin:
         container_name: digirent-pgadmin
         image: dpage/pgadmin4
         env_file: 
-            - env/.pgadmin.env
+            - env/.pgadmin.prod.env
         ports:
             - "5050:80"
         depends_on:
@@ -41,14 +39,12 @@ services:
         build:
             context: .
             dockerfile: dockerfile
-        volumes:
-            - .:/src/digirent/
         env_file:
-            - env/.env.dev
+            - env/.env.prod
         depends_on:
             - digirentdb
             - digirent-redis 
-        command: bash -c "export APP_ENV=dev && celery --app=digirent.worker.app:app worker -Q rent-queue -l info"
+        command: bash -c "export APP_ENV=prod && celery --app=digirent.worker.app:app worker -Q rent-queue -l info"
     digirent-subscription-worker:
         container_name: digirent-subscription-worker
         build:
@@ -57,11 +53,11 @@ services:
         volumes:
             - .:/src/digirent/
         env_file:
-            - env/.env.dev
+            - env/.env.prod
         depends_on:
             - digirentdb
             - digirent-redis
-        command: bash -c "export APP_ENV=dev && celery --app=digirent.worker.app:app worker -Q subscription-queue -l info"
+        command: bash -c "export APP_ENV=prod && celery --app=digirent.worker.app:app worker -Q subscription-queue -l info"
     digirent-beat:
         container_name: digirent-beat
         build:
@@ -70,11 +66,16 @@ services:
         volumes:
             - .:/src/digirent/
         env_file:
-            - env/.env.dev
+            - env/.env.prod
         depends_on:
             - digirent-subscription-worker
             - digirent-rent-worker
-        command: bash -c "export APP_ENV=dev && celery --app=digirent.worker.app:app beat -l info"
-
+        command: bash -c "export APP_ENV=prod && celery --app=digirent.worker.app:app beat -l info"
+    digirent-nginx:
+      build: ./nginx
+      ports:
+        - 1337:80
+      depends_on:
+        - digirent
 volumes: 
     postgres_data:
