@@ -11,9 +11,9 @@ env:
   IMAGE_REGISTRY: ghcr.io
   IMAGE_NAME: digirent-api
   IMAGE_TAG: prod
-  IMAGE: ghcr.io/${{secrets.GITHUB_USERNAME}}/digirent-api:prod
-  WEB_IMAGE: ghcr.io/${{secrets.GITHUB_USERNAME}}/digirent-web:prod
-  NGINX_IMAGE: ghcr.io/${{secrets.GITHUB_USERNAME}}/digirent-nginx:prod
+  IMAGE: ghcr.io/ariento89/digirent-api:prod
+  WEB_IMAGE: ghcr.io/ariento89/digirent-web:prod
+  NGINX_IMAGE: ghcr.io/ariento89/digirent-nginx:prod
 
 jobs:
   build:
