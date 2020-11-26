@@ -16,34 +16,50 @@ from digirent.api.invoices.router import router as invoice_router
 from digirent.api.chat.router import router as chat_router
 
 
-def get_app():
-    app = FastAPI(title=config.PROJECT_NAME, openapi_url="/api/openapi.json")
+def get_api_app():
+    """
+    Returns and configures a FastAPI application
+    for api endpoints
+    """
 
-    app.add_middleware(
+    api = FastAPI(title=config.PROJECT_NAME, root_path="/api")
+
+    api.add_middleware(
         CORSMiddleware,
         allow_origins=list(config.ALLOWED_HOSTS),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.add_middleware(SessionMiddleware, secret_key=config.SECRET_KEY)
-    app.add_middleware(ChatManagerMiddleware)
+    api.add_middleware(SessionMiddleware, secret_key=config.SECRET_KEY)
+    api.add_middleware(ChatManagerMiddleware)
 
-    app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
-    app.include_router(me_router, prefix="/api/me", tags=["Me"])
-    app.include_router(user_router, prefix="/api/users", tags=["Users"])
-    app.include_router(amenity_router, prefix="/api/amenities", tags=["Amenities"])
-    app.include_router(apartments_router, prefix="/api/apartments", tags=["Apartments"])
-    app.include_router(
-        applications_router, prefix="/api/applications", tags=["Apartment Applications"]
+    api.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+    api.include_router(me_router, prefix="/me", tags=["Me"])
+    api.include_router(user_router, prefix="/users", tags=["Users"])
+    api.include_router(amenity_router, prefix="/amenities", tags=["Amenities"])
+    api.include_router(apartments_router, prefix="/apartments", tags=["Apartments"])
+    api.include_router(
+        applications_router, prefix="/applications", tags=["Apartment Applications"]
     )
-    app.include_router(invites_router, prefix="/api/invites", tags=["Invites"])
-    app.include_router(
-        signerequest_router, prefix="/api/signrequest", tags=["Signrequest Helpers"]
+    api.include_router(invites_router, prefix="/invites", tags=["Invites"])
+    api.include_router(
+        signerequest_router, prefix="/signrequest", tags=["Signrequest Helpers"]
     )
-    app.include_router(payments_router, prefix="/api/payments", tags=["Payments"])
-    app.include_router(invoice_router, prefix="/api/invoices", tags=["Invoices"])
-    app.include_router(chat_router, prefix="/api/chat", tags=["Chat"])
+    api.include_router(payments_router, prefix="/payments", tags=["Payments"])
+    api.include_router(invoice_router, prefix="/invoices", tags=["Invoices"])
+    api.include_router(chat_router, prefix="/chat", tags=["Chat"])
+    return api
+
+
+def get_app() -> FastAPI:
+    """
+    Construct main fastapi application and
+    mount api application on path /api
+    """
+    app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None)
+    api_app = get_api_app()
+    app.mount("/api", app=api_app)
     return app
 
 
