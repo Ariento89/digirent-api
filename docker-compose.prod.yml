@@ -1,81 +1,72 @@
 version: '3.7'
 
 services:
-    digirentdb:
+    digirentdb-prod:
         image: mdillon/postgis:11-alpine
-        container_name: digirentdb
+        container_name: digirentdb-prod
         volumes:
             - postgres_data:/var/lib/postgresql/data/
-        ports:
-            - "5432:5432"
+        expose: :
+            - "5432"
         env_file: 
             - env/.db.prod.env
-    digirent:
-        build:
-            context: .
-            dockerfile: dockerfile
-        container_name: digirent
+    digirent-api-prod:
+        image: ghcr.io/ariento89/digirent-api:prod
+        container_name: digirent-api-prod
         expose:
-            - 5000
+            - "5000"
         env_file:
-            - env/.env.prod
+            - env/.prod.env
         depends_on:
-            - digirentdb
+            - digirentdb-prod
         command: bash -c "export APP_ENV=prod && uvicorn digirent.web_app:app --reload --workers 1 --host 0.0.0.0 --port 5000"
-    digirent-pgadmin:
-        container_name: digirent-pgadmin
-        image: dpage/pgadmin4
-        env_file: 
-            - env/.pgadmin.prod.env
-        ports:
-            - "5050:80"
-        depends_on:
-            - digirentdb
-    digirent-redis:
-        container_name: digirent-redis
+    digirent-redis-prod:
+        container_name: digirent-redis-prod
         image: redis:6.0.9-alpine
-    digirent-rent-worker:
-        container_name: digirent-rent-worker
-        build:
-            context: .
-            dockerfile: dockerfile
+    digirent-rent-worker-prod:
+        image: ghcr.io/ariento89/digirent-api:prod
+        container_name: digirent-rent-worker-prod
         env_file:
-            - env/.env.prod
+            - env/.prod.env
         depends_on:
-            - digirentdb
-            - digirent-redis 
+            - digirentdb-prod
+            - digirent-redis-prod 
         command: bash -c "export APP_ENV=prod && celery --app=digirent.worker.app:app worker -Q rent-queue -l info"
-    digirent-subscription-worker:
-        container_name: digirent-subscription-worker
-        build:
-            context: .
-            dockerfile: dockerfile
-        volumes:
-            - .:/src/digirent/
+    digirent-subscription-worker-prod:
+        image: ghcr.io/ariento89/digirent-api:prod
+        container_name: digirent-subscription-worker-prod
         env_file:
-            - env/.env.prod
+            - env/.prod.env
         depends_on:
-            - digirentdb
-            - digirent-redis
+            - digirentdb-prod
+            - digirent-redis-prod
         command: bash -c "export APP_ENV=prod && celery --app=digirent.worker.app:app worker -Q subscription-queue -l info"
-    digirent-beat:
-        container_name: digirent-beat
-        build:
-            context: .
-            dockerfile: dockerfile
-        volumes:
-            - .:/src/digirent/
+    digirent-beat-prod:
+        image: ghcr.io/ariento89/digirent-api:prod
+        container_name: digirent-beat-prod
         env_file:
-            - env/.env.prod
+            - env/.prod.env
         depends_on:
-            - digirent-subscription-worker
-            - digirent-rent-worker
+            - digirent-subscription-worker-prod
+            - digirent-rent-worker-prod
         command: bash -c "export APP_ENV=prod && celery --app=digirent.worker.app:app beat -l info"
-    digirent-nginx:
-      build: ./nginx
-      ports:
-        - 1337:80
-      depends_on:
-        - digirent
+    digirent-web-prod:
+        image: ghcr.io/ariento89/digirent-web:prod
+        container_name: digirent-web-prod
+        expose:
+            - "3000"
+        depends_on:
+            - digirent-api-prod
+        env_file:
+            - env/.web.prod.env
+    digirent-nginx-prod:
+        image: ghcr.io/ariento89/digirent-nginx:prod
+        container_name: digirent-nginx
+        ports: 
+            - "80:80"
+        depends_on:
+            - digirent-api-prod
+            - digirent-web-prod
+
 volumes: 
     postgres_data:

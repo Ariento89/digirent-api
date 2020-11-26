@@ -1,0 +1,67 @@
+name: Build container and Deploy to Digital Ocean
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  PAT: ${{secrets.PAT}}
+  GITHUB_USERNAME: ariento89
+  IMAGE_REGISTRY: ghcr.io
+  IMAGE_NAME: digirent-api
+  IMAGE_TAG: prod
+  IMAGE: ghcr.io/${{secrets.GITHUB_USERNAME}}/digirent-api:prod
+  WEB_IMAGE: ghcr.io/${{secrets.GITHUB_USERNAME}}/digirent-web:prod
+  NGINX_IMAGE: ghcr.io/${{secrets.GITHUB_USERNAME}}/digirent-nginx:prod
+
+jobs:
+  build:
+    name: Build containers and push to github registry
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout to repo
+        uses: actions/checkout@v2
+
+      - name: Build API and NGINX IMAGES
+        run: |
+          docker build -t $IMAGE .
+          docker build -t $NGINX_IMAGE ./nginx
+
+      - name: Push Built Images to github container registry
+        run: |
+          docker login $IMAGE_REGISTRY -u $GITHUB_USERNAME --password $PAT
+          docker push $IMAGE
+          docker push $NGINX_IMAGE
+  deploy:
+    name: Deploy container to Digital Ocean
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: copy file via ssh key
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          port: ${{ secrets.DO_PORT }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          # passphrase: ${{secrets.DO_SSH_PASSPHRASE}}
+          source: "docker-compose.prod.yml"
+          target: "Digirent"
+      - name: Deploy App To Digital occean
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          port: ${{ secrets.DO_PORT }}
+          passphrase: ${{secrets.DO_SSH_PASSPHRASE}}
+          envs: IMAGE_REGISTRY,GITHUB_USERNAME,PAT,IMAGE,WEB_IMAGE,NGINX_IMAGE
+          script: |
+            cd ~/Digirent
+            docker login $IMAGE_REGISTRY -u $GITHUB_USERNAME -p $PAT
+            docker pull $IMAGE
+            docker pull $WEB_IMAGE
+            docker pull $NGINX_IMAGE
+            docker-compose -f docker-compose.prod.yml up -d

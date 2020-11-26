@@ -25,3 +25,5 @@ RUN poetry install
 RUN useradd -m digirent_user
 
 USER digirent_user
+
+ENTRYPOINT [ "/bin/sh", "entrypoint.sh" ]
