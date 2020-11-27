@@ -50,15 +50,15 @@ services:
             - digirent-subscription-worker-prod
             - digirent-rent-worker-prod
         command: bash -c "export APP_ENV=prod && celery --app=digirent.worker.app:app beat -l info"
-    digirent-web-prod:
-        image: ghcr.io/ariento89/digirent-web:prod
-        container_name: digirent-web-prod
-        expose:
-            - "3000"
-        depends_on:
-            - digirent-api-prod
-        env_file:
-            - env/.web.prod.env
+    # digirent-web-prod:
+    #     image: ghcr.io/ariento89/digirent-web:prod
+    #     container_name: digirent-web-prod
+    #     expose:
+    #         - "3000"
+    #     depends_on:
+    #         - digirent-api-prod
+    #     env_file:
+    #         - env/.web.prod.env
     digirent-nginx-prod:
         image: ghcr.io/ariento89/digirent-nginx:prod
         container_name: digirent-nginx
