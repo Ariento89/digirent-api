@@ -46,7 +46,6 @@ jobs:
           username: ${{ secrets.DO_USERNAME }}
           port: ${{ secrets.DO_PORT }}
           key: ${{ secrets.DO_SSH_KEY }}
-          # passphrase: ${{secrets.DO_SSH_PASSPHRASE}}
           source: "docker-compose.prod.yml"
           target: "Digirent"
       - name: Deploy App To Digital occean

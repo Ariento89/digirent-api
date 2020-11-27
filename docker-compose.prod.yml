@@ -6,7 +6,7 @@ services:
         container_name: digirentdb-prod
         volumes:
             - postgres_data:/var/lib/postgresql/data/
-        expose: :
+        expose:
             - "5432"
         env_file: 
             - env/.db.prod.env
