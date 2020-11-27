@@ -66,7 +66,7 @@ services:
             - "80:80"
         depends_on:
             - digirent-api-prod
-            - digirent-web-prod
+            # - digirent-web-prod
 
 volumes: 
     postgres_data:
