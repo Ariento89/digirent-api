@@ -12,8 +12,14 @@ test:
 build:
 	docker-compose -f docker-compose.yml build
 
-build-prod:
-	docker-compose -f docker-compose.prod.yml build
+
+build-api-prod:
+	docker build -t ghcr.io/ariento89/digirent-api:prod .
+
+build-nginx-prod:
+	docker build -t ghcr.io/ariento89/digirent-nginx:prod .
+
+build-prod: build-api-prod build-nginx-prod
 
 serve:
 	docker-compose -f docker-compose.yml up --build -d

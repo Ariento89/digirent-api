@@ -19,7 +19,7 @@ services:
             - env/.prod.env
         depends_on:
             - digirentdb-prod
-        command: bash -c "export APP_ENV=prod && uvicorn digirent.web_app:app --reload --workers 1 --host 0.0.0.0 --port 5000"
+        command: ["uvicorn", "digirent.web_app:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]
     digirent-redis-prod:
         container_name: digirent-redis-prod
         image: redis:6.0.9-alpine
@@ -31,7 +31,7 @@ services:
         depends_on:
             - digirentdb-prod
             - digirent-redis-prod 
-        command: bash -c "export APP_ENV=prod && celery --app=digirent.worker.app:app worker -Q rent-queue -l info"
+        command: ["celery", "--app=digirent.worker.app:app", "worker", "-Q", "rent-queue", "-l", "info"]
     digirent-subscription-worker-prod:
         image: ghcr.io/ariento89/digirent-api:prod
         container_name: digirent-subscription-worker-prod
@@ -40,7 +40,7 @@ services:
         depends_on:
             - digirentdb-prod
             - digirent-redis-prod
-        command: bash -c "export APP_ENV=prod && celery --app=digirent.worker.app:app worker -Q subscription-queue -l info"
+        command: ["celery", "--app=digirent.worker.app:app", "worker", "-Q", "subscription-queue", "-l", "info"]
     digirent-beat-prod:
         image: ghcr.io/ariento89/digirent-api:prod
         container_name: digirent-beat-prod
@@ -49,7 +49,7 @@ services:
         depends_on:
             - digirent-subscription-worker-prod
             - digirent-rent-worker-prod
-        command: bash -c "export APP_ENV=prod && celery --app=digirent.worker.app:app beat -l info"
+        command: ["celery", "--app=digirent.worker.app:app", "beat", "-l", "info"]
     # digirent-web-prod:
     #     image: ghcr.io/ariento89/digirent-web:prod
     #     container_name: digirent-web-prod
