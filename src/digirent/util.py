@@ -1,6 +1,6 @@
 from pathlib import Path
 import jwt
-from typing import Optional, Union
+from typing import Any, Optional, Union
 from datetime import datetime, timedelta, date
 from passlib.context import CryptContext
 from digirent.core.config import (
@@ -18,19 +18,28 @@ from sendgrid.helpers.mail import Mail
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def create_access_token(data: dict, expires_delta: timedelta = None):
-    to_encode = data.copy()
+def create_token(payload: dict, expires_delta: timedelta = None):
+    to_encode = payload.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.utcnow() + timedelta(minutes=60)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
+def create_access_token(data: dict, expires_delta: timedelta = None):
+    expire = expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    return create_token(data, expire)
+
+
+def get_payload_from_token(token: Union[str, bytes]) -> Any:
+    return jwt.decode(token, SECRET_KEY, algorithms=[JWT_ALGORITHM])
+
+
 def decode_access_token(token: Union[str, bytes]) -> str:
     # scenario token is not valid
-    payload = jwt.decode(token, SECRET_KEY, algorithms=[JWT_ALGORITHM])
+    payload = get_payload_from_token(token)
     user_id: str = payload.get("sub")  # type: ignore
     return user_id
 

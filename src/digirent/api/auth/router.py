@@ -1,7 +1,9 @@
 from typing import Optional
 from enum import Enum
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi.param_functions import Body
 from fastapi.requests import Request
+from jwt import PyJWTError
 from digirent.app.error import ApplicationError
 from digirent.database.enums import UserRole
 from digirent.database.models import User
@@ -12,6 +14,11 @@ from digirent.app import Application
 from digirent.app.social import oauth
 from .helper import get_token_from_facebook_auth, get_token_from_google_auth
 import digirent.api.dependencies as dependencies
+from digirent import util
+from digirent.core import config
+
+
+PASSWORD_RESET_TOKEN_VALUE = "password_reset"
 
 
 class SocialAccountLoginWho(str, Enum):
@@ -33,6 +40,57 @@ async def login(
         return TokenSchema(access_token=token, token_type="bearer")
     except ApplicationError as e:
         raise HTTPException(401, str(e))
+
+
+@router.post("/forgot-password")
+def forgot_password(
+    background: BackgroundTasks,
+    email: str = Body(...),
+    session: Session = Depends(dependencies.get_database_session),
+):
+    user_with_email = session.query(User).filter(User.email == email).one_or_none()
+    if user_with_email:
+        password_reset_token = util.create_access_token(
+            {"type": PASSWORD_RESET_TOKEN_VALUE, "email": email}
+        )
+        url = f"{config.CLIENT_HOST}/forgot-password?token={password_reset_token}"
+        email_str = f"Follow this link to reset password {url}"
+        background.add_task(
+            util.send_email,
+            to=email,
+            subject="Reset Digirent Password",
+            message=email_str,
+        )
+
+
+@router.post("/reset-password")
+def reset_password(
+    token: str = Body(...),
+    email: str = Body(...),
+    password: str = Body(...),
+    session: Session = Depends(dependencies.get_database_session),
+):
+    error = HTTPException(400, "Invalid token")
+    user_with_email: User = (
+        session.query(User).filter(User.email == email).one_or_none()
+    )
+    if not user_with_email:
+        raise HTTPException(404, "User not found")
+    try:
+        payload = util.get_payload_from_token(token)
+        token_type = payload["type"]
+        if token_type != PASSWORD_RESET_TOKEN_VALUE:
+            raise error
+        token_email = payload["email"]
+        if token_email != user_with_email.email:
+            raise error
+        user_password = util.hash_password(password)
+        user_with_email.hashed_password = user_password
+        session.commit()
+    except PyJWTError:
+        raise error
+    except KeyError:
+        raise error
 
 
 @router.get("/tenant/authorization/google", response_model=TokenSchema)
