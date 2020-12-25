@@ -7,10 +7,14 @@ from digirent.app import Application
 from digirent.app.container import ApplicationContainer
 from sqlalchemy.orm.session import Session
 from digirent.app.error import ApplicationError
+from digirent.core import config
 from digirent.database.models import Admin, Landlord, Tenant, User, UserRole
 from digirent.database.base import SessionLocal
+from itsdangerous.url_safe import URLSafeSerializer
+from itsdangerous.exc import BadSignature
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/")
+serializer = URLSafeSerializer(secret_key=config.SECRET_KEY, salt=config.SALT)
 
 
 def get_database_session() -> Session:
@@ -184,7 +188,11 @@ def get_optional_current_user_from_state(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        user: User = application.authenticate_token(session, state)
+        payload_from_state = serializer.loads(state)
+        access_token = payload_from_state["access_token"]
+        if not access_token:
+            return
+        user: User = application.authenticate_token(session, access_token)
         if user.role == UserRole.ADMIN:
             user = session.query(Admin).get(user.id)
         elif user.role == UserRole.TENANT:
@@ -192,6 +200,10 @@ def get_optional_current_user_from_state(
         elif user.role == UserRole.LANDLORD:
             user = session.query(Landlord).get(user.id)
     except ApplicationError:
+        raise credentials_exception
+    except BadSignature:
+        raise credentials_exception
+    except KeyError:
         raise credentials_exception
     return user
 

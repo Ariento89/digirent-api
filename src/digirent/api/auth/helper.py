@@ -5,6 +5,22 @@ from digirent.database.enums import UserRole
 from digirent.app.social import oauth
 from digirent.app import Application
 from digirent.database.models import User
+from digirent.core import config
+from itsdangerous.url_safe import URLSafeSerializer
+
+serializer = URLSafeSerializer(secret_key=config.SECRET_KEY, salt=config.SALT)
+
+
+def generate_state(access_token: str, who: str, social: str) -> str:
+    assert who in ["tenant", "landlord"]
+    assert social in ["google", "facebook"]
+    return serializer.dumps(
+        {"access_token": access_token, "who": who, "social": social}
+    )
+
+
+def get_payload_from_state(state: str) -> dict:
+    return serializer.loads(state)
 
 
 async def get_token_from_google_auth(
@@ -60,10 +76,11 @@ async def get_token_from_facebook_auth(
     access_token = app.authenticate_facebook(
         session,
         facebook_user_id,
-        token,
+        access_token,
         email,
         firstname,
         lastname,
         role,
         authenticated_user,
     )
+    return access_token

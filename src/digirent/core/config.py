@@ -92,3 +92,9 @@ LANDLORD_SUBSCRIPTION_AMOUNT: str = config("LANDLORD_SUBSCRIPTION_AMOUNT", cast=
 CELERY_BROKER_URL: str = config("CELERY_BROKER_URL", cast=str)
 
 CELERY_BACKEND_URL: str = config("CELERY_BACKEND_URL", cast=str, default=None)
+
+CLIENT_GOOGLE_AUTH_URL: str = config("CLIENT_GOOGLE_AUTH_URL", cast=str)
+
+CLIENT_FACEBOOK_AUTH_URL: str = config("CLIENT_FACEBOOK_AUTH_URL", cast=str)
+
+SALT: str = config("SALT", cast=str)

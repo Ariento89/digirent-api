@@ -7,12 +7,17 @@ from jwt import PyJWTError
 from digirent.app.error import ApplicationError
 from digirent.database.enums import UserRole
 from digirent.database.models import User
-from .schema import TokenSchema
+from .schema import RedirectSchema, TokenSchema
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 from digirent.app.social import oauth
-from .helper import get_token_from_facebook_auth, get_token_from_google_auth
+from .helper import (
+    get_token_from_facebook_auth,
+    get_token_from_google_auth,
+    generate_state,
+    get_payload_from_state,
+)
 import digirent.api.dependencies as dependencies
 from digirent import util
 from digirent.core import config
@@ -93,89 +98,79 @@ def reset_password(
         raise error
 
 
-@router.get("/tenant/authorization/google", response_model=TokenSchema)
-async def tenant_google_authorization(
+@router.get("/authorization/google", response_model=TokenSchema)
+async def google_authorization(
     request: Request,
+    state: str,
     app: Application = Depends(dependencies.get_application),
     session: Session = Depends(dependencies.get_database_session),
     user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
 ):
     try:
+        # TODO properly handle state failures
+        payload_from_state = get_payload_from_state(state)
+        who = payload_from_state["who"]
+        social = payload_from_state["social"]
+        if social != "google":
+            raise HTTPException(400, "Invalid authorization token")
+        role = UserRole.TENANT if who == "tenant" else UserRole.LANDLORD
         access_token = await get_token_from_google_auth(
-            request, session, app, UserRole.TENANT, user
+            request, session, app, role, user
         )
         return {"access_token": access_token}
     except ApplicationError as e:
         raise HTTPException(400, str(e))
+    except KeyError:
+        raise HTTPException(400, "Invalid authorization token")
 
 
-@router.get("/landlord/authorization/google", response_model=TokenSchema)
-async def landlord_google_authorization(
-    request: Request,
-    app: Application = Depends(dependencies.get_application),
-    session: Session = Depends(dependencies.get_database_session),
-    user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
-):
-    try:
-        access_token = await get_token_from_google_auth(
-            request, session, app, UserRole.LANDLORD, user
-        )
-        return {"access_token": access_token}
-    except ApplicationError as e:
-        raise HTTPException(400, str(e))
-
-
-@router.get("/google")
+@router.get("/google", response_model=RedirectSchema)
 async def login_with_google(
     who: SocialAccountLoginWho,
     request: Request,
     token: Optional[str] = Depends(dependencies.get_optional_current_user_token),
 ):
-    endpoint_name = f"{who.value}_google_authorization"
-    redirect_uri = request.url_for(endpoint_name)
-    state = token or " "
-    return await oauth.google.authorize_redirect(request, redirect_uri, state=state)
+    redirect_uri = config.CLIENT_GOOGLE_AUTH_URL
+    state = generate_state(token, who, "google")
+    response = await oauth.google.authorize_redirect(request, redirect_uri, state=state)
+    return {"to": response._headers["location"]}
 
 
-@router.get("/facebook")
+@router.get("/facebook", response_model=RedirectSchema)
 async def login_with_facebook(
     who: SocialAccountLoginWho,
     request: Request,
     token: Optional[str] = Depends(dependencies.get_optional_current_user_token),
 ):
-    endpoint_name = f"{who.value}_facebook_authorization"
-    redirect_uri = request.url_for(endpoint_name)
-    state = token or " "
-    return await oauth.facebook.authorize_redirect(request, redirect_uri, state=state)
+    redirect_uri = config.CLIENT_FACEBOOK_AUTH_URL
+    state = generate_state(token, who, "facebook")
+    response = await oauth.facebook.authorize_redirect(
+        request, redirect_uri, state=state
+    )
+    return {"to": response._headers["location"]}
 
 
-@router.get("/landlord/authorization/facebook")
-async def landlord_facebook_authorization(
+@router.get("/authorization/facebook")
+async def facebook_authorization(
     request: Request,
+    state: str,
     app: Application = Depends(dependencies.get_application),
     session: Session = Depends(dependencies.get_database_session),
     user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
 ):
     try:
+        # TODO properly handle state failures
+        payload_from_state = get_payload_from_state(state)
+        who = payload_from_state["who"]
+        social = payload_from_state["social"]
+        if social != "facebook":
+            raise HTTPException(400, "Invalid authorization token")
+        role = UserRole.TENANT if who == "tenant" else UserRole.LANDLORD
         access_token = await get_token_from_facebook_auth(
-            request, session, app, UserRole.LANDLORD, user
+            request, session, app, role, user
         )
         return {"access_token": access_token}
     except ApplicationError as e:
         raise HTTPException(400, str(e))
-
-
-@router.get("/tenant/authorization/facebook")
-async def tenant_facebook_authorization(
-    request: Request,
-    app: Application = Depends(dependencies.get_application),
-    session: Session = Depends(dependencies.get_database_session),
-    user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
-):
-    try:
-        access_token = await get_token_from_facebook_auth(
-            request, session, app, UserRole.TENANT, user
-        )
-        return {"access_token": access_token}
-    except ApplicationError as e:
-        raise HTTPException(400, str(e))
+    except KeyError:
+        raise HTTPException(400, "Invalid authorization token")
