@@ -98,7 +98,7 @@ def reset_password(
         raise error
 
 
-@router.get("/authorization/google", response_model=TokenSchema)
+@router.post("/authorization/google", response_model=TokenSchema)
 async def google_authorization(
     request: Request,
     state: str,
@@ -124,7 +124,7 @@ async def google_authorization(
         raise HTTPException(400, "Invalid authorization token")
 
 
-@router.get("/google", response_model=RedirectSchema)
+@router.post("/google", response_model=RedirectSchema)
 async def login_with_google(
     who: SocialAccountLoginWho,
     request: Request,
@@ -136,7 +136,7 @@ async def login_with_google(
     return {"to": response._headers["location"]}
 
 
-@router.get("/facebook", response_model=RedirectSchema)
+@router.post("/facebook", response_model=RedirectSchema)
 async def login_with_facebook(
     who: SocialAccountLoginWho,
     request: Request,
@@ -150,7 +150,7 @@ async def login_with_facebook(
     return {"to": response._headers["location"]}
 
 
-@router.get("/authorization/facebook")
+@router.post("/authorization/facebook")
 async def facebook_authorization(
     request: Request,
     state: str,
