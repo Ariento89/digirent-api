@@ -1,5 +1,6 @@
 from typing import List
 from sqlalchemy import (
+    Table,
     Column,
     String,
     Text,
@@ -422,3 +423,29 @@ class ChatMessage(Base, EntityMixin, TimestampMixin):
         nullable=False,
     )
     message = Column(String, nullable=False)
+
+
+blog_post_tag_association_table = Table(
+    "blog_posts_tags_association",
+    Base.metadata,
+    Column("blog_post_id", UUIDType(binary=False), ForeignKey("blog_posts.id")),
+    Column("blog_tag_name", String, ForeignKey("blog_tags.name")),
+)
+
+
+class BlogPost(Base, EntityMixin, TimestampMixin):
+    __tablename__ = "blog_posts"
+
+    title = Column(String, nullable=False, unique=True)
+    content = Column(String, nullable=False)
+    tags = relationship(
+        "BlogTag",
+        secondary=blog_post_tag_association_table,
+        backref="posts",
+    )
+
+
+class BlogTag(Base, TimestampMixin):
+    __tablename__ = "blog_tags"
+
+    name = Column(String, primary_key=True)
