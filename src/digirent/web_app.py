@@ -14,6 +14,7 @@ from digirent.api.signrequest.router import router as signerequest_router
 from digirent.api.payments.router import router as payments_router
 from digirent.api.invoices.router import router as invoice_router
 from digirent.api.chat.router import router as chat_router
+from digirent.api.blog.router import router as blog_router
 
 
 def get_api_app():
@@ -49,6 +50,7 @@ def get_api_app():
     api.include_router(payments_router, prefix="/payments", tags=["Payments"])
     api.include_router(invoice_router, prefix="/invoices", tags=["Invoices"])
     api.include_router(chat_router, prefix="/chat", tags=["Chat"])
+    api.include_router(blog_router, prefix="/blog", tags=["Blog"])
     return api
 
 
