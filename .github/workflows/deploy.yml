@@ -12,8 +12,7 @@ env:
   IMAGE_NAME: digirent-api
   IMAGE_TAG: prod
   IMAGE: ghcr.io/ariento89/digirent-api:prod
-  WEB_IMAGE: ghcr.io/ariento89/digirent-web:prod
-  NGINX_IMAGE: ghcr.io/ariento89/digirent-nginx:prod
+  WEB_IMAGE: ghcr.io/ariento89/digirent-app:prod
 
 jobs:
   build:
@@ -26,13 +25,11 @@ jobs:
       - name: Build API and NGINX IMAGES
         run: |
           docker build -t $IMAGE .
-          docker build -t $NGINX_IMAGE ./nginx
 
       - name: Push Built Images to github container registry
         run: |
           docker login $IMAGE_REGISTRY -u $GITHUB_USERNAME --password $PAT
           docker push $IMAGE
-          docker push $NGINX_IMAGE
   deploy:
     name: Deploy container to Digital Ocean
     needs: [build]
@@ -46,7 +43,7 @@ jobs:
           username: ${{ secrets.DO_USERNAME }}
           port: ${{ secrets.DO_PORT }}
           key: ${{ secrets.DO_SSH_KEY }}
-          source: "docker-compose.prod.yml"
+          source: "docker-compose.prod.yml, nginx/*"
           target: "Digirent"
       - name: Deploy App To Digital occean
         uses: appleboy/ssh-action@master
@@ -56,11 +53,10 @@ jobs:
           key: ${{ secrets.DO_SSH_KEY }}
           port: ${{ secrets.DO_PORT }}
           passphrase: ${{secrets.DO_SSH_PASSPHRASE}}
-          envs: IMAGE_REGISTRY,GITHUB_USERNAME,PAT,IMAGE,WEB_IMAGE,NGINX_IMAGE
+          envs: IMAGE_REGISTRY,GITHUB_USERNAME,PAT,IMAGE,WEB_IMAGE
           script: |
             cd ~/Digirent
             docker login $IMAGE_REGISTRY -u $GITHUB_USERNAME -p $PAT
             docker pull $IMAGE
             docker pull $WEB_IMAGE
-            docker pull $NGINX_IMAGE
             docker-compose -f docker-compose.prod.yml up -d

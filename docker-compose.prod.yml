@@ -1,72 +1,108 @@
 version: '3.7'
 
 services:
-    digirentdb-prod:
+    digirentdb:
         image: mdillon/postgis:11-alpine
-        container_name: digirentdb-prod
+        container_name: digirentdb
         volumes:
             - postgres_data:/var/lib/postgresql/data/
         expose:
             - "5432"
         env_file: 
             - env/.db.prod.env
-    digirent-api-prod:
+        restart: unless-stopped
+    digirent-api:
         image: ghcr.io/ariento89/digirent-api:prod
-        container_name: digirent-api-prod
+        container_name: digirent-api
         expose:
             - "5000"
         env_file:
             - env/.prod.env
         depends_on:
-            - digirentdb-prod
-        command: ["uvicorn", "digirent.web_app:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]
-    digirent-redis-prod:
-        container_name: digirent-redis-prod
+            - digirentdb
+        restart: unless-stopped
+        command: ["uvicorn", "digirent.web_app:app", "--host", "0.0.0.0", "--port", "5000"]
+    digirent-redis:
+        container_name: digirent-redis
         image: redis:6.0.9-alpine
-    digirent-rent-worker-prod:
+    digirent-rent-worker:
         image: ghcr.io/ariento89/digirent-api:prod
-        container_name: digirent-rent-worker-prod
+        container_name: digirent-rent-worker
         env_file:
             - env/.prod.env
         depends_on:
-            - digirentdb-prod
-            - digirent-redis-prod 
+            - digirentdb
+            - digirent-redis 
         command: ["celery", "--app=digirent.worker.app:app", "worker", "-Q", "rent-queue", "-l", "info"]
-    digirent-subscription-worker-prod:
+    digirent-subscription-worker:
         image: ghcr.io/ariento89/digirent-api:prod
-        container_name: digirent-subscription-worker-prod
+        container_name: digirent-subscription-worker
         env_file:
             - env/.prod.env
         depends_on:
-            - digirentdb-prod
-            - digirent-redis-prod
+            - digirentdb
+            - digirent-redis
         command: ["celery", "--app=digirent.worker.app:app", "worker", "-Q", "subscription-queue", "-l", "info"]
-    digirent-beat-prod:
+    digirent-beat:
         image: ghcr.io/ariento89/digirent-api:prod
-        container_name: digirent-beat-prod
+        container_name: digirent-beat
         env_file:
             - env/.prod.env
         depends_on:
-            - digirent-subscription-worker-prod
-            - digirent-rent-worker-prod
+            - digirent-subscription-worker
+            - digirent-rent-worker
         command: ["celery", "--app=digirent.worker.app:app", "beat", "-l", "info"]
-    # digirent-web-prod:
-    #     image: ghcr.io/ariento89/digirent-web:prod
-    #     container_name: digirent-web-prod
-    #     expose:
-    #         - "3000"
-    #     depends_on:
-    #         - digirent-api-prod
-    #     env_file:
-    #         - env/.web.prod.env
-    digirent-nginx-prod:
-        image: ghcr.io/ariento89/digirent-nginx:prod
-        container_name: digirent-nginx
-        ports: 
-            - "80:80"
+    digirent-app:
+        image: ghcr.io/ariento89/digirent-app:prod
+        container_name: digirent-app
+        expose:
+            - "3000"
         depends_on:
-            - digirent-api-prod
-            # - digirent-web-prod
+            - digirent-api
+        env_file:
+            - env/.web.prod.env
+        command: bash -c "yarn start"
+        restart: unless-stopped
+    digirent-nginx:
+        image: nginx:mainline-alpine
+        container_name: digirent-nginx
+        restart: unless-stopped
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./nginx:/etc/nginx/conf.d
+            - web-root:/var/www/html
+            - certbot-etc:/etc/letsencrypt
+            - certbot-var:/var/lib/letsencrypt
+            - dhparam:/etc/ssl/certs
+        depends_on:
+            - digirent-api
+            - digirent-app    
+    digirent-certbot:
+        image: certbot/certbot
+        container_name: digirent-certbot
+        volumes:
+            - certbot-etc:/etc/letsencrypt
+            - certbot-var:/var/lib/letsencrypt
+            - web-root:/var/www/html
+        depends_on:
+            - digirent-nginx
+        command: certonly --webroot --webroot-path=/var/www/html --email orelio.lopes@gmail.com --agree-tos --no-eff-email --force-renewal -d digi-rent.com  -d www.digi-rent.com -d staging.digi-rent.com -d api.staging.digi-rent.com
 
-volumes: 
+volumes:
     postgres_data:
+    certbot-etc:
+    certbot-var:
+    web-root:
+        driver: local
+        driver_opts:
+            type: none
+            device: ~/Digirent/views/
+            o: bind
+    dhparam:
+        driver: local
+        driver_opts:
+            type: none
+            device: ~/Digirent/dhparam/
+            o: bind
