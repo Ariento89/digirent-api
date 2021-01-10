@@ -412,12 +412,12 @@ class Invoice(Base, EntityMixin, TimestampMixin):
 
 class ChatMessage(Base, EntityMixin, TimestampMixin):
     __tablename__ = "chat_messages"
-    from_user = Column(
+    from_user_id = Column(
         UUIDType(binary=False),
         ForeignKey("users.id"),
         nullable=False,
     )
-    to_user = Column(
+    to_user_id = Column(
         UUIDType(binary=False),
         ForeignKey("users.id"),
         nullable=False,
