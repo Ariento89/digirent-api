@@ -105,6 +105,59 @@ async def chat(websocket: WebSocket, user: User = Depends(deps.user_from_websock
         await manager_endpoint.on_disconnect(websocket)
 
 
+@router.get("/users", response_model=ChatUserPaginationSchema)
+def fetch_users_chat_list(
+    page: int = 1,
+    page_size: int = 20,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_database_session),
+):
+    """Fetch list of users the authenticated user has chatted with"""
+    last_message = func.last(ChatMessage.message)
+    last_time = func.last(ChatMessage.created_at)
+    chat_messages_query = (
+        session.query(
+            last_message.label("message"),
+            last_time.label("timestamp"),
+            ChatMessage.from_user_id,
+            ChatMessage.to_user_id,
+        )
+        .filter(
+            or_(ChatMessage.from_user_id == user.id, ChatMessage.to_user_id == user.id)
+        )
+        .group_by(ChatMessage.from_user_id, ChatMessage.to_user_id)
+    )
+    # TODO fix count to account for duplicates due to from_user_id and to_user_id grouping
+    count = chat_messages_query.count()
+    chat_messages = (
+        chat_messages_query.offset((page - 1) * page_size).limit(page_size).all()
+    )
+    result_dict = {}
+    result_list = []
+    for chat_message in chat_messages:
+        other_user_id = (
+            chat_message.from_user_id
+            if chat_message.from_user_id != user.id
+            else chat_message.to_user_id
+        )
+        if other_user_id in result_dict:
+            other_user_dict = result_dict[other_user_id]
+            if chat_message.timestamp >= other_user_dict["timestamp"]:
+                other_user_dict["timestamp"] = chat_message.timestamp
+                other_user_dict["message"] = chat_message.message
+                other_user_dict["from_user_id"] = chat_message.from_user_id
+                other_user_dict["to_user_id"] = chat_message.to_user_id
+        else:
+            result_dict[other_user_id] = {
+                "message": chat_message.message,
+                "timestamp": chat_message.timestamp,
+                "from_user_id": chat_message.from_user_id,
+                "to_user_id": chat_message.to_user_id,
+            }
+    for _, values in result_dict.items():
+        result_list.append(values)
+    return {"count": count, "page": page, "page_size": page_size, "data": result_list}
+
 @router.get("/{user_id}", response_model=ChatMessagePaginationSchema)
 def fetch_chat_messages(
     user_id: UUID,
@@ -158,57 +211,3 @@ def fetch_chat_messages_between_two_users(
     count = query.count()
     query = query.offset((page - 1) * page_size).limit(page_size)
     return {"page": page, "page_size": page_size, "count": count, "data": query.all()}
-
-
-@router.get("/users", response_model=ChatUserPaginationSchema)
-def fetch_users_chat_list(
-    page: int = 1,
-    page_size: int = 20,
-    user: User = Depends(get_current_user),
-    session: Session = Depends(get_database_session),
-):
-    """Fetch list of users the authenticated user has chatted with"""
-    last_message = func.last(ChatMessage.message)
-    last_time = func.last(ChatMessage.created_at)
-    chat_messages_query = (
-        session.query(
-            last_message.label("message"),
-            last_time.label("timestamp"),
-            ChatMessage.from_user_id,
-            ChatMessage.to_user_id,
-        )
-        .filter(
-            or_(ChatMessage.from_user_id == user.id, ChatMessage.to_user_id == user.id)
-        )
-        .group_by(ChatMessage.from_user_id, ChatMessage.to_user_id)
-    )
-    # TODO fix count to account for duplicates due to from_user_id and to_user_id grouping
-    count = chat_messages_query.count()
-    chat_messages = (
-        chat_messages_query.offset((page - 1) * page_size).limit(page_size).all()
-    )
-    result_dict = {}
-    result_list = []
-    for chat_message in chat_messages:
-        other_user_id = (
-            chat_message.from_user_id
-            if chat_message.from_user_id != user.id
-            else chat_message.to_user_id
-        )
-        if other_user_id in result_dict:
-            other_user_dict = result_dict[other_user_id]
-            if chat_message.timestamp >= other_user_dict["timestamp"]:
-                other_user_dict["timestamp"] = chat_message.timestamp
-                other_user_dict["message"] = chat_message.message
-                other_user_dict["from_user_id"] = chat_message.from_user_id
-                other_user_dict["to_user_id"] = chat_message.to_user_id
-        else:
-            result_dict[other_user_id] = {
-                "message": chat_message.message,
-                "timestamp": chat_message.timestamp,
-                "from_user_id": chat_message.from_user_id,
-                "to_user_id": chat_message.to_user_id,
-            }
-    for _, values in result_dict.items():
-        result_list.append(values)
-    return {"count": count, "page": page, "page_size": page_size, "data": result_list}
