@@ -133,7 +133,6 @@ def fetch_users_chat_list(
         chat_messages_query.offset((page - 1) * page_size).limit(page_size).all()
     )
     result_dict = {}
-    result_list = []
     for chat_message in chat_messages:
         other_user_id = (
             chat_message.from_user_id
@@ -154,9 +153,9 @@ def fetch_users_chat_list(
                 "from_user_id": chat_message.from_user_id,
                 "to_user_id": chat_message.to_user_id,
             }
-    for _, values in result_dict.items():
-        result_list.append(values)
+    result_list = [values for _, values in result_dict.items()]
     return {"count": count, "page": page, "page_size": page_size, "data": result_list}
+
 
 @router.get("/{user_id}", response_model=ChatMessagePaginationSchema)
 def fetch_chat_messages(
