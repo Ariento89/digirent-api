@@ -10,9 +10,9 @@ env:
   GITHUB_USERNAME: ariento89
   IMAGE_REGISTRY: ghcr.io
   IMAGE_NAME: digirent-api
-  IMAGE_TAG: prod
-  IMAGE: ghcr.io/ariento89/digirent-api:prod
-  WEB_IMAGE: ghcr.io/ariento89/digirent-app:prod
+  IMAGE_TAG: staging
+  IMAGE: ghcr.io/ariento89/digirent-api:staging
+  WEB_IMAGE: ghcr.io/ariento89/digirent-app:staging
 
 jobs:
   build:
@@ -43,7 +43,7 @@ jobs:
           username: ${{ secrets.DO_USERNAME }}
           port: ${{ secrets.DO_PORT }}
           key: ${{ secrets.DO_SSH_KEY }}
-          source: "docker-compose.prod.yml, nginx/*"
+          source: "docker-compose.staging.yml, nginx/*"
           target: "Digirent"
       - name: Deploy App To Digital occean
         uses: appleboy/ssh-action@master
@@ -59,4 +59,4 @@ jobs:
             docker login $IMAGE_REGISTRY -u $GITHUB_USERNAME -p $PAT
             docker pull $IMAGE
             docker pull $WEB_IMAGE
-            docker-compose -f docker-compose.prod.yml up -d
+            docker-compose -f docker-compose.staging.yml up --remove-orphans --force-recreate -d
