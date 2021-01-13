@@ -14,8 +14,8 @@ services:
     digirent-api:
         image: ghcr.io/ariento89/digirent-api:staging
         container_name: digirent-api
-        expose:
-            - "5000"
+        ports:
+            - "5000:5000"
         env_file:
             - env/.staging.env
         depends_on:
