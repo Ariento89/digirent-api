@@ -150,8 +150,8 @@ def fetch_users_chat_list(
             result_dict[other_user_id] = {
                 "message": chat_message.message,
                 "timestamp": chat_message.timestamp,
-                "from_user_id": chat_message.from_user_id,
-                "to_user_id": chat_message.to_user_id,
+                "from_user": session.query(User).get(chat_message.from_user_id),
+                "to_user": session.query(User).get(chat_message.to_user_id),
             }
     result_list = [values for _, values in result_dict.items()]
     return {"count": count, "page": page, "page_size": page_size, "data": result_list}

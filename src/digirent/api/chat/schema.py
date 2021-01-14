@@ -10,13 +10,22 @@ class ChatMessageSchema(OrmSchema):
     message: str
 
 
+class UserSchema(BaseSchema):
+    id: UUID
+    first_name: str
+    last_name: str
+
+    class Config:
+        orm_mode = True
+
+
 class ChatMessagePaginationSchema(BasePaginationSchema):
     data: List[ChatMessageSchema]
 
 
 class ChatUserSchema(BaseSchema):
-    from_user_id: UUID
-    to_user_id: UUID
+    from_user: UserSchema
+    to_user: UserSchema
     message: str
     timestamp: datetime
 
