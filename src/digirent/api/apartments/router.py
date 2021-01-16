@@ -112,7 +112,6 @@ def upload_videos(
 @router.get("/", response_model=List[ApartmentSchema])
 def fetch_apartments(
     session: Session = Depends(dependencies.get_database_session),
-    user: User = Depends(dependencies.get_current_user),
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
     latitude: Optional[float] = None,
@@ -123,6 +122,7 @@ def fetch_apartments(
     max_bedrooms: Optional[int] = None,
     min_bathrooms: Optional[int] = None,
     max_bathrooms: Optional[int] = None,
+    is_descending: Optional[bool] = False,
 ):
     query = session.query(Apartment)
     if min_price:
@@ -144,6 +144,11 @@ def fetch_apartments(
     if latitude and longitude:
         center = "POINT({} {})".format(longitude, latitude)
         query = query.filter(Apartment.location.ST_Distance_Sphere(center) < 5000)
+    query = (
+        query.order_by(Apartment.created_at.desc())
+        if is_descending
+        else query.order_by(Apartment.created_at.asc())
+    )
     return query.all()
 
 
