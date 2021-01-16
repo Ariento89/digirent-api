@@ -17,6 +17,9 @@ class ProfileSchema(OrmSchema):
     role: UserRole
     is_active: bool
     profile_percentage: Optional[float]
+    copy_id_uploaded: bool
+    proof_of_income_uploaded: bool
+    proof_of_enrollment_uploaded: bool
 
 
 class ProfileUpdateSchema(BaseSchema):

@@ -65,6 +65,33 @@ class User(Base, EntityMixin, TimestampMixin):
             return False
         return all([self.email_verified, self.phone_verified])
 
+    @property
+    def copy_id_uploaded(self) -> bool:
+        possible_filenames = [f"{self.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
+        copy_id_path = util.get_copy_ids_path()
+        possible_copy_id_file_paths = [
+            (copy_id_path / filename) for filename in possible_filenames
+        ]
+        return any(path.exists() for path in possible_copy_id_file_paths)
+
+    @property
+    def proof_of_income_uploaded(self) -> bool:
+        possible_filenames = [f"{self.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
+        proof_of_income_path = util.get_proof_of_income_path()
+        possible_proof_of_income_file_paths = [
+            (proof_of_income_path / filename) for filename in possible_filenames
+        ]
+        return any(path.exists() for path in possible_proof_of_income_file_paths)
+
+    @property
+    def proof_of_enrollment_uploaded(self) -> bool:
+        possible_filenames = [f"{self.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
+        proof_of_enrollment_path = util.get_proof_of_enrollment_path()
+        possible_proof_of_enrollment_file_paths = [
+            (proof_of_enrollment_path / filename) for filename in possible_filenames
+        ]
+        return any(path.exists() for path in possible_proof_of_enrollment_file_paths)
+
 
 class Admin(User):
     __mapper_args__ = {"polymorphic_identity": UserRole.ADMIN}
