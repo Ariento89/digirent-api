@@ -89,67 +89,6 @@ def update_password(
         raise HTTPException(400, str(e))
 
 
-@router.post("/upload/copy-id", status_code=201, response_model=ProfileSchema)
-def upload_copy_id(
-    file: UploadFile = File(...),
-    user: User = Depends(dependencies.get_current_user),
-    app: Application = Depends(dependencies.get_application),
-):
-    try:
-        file_extension = file.filename.split(".")[-1]
-        return app.upload_copy_id(user, file.file, file_extension)
-    except ApplicationError as e:
-        if "not found" in str(e).lower():
-            raise HTTPException(404, str(e))
-        raise HTTPException(400, str(e))
-
-
-@router.post("/upload/proof-of-income", status_code=201, response_model=ProfileSchema)
-def upload_proof_of_income(
-    file: UploadFile = File(...),
-    tenant: Tenant = Depends(dependencies.get_current_tenant),
-    app: Application = Depends(dependencies.get_application),
-):
-    try:
-        file_extension = file.filename.split(".")[-1]
-        return app.upload_proof_of_income(tenant, file.file, file_extension)
-    except ApplicationError as e:
-        if "not found" in str(e).lower():
-            raise HTTPException(404, str(e))
-        raise HTTPException(400, str(e))
-
-
-@router.post(
-    "/upload/proof-of-enrollment", status_code=201, response_model=ProfileSchema
-)
-def upload_proof_of_enrollment(
-    file: UploadFile = File(...),
-    tenant: Tenant = Depends(dependencies.get_current_tenant),
-    app: Application = Depends(dependencies.get_application),
-):
-    try:
-        file_extension = file.filename.split(".")[-1]
-        return app.upload_proof_of_enrollment(tenant, file.file, file_extension)
-    except ApplicationError as e:
-        if "not found" in str(e).lower():
-            raise HTTPException(404, str(e))
-        raise HTTPException(400, str(e))
-
-
-@router.post("/upload/profile-image", status_code=201, response_model=ProfileSchema)
-def upload_profile_photo(
-    file: UploadFile = File(...),
-    user: User = Depends(dependencies.get_current_user),
-    app: Application = Depends(dependencies.get_application),
-):
-    try:
-        return app.upload_profile_image(user, file.file, file.filename)
-    except ApplicationError as e:
-        if "not found" in str(e).lower():
-            raise HTTPException(404, str(e))
-        raise HTTPException(400, str(e))
-
-
 @router.get(
     "/applciations",
     status_code=200,

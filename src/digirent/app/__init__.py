@@ -450,7 +450,7 @@ class Application(ApplicationBase):
         for filename in possible_filenames:
             if self.file_service.get(filename, folder_path):
                 self.file_service.delete(filename, folder_path)
-        filename = f"{user.id}.{extension}"
+        filename = f"{user.id}.{extension.lower()}"
         self.file_service.store_file(folder_path, filename, file)
         return user
 
@@ -465,7 +465,7 @@ class Application(ApplicationBase):
         for filename in possible_filenames:
             if self.file_service.get(filename, folder_path):
                 self.file_service.delete(filename, folder_path)
-        filename = f"{user.id}.{file_extension}"
+        filename = f"{user.id}.{file_extension.lower()}"
         self.file_service.store_file(folder_path, filename, file)
         return user
 
