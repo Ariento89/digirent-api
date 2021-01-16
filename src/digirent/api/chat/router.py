@@ -144,8 +144,12 @@ def fetch_users_chat_list(
             if chat_message.timestamp >= other_user_dict["timestamp"]:
                 other_user_dict["timestamp"] = chat_message.timestamp
                 other_user_dict["message"] = chat_message.message
-                other_user_dict["from_user_id"] = chat_message.from_user_id
-                other_user_dict["to_user_id"] = chat_message.to_user_id
+                other_user_dict["from_user"] = session.query(User).get(
+                    chat_message.from_user_id
+                )
+                other_user_dict["to_user"] = session.query(User).get(
+                    chat_message.to_user_id
+                )
         else:
             result_dict[other_user_id] = {
                 "message": chat_message.message,
