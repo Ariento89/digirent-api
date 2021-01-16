@@ -41,7 +41,9 @@ class ChatManager:
     async def send_message_to_user(
         self, user_id: UUID, sender_id: UUID, message: str, session: Session = None
     ):
-        db_message = ChatMessage(from_user=sender_id, to_user=user_id, message=message)
+        db_message = ChatMessage(
+            from_user_id=sender_id, to_user_id=user_id, message=message
+        )
         session.add(db_message)
         session.commit()
         from_chatuser = self.chat_users.get(sender_id)
