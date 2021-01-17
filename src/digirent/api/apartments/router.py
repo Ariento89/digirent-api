@@ -156,7 +156,6 @@ def fetch_apartments(
 def get_apartment(
     apartment_id: UUID,
     session: Session = Depends(dependencies.get_database_session),
-    user: User = Depends(dependencies.get_current_user),
 ):
     apartment = session.query(Apartment).get(apartment_id)
     if not apartment:
