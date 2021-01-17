@@ -63,7 +63,7 @@ class User(Base, EntityMixin, TimestampMixin):
     def is_active(self):
         if self.is_suspended:
             return False
-        return all([self.email_verified, self.phone_verified])
+        return all([self.email_verified])
 
     @property
     def copy_id_uploaded(self) -> bool:

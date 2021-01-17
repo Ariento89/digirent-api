@@ -26,7 +26,7 @@ router = APIRouter()
 @router.post("/copy-id", status_code=201, response_model=FileUploadResponseSchema)
 def upload_copy_id(
     file: UploadFile = File(...),
-    user: User = Depends(deps.get_current_user),
+    user: User = Depends(deps.get_current_active_user),
     app: Application = Depends(deps.get_application),
 ):
     try:
@@ -41,7 +41,7 @@ def upload_copy_id(
 
 @router.get("/copy-id")
 def download_copy_id(
-    user: User = Depends(deps.get_current_user),
+    user: User = Depends(deps.get_current_active_user),
 ):
     """
     Download user copy id
@@ -66,7 +66,7 @@ def download_copy_id(
 )
 def upload_proof_of_income(
     file: UploadFile = File(...),
-    tenant: Tenant = Depends(deps.get_current_tenant),
+    tenant: Tenant = Depends(deps.get_current_active_tenant),
     app: Application = Depends(deps.get_application),
 ):
     try:
@@ -81,7 +81,7 @@ def upload_proof_of_income(
 
 @router.get("/proof-of-income")
 def download_proof_of_income(
-    tenant: Tenant = Depends(deps.get_current_tenant),
+    tenant: Tenant = Depends(deps.get_current_active_tenant),
 ):
     """
     Download user proof of income
@@ -108,7 +108,7 @@ def download_proof_of_income(
 )
 def upload_proof_of_enrollment(
     file: UploadFile = File(...),
-    tenant: Tenant = Depends(deps.get_current_tenant),
+    tenant: Tenant = Depends(deps.get_current_active_tenant),
     app: Application = Depends(deps.get_application),
 ):
     try:
@@ -126,7 +126,7 @@ def upload_proof_of_enrollment(
 
 @router.get("/proof-of-enrollment")
 def download_proof_of_enrollment(
-    tenant: Tenant = Depends(deps.get_current_tenant),
+    tenant: Tenant = Depends(deps.get_current_active_tenant),
 ):
     """
     Download user proof of enrollment
@@ -149,7 +149,7 @@ def download_proof_of_enrollment(
 @router.post("/profile-image", status_code=201, response_model=FileUploadResponseSchema)
 def upload_profile_photo(
     file: UploadFile = File(...),
-    user: User = Depends(deps.get_current_user),
+    user: User = Depends(deps.get_current_active_user),
     app: Application = Depends(deps.get_application),
 ):
     try:

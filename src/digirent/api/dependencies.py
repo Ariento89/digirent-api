@@ -208,7 +208,7 @@ def get_optional_current_user_from_state(
     return user
 
 
-async def user_from_websocket(
+async def get_user_from_websocket(
     token: str,
     application: Application = Depends(get_application),
     session: Session = Depends(get_database_session),
@@ -223,4 +223,12 @@ async def user_from_websocket(
             user = session.query(Landlord).get(user.id)
     except Exception:
         return
+    return user
+
+
+async def get_active_user_from_websocket(
+    user: Optional[User] = Depends(get_user_from_websocket),
+) -> Optional[User]:
+    if user and not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
     return user

@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends
 from fastapi.exceptions import HTTPException
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
@@ -21,14 +21,14 @@ router = APIRouter()
 
 
 @router.get("/", response_model=ProfileSchema)
-async def me(user: User = Depends(dependencies.get_current_user)):
+async def me(user: User = Depends(dependencies.get_current_active_user)):
     return user
 
 
 @router.put("/", response_model=ProfileSchema)
 def update_profile_information(
     data: ProfileUpdateSchema,
-    user: User = Depends(dependencies.get_current_user),
+    user: User = Depends(dependencies.get_current_active_user),
     app: Application = Depends(dependencies.get_application),
     session: Session = Depends(dependencies.get_database_session),
 ):
@@ -43,7 +43,7 @@ def update_profile_information(
 @router.post("/looking-for", response_model=ProfileSchema)
 def set_tenant_looking_for(
     data: LookingForSchema,
-    tenant: Tenant = Depends(dependencies.get_current_tenant),
+    tenant: Tenant = Depends(dependencies.get_current_active_tenant),
     app: Application = Depends(dependencies.get_application),
     session: Session = Depends(dependencies.get_database_session),
 ):
@@ -60,7 +60,7 @@ def set_tenant_looking_for(
 @router.post("/bank", response_model=ProfileSchema)
 def set_user_bank_details(
     data: BankDetailSchema,
-    user: User = Depends(dependencies.get_current_user),
+    user: User = Depends(dependencies.get_current_active_user),
     app: Application = Depends(dependencies.get_application),
     session: Session = Depends(dependencies.get_database_session),
 ):
@@ -77,7 +77,7 @@ def set_user_bank_details(
 @router.put("/password", response_model=ProfileSchema)
 def update_password(
     data: PasswordUpdateSchema,
-    user: User = Depends(dependencies.get_current_user),
+    user: User = Depends(dependencies.get_current_active_user),
     app: Application = Depends(dependencies.get_application),
     session: Session = Depends(dependencies.get_database_session),
 ):
@@ -95,7 +95,7 @@ def update_password(
     response_model=List[apartment_applications_schema.ApartmentApplicationSchema],
 )
 def fetch_my_apartment_applications(
-    user: User = Depends(dependencies.get_current_user),
+    user: User = Depends(dependencies.get_current_active_user),
     session: Session = Depends(dependencies.get_database_session),
 ):
     if user.role == UserRole.TENANT:

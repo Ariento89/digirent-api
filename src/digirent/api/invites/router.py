@@ -14,7 +14,7 @@ router = APIRouter()
 @router.post("/", status_code=201, response_model=InviteSchema)
 def invite_tenant(
     data: InviteCreateSchema,
-    landlord: Landlord = Depends(deps.get_current_landlord),
+    landlord: Landlord = Depends(deps.get_current_active_landlord),
     session: Session = Depends(deps.get_database_session),
     application: Application = Depends(deps.get_application),
 ):
@@ -48,7 +48,7 @@ def invite_tenant(
 @router.post("/{invitation_id}", response_model=InviteSchema)
 def accept_invite(
     invitation_id: UUID,
-    tenant: Tenant = Depends(deps.get_current_tenant),
+    tenant: Tenant = Depends(deps.get_current_active_tenant),
     session: Session = Depends(deps.get_database_session),
     application: Application = Depends(deps.get_application),
 ):
@@ -69,7 +69,7 @@ def accept_invite(
 @router.delete("/{invitation_id}", response_model=InviteSchema)
 def rejct_invite(
     invitation_id: UUID,
-    tenant: Tenant = Depends(deps.get_current_tenant),
+    tenant: Tenant = Depends(deps.get_current_active_tenant),
     session: Session = Depends(deps.get_database_session),
     application: Application = Depends(deps.get_application),
 ):

@@ -100,7 +100,7 @@ def signrequest_contract_callback(
 )
 def apply(
     apartment_id: UUID,
-    tenant: Tenant = Depends(deps.get_current_tenant),
+    tenant: Tenant = Depends(deps.get_current_active_tenant),
     session: Session = Depends(deps.get_database_session),
     application: Application = Depends(deps.get_application),
 ):
@@ -121,7 +121,7 @@ def apply(
 def reject_application(
     application_id: UUID,
     background_tasks: BackgroundTasks,
-    landlord: Landlord = Depends(deps.get_current_landlord),
+    landlord: Landlord = Depends(deps.get_current_active_landlord),
     session: Session = Depends(deps.get_database_session),
     app: Application = Depends(deps.get_application),
 ):
@@ -155,7 +155,7 @@ def reject_application(
 def consider_application(
     application_id: UUID,
     background_tasks: BackgroundTasks,
-    landlord: Landlord = Depends(deps.get_current_landlord),
+    landlord: Landlord = Depends(deps.get_current_active_landlord),
     session: Session = Depends(deps.get_database_session),
     app: Application = Depends(deps.get_application),
 ):
@@ -189,7 +189,7 @@ def consider_application(
 def process_application(
     application_id: UUID,
     background_tasks: BackgroundTasks,
-    landlord: Landlord = Depends(deps.get_current_landlord),
+    landlord: Landlord = Depends(deps.get_current_active_landlord),
     session: Session = Depends(deps.get_database_session),
     app: Application = Depends(deps.get_application),
 ):
@@ -222,7 +222,7 @@ def process_application(
 )
 def landlord_provide_keys_to_tenant(
     application_id: UUID,
-    landlord: Landlord = Depends(deps.get_current_landlord),
+    landlord: Landlord = Depends(deps.get_current_active_landlord),
     session: Session = Depends(deps.get_database_session),
     app: Application = Depends(deps.get_application),
 ):
@@ -248,7 +248,7 @@ def landlord_provide_keys_to_tenant(
 )
 def tenant_received_keys(
     application_id: UUID,
-    tenant: Tenant = Depends(deps.get_current_tenant),
+    tenant: Tenant = Depends(deps.get_current_active_tenant),
     session: Session = Depends(deps.get_database_session),
     app: Application = Depends(deps.get_application),
 ):
@@ -269,7 +269,7 @@ def tenant_received_keys(
 @router.get("/{apartment_id}", response_model=List[ApartmentApplicationSchema])
 def fetch_applications_for_apartments(
     apartment_id: UUID,
-    user: User = Depends(deps.get_current_admin_or_landlord),
+    user: User = Depends(deps.get_current_active_admin_or_landlord),
     session: Session = Depends(deps.get_database_session),
 ):
     try:
@@ -296,7 +296,7 @@ def fetch_applications_for_apartments(
 
 @router.get("/", response_model=List[ApartmentApplicationSchema])
 def fetch_tenant_applications(
-    tenant: Tenant = Depends(deps.get_current_tenant),
+    tenant: Tenant = Depends(deps.get_current_active_tenant),
     session: Session = Depends(deps.get_database_session),
 ):
     try:

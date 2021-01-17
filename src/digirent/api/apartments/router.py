@@ -5,7 +5,7 @@ from digirent.app.error import ApplicationError
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
-from digirent.database.models import Amenity, Apartment, Landlord, User
+from digirent.database.models import Amenity, Apartment, Landlord
 from .schema import ApartmentCreateSchema, ApartmentSchema, ApartmentUpdateSchema
 
 router = APIRouter()
@@ -18,7 +18,7 @@ router = APIRouter()
 )
 async def create_apartment(
     data: ApartmentCreateSchema,
-    landlord: Landlord = Depends(dependencies.get_current_landlord),
+    landlord: Landlord = Depends(dependencies.get_current_active_landlord),
     application: Application = Depends(dependencies.get_application),
     session: Session = Depends(dependencies.get_database_session),
 ):
@@ -46,7 +46,7 @@ def update_apartment(
     apartment_id: UUID,
     data: ApartmentUpdateSchema,
     session: Session = Depends(dependencies.get_database_session),
-    landlord: Landlord = Depends(dependencies.get_current_landlord),
+    landlord: Landlord = Depends(dependencies.get_current_active_landlord),
     application: Application = Depends(dependencies.get_application),
 ):
     try:
@@ -72,7 +72,7 @@ def update_apartment(
 def upload_image(
     apartment_id: UUID,
     image: UploadFile = File(...),
-    landlord: Landlord = Depends(dependencies.get_current_landlord),
+    landlord: Landlord = Depends(dependencies.get_current_active_landlord),
     session: Session = Depends(dependencies.get_database_session),
     app: Application = Depends(dependencies.get_application),
 ):
@@ -94,7 +94,7 @@ def upload_image(
 def upload_videos(
     apartment_id: UUID,
     video: UploadFile = File(...),
-    landlord: Landlord = Depends(dependencies.get_current_landlord),
+    landlord: Landlord = Depends(dependencies.get_current_active_landlord),
     session: Session = Depends(dependencies.get_database_session),
     app: Application = Depends(dependencies.get_application),
 ):

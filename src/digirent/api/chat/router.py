@@ -15,7 +15,7 @@ from digirent.api.chat.schema import (
 import digirent.api.dependencies as deps
 from digirent.api.dependencies import (
     get_current_admin_user,
-    get_current_user,
+    get_current_active_user,
     get_database_session,
 )
 from digirent.database.models import ChatMessage, User
@@ -81,7 +81,9 @@ class ChatManagerEndpoint:
 
 
 @router.websocket("/ws/{token}")
-async def chat(websocket: WebSocket, user: User = Depends(deps.user_from_websocket)):
+async def chat(
+    websocket: WebSocket, user: User = Depends(deps.get_active_user_from_websocket)
+):
     if user is None:
         await websocket.close()
         return
@@ -109,7 +111,7 @@ async def chat(websocket: WebSocket, user: User = Depends(deps.user_from_websock
 def fetch_users_chat_list(
     page: int = 1,
     page_size: int = 20,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_active_user),
     session: Session = Depends(get_database_session),
 ):
     """Fetch list of users the authenticated user has chatted with"""
@@ -167,7 +169,7 @@ def fetch_chat_messages(
     desc: bool = True,
     page: int = 1,
     page_size: int = 20,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_active_user),
     session: Session = Depends(get_database_session),
 ):
     """
