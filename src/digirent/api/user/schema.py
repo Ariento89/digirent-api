@@ -19,3 +19,4 @@ class UserCreateSchema(BaseUserSchema):
 class UserSchema(OrmSchema, BaseUserSchema):
     dob: Optional[date]
     role: UserRole
+    profile_image_url: Optional[str]

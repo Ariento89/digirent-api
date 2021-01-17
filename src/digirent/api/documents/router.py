@@ -6,7 +6,6 @@ from fastapi import (
     File,
     Response,
 )
-from fastapi.responses import FileResponse
 from pathlib import Path
 from digirent.api.documents.schema import FileUploadResponseSchema
 from digirent.app.error import ApplicationError
@@ -16,7 +15,6 @@ from digirent.api import dependencies as deps
 from digirent.core import config
 from digirent.util import (
     get_copy_ids_path,
-    get_profile_path,
     get_proof_of_enrollment_path,
     get_proof_of_income_path,
 )
