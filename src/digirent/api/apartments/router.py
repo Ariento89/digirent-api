@@ -123,6 +123,7 @@ def fetch_apartments(
     min_bathrooms: Optional[int] = None,
     max_bathrooms: Optional[int] = None,
     is_descending: Optional[bool] = False,
+    landlord_id: Optional[UUID] = None,
 ):
     query = session.query(Apartment)
     if min_price:
@@ -144,6 +145,11 @@ def fetch_apartments(
     if latitude and longitude:
         center = "POINT({} {})".format(longitude, latitude)
         query = query.filter(Apartment.location.ST_Distance_Sphere(center) < 5000)
+    if landlord_id:
+        landlord: Landlord = session.query(Landlord).get(landlord_id)
+        if not landlord:
+            raise HTTPException(404, "Landlord not found")
+        query = query.filter(Apartment.landlord_id == landlord_id)
     query = (
         query.order_by(Apartment.created_at.desc())
         if is_descending
