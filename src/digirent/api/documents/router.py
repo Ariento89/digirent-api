@@ -161,20 +161,3 @@ def upload_profile_photo(
         if "not found" in str(e).lower():
             raise HTTPException(404, str(e))
         raise HTTPException(400, str(e))
-
-
-@router.get("/profile-image")
-def download_profile_iamge(
-    user: User = Depends(deps.get_current_user),
-):
-    """
-    Download user proof of enrollment
-    """
-    possible_filenames = [
-        f"{user.id}.{ext}" for ext in config.SUPPORTED_IMAGE_EXTENSIONS
-    ]
-    folder_path = get_profile_path()
-    for filename in possible_filenames:
-        file_path: Path = folder_path / filename
-        if file_path.exists():
-            return FileResponse(file_path)
