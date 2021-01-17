@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, WebSocket, Depends
 from typing import Optional, Any
 from fastapi.exceptions import HTTPException
-from sqlalchemy import or_, func
+from sqlalchemy import or_, func, and_
 from sqlalchemy.orm.session import Session
 from starlette import status
 from starlette.types import Message
@@ -167,7 +167,7 @@ def fetch_chat_messages(
     desc: bool = True,
     page: int = 1,
     page_size: int = 20,
-    user: Session = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     session: Session = Depends(get_database_session),
 ):
     """
@@ -175,9 +175,18 @@ def fetch_chat_messages(
     """
     if user_id == user.id:
         raise HTTPException(400, "user_id must be different from authenticated user id")
-    between = [user.id, user_id]
+    with_user: User = session.query(User).get(user_id)
+    if not with_user:
+        raise HTTPException(404, "user not found")
     query = session.query(ChatMessage).filter(
-        or_(ChatMessage.from_user_id.in_(between), ChatMessage.to_user_id.in_(between))
+        or_(
+            and_(
+                ChatMessage.from_user_id == user.id, ChatMessage.to_user_id == user_id
+            ),
+            and_(
+                ChatMessage.from_user_id == user_id, ChatMessage.to_user_id == user.id
+            ),
+        )
     )
     if desc:
         query = query.order_by(ChatMessage.created_at.desc())
