@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from digirent.api.middlewares import ChatManagerMiddleware
 import digirent.core.config as config
@@ -64,6 +65,7 @@ def get_app() -> FastAPI:
     app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None)
     api_app = get_api_app()
     app.mount("/api", app=api_app)
+    app.mount("/static", StaticFiles(directory=config.STATIC_PATH), name="static")
     return app
 
 

@@ -20,6 +20,7 @@ class ProfileSchema(OrmSchema):
     copy_id_uploaded: bool
     proof_of_income_uploaded: bool
     proof_of_enrollment_uploaded: bool
+    profile_image_url: Optional[str]
 
 
 class ProfileUpdateSchema(BaseSchema):

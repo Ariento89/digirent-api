@@ -7,6 +7,7 @@ from digirent.core.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     SECRET_KEY,
     JWT_ALGORITHM,
+    STATIC_PATH,
     UPLOAD_PATH,
     IS_TEST,
     SENDGRID_API_KEY,
@@ -91,7 +92,7 @@ def get_profile_path() -> Path:
     """
     Get profile folder
     """
-    return Path(UPLOAD_PATH) / "profile_images"
+    return Path(STATIC_PATH) / "profile_images"
 
 
 def get_current_date() -> date:

@@ -1,7 +1,8 @@
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 from digirent.api.schema import BasePaginationSchema, BaseSchema, OrmSchema
+from digirent.database.enums import UserRole
 
 
 class ChatMessageSchema(OrmSchema):
@@ -14,6 +15,8 @@ class UserSchema(BaseSchema):
     id: UUID
     first_name: str
     last_name: str
+    profile_image_url: Optional[str]
+    role: UserRole
 
     class Config:
         orm_mode = True

@@ -21,7 +21,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy_utils import ChoiceType, EmailType, UUIDType
 
 from digirent import util
-from digirent.core.config import SUPPORTED_FILE_EXTENSIONS
+from digirent.core.config import SUPPORTED_FILE_EXTENSIONS, SUPPORTED_IMAGE_EXTENSIONS
 from .base import Base
 from .mixins import EntityMixin, TimestampMixin
 from .enums import (
@@ -91,6 +91,19 @@ class User(Base, EntityMixin, TimestampMixin):
             (proof_of_enrollment_path / filename) for filename in possible_filenames
         ]
         return any(path.exists() for path in possible_proof_of_enrollment_file_paths)
+
+    @property
+    def profile_image_url(self) -> str:
+        url = "/static/profile_images/"
+        possible_filenames = [f"{self.id}.{ext}" for ext in SUPPORTED_IMAGE_EXTENSIONS]
+        profile_image_path = util.get_profile_path()
+        possible_profile_image_file_paths = [
+            (profile_image_path / filename) for filename in possible_filenames
+        ]
+        for image_path in possible_profile_image_file_paths:
+            if image_path.exists():
+                url += image_path.name
+                return url
 
 
 class Admin(User):

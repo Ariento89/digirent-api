@@ -49,6 +49,8 @@ MAIL_PASSWORD: str = config("MAIL_PASSWORD", cast=str, default=None)
 
 UPLOAD_PATH: str = config("UPLOAD_PATH", cast=str, default="upload")
 
+STATIC_PATH: str = config("STATIC_PATH", cast=str, default="static")
+
 NUMBER_OF_APARTMENT_IMAGES: int = config("NUMBER_OF_APARTMENT_IMAGES", cast=int)
 
 NUMBER_OF_APARTMENT_VIDEOS: int = config("NUMBER_OF_APARTMENT_VIDEOS", cast=int)
