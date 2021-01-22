@@ -21,7 +21,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=ProfileSchema)
-async def me(user: User = Depends(dependencies.get_current_active_user)):
+async def me(user: User = Depends(dependencies.get_current_user)):
     return user
 
 

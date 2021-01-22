@@ -16,6 +16,7 @@ class ProfileSchema(OrmSchema):
     phone_number: Optional[str]
     role: UserRole
     is_active: bool
+    email_verified: bool
     profile_percentage: Optional[float]
     copy_id_uploaded: bool
     proof_of_income_uploaded: bool

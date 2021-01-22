@@ -21,7 +21,7 @@ def generate_email_verification(user: User):
     token = util.create_token(
         {"type": EMAIL_VERIFICATION_TOKEN_VALUE, "email": user.email}
     )
-    url = f"{config.CLIENT_HOST}/verify?token={token}"
+    url = f"{config.CLIENT_HOST}/verify?token={token.decode('utf-8')}"
     return f"Follow this link to verify your account {url}"
 
 
@@ -115,9 +115,26 @@ def fetch_all_tenants(
     return session.query(Tenant).all()
 
 
-@router.post("/verify")
+@router.post("/verify/resend")
+def resend_verification_email(
+    background_tasks: BackgroundTasks,
+    user: User = Depends(dependencies.get_current_user),
+    session: Session = Depends(dependencies.get_database_session),
+):
+    if user.email_verified:
+        raise HTTPException(400, "User email already verified")
+    background_tasks.add_task(
+        util.send_email,
+        to=user.email,
+        subject="Verify Acccount",
+        message=generate_email_verification(user),
+    )
+    return {"status": "Success", "message": "Email sent successfully"}
+
+
+@router.post("/verify/{token}")
 def verify_email(
-    token: str = Body(...),
+    token: str,
     session: Session = Depends(dependencies.get_database_session),
 ):
     error = HTTPException(400, "Invalid token")
