@@ -1,5 +1,6 @@
 from typing import Optional
 from enum import Enum
+from authlib.integrations.base_client.errors import MismatchingStateError
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.param_functions import Body
 from fastapi.requests import Request
@@ -107,7 +108,6 @@ async def google_authorization(
     user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
 ):
     try:
-        # TODO properly handle state failures
         payload_from_state = get_payload_from_state(state)
         who = payload_from_state["who"]
         social = payload_from_state["social"]
@@ -117,10 +117,12 @@ async def google_authorization(
         access_token = await get_token_from_google_auth(
             request, session, app, role, user
         )
-        return {"access_token": access_token}
+        return TokenSchema(access_token=access_token, token_type="bearer")
     except ApplicationError as e:
         raise HTTPException(400, str(e))
     except KeyError:
+        raise HTTPException(400, "Invalid authorization token")
+    except MismatchingStateError:
         raise HTTPException(400, "Invalid authorization token")
 
 
@@ -169,7 +171,7 @@ async def facebook_authorization(
         access_token = await get_token_from_facebook_auth(
             request, session, app, role, user
         )
-        return {"access_token": access_token}
+        return TokenSchema(access_token=access_token, token_type="bearer")
     except ApplicationError as e:
         raise HTTPException(400, str(e))
     except KeyError:
