@@ -1,8 +1,8 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from fastapi.param_functions import Body
 from jwt import PyJWTError
 from digirent.app.error import ApplicationError
+from pathlib import Path
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
@@ -16,13 +16,34 @@ router = APIRouter()
 
 EMAIL_VERIFICATION_TOKEN_VALUE = "email_verification"
 
+verification_email_path = Path(__file__).parents[4] / "templates/verification.html"
 
-def generate_email_verification(user: User):
+
+def generate_verification_url(user: User) -> str:
     token = util.create_token(
         {"type": EMAIL_VERIFICATION_TOKEN_VALUE, "email": user.email}
     )
-    url = f"{config.CLIENT_HOST}/verify?token={token.decode('utf-8')}"
-    return f"Follow this link to verify your account {url}"
+    return f"{config.CLIENT_HOST}/verify?token={token.decode('utf-8')}"
+
+
+def generate_email_verification_text(user: User) -> str:
+    url = generate_verification_url(user)
+    return f"""
+        Hello, {user.first_name},
+        Thank you for signing up on Digi rent.
+        Please follow this url to verify your account {url}
+    """
+
+
+def generate_email_verification_html(user: User) -> str:
+    url = generate_verification_url(user)
+    with open(verification_email_path) as f:
+        content = f.read()
+        content = content.replace(
+            "{{user_name}}", f"{user.first_name} {user.last_name}"
+        )
+        content = content.replace("{{verification_url}}", url)
+        return content
 
 
 @router.post("/tenant", response_model=UserSchema)
@@ -50,7 +71,8 @@ async def register_tenant(
             util.send_email,
             to=result.email,
             subject="Verify Acccount",
-            message=generate_email_verification(result),
+            message=generate_email_verification_text(result),
+            html=generate_email_verification_html(result),
         )
         return result
     except ApplicationError as e:
@@ -82,7 +104,8 @@ async def register_landlord(
             util.send_email,
             to=result.email,
             subject="Verify Acccount",
-            message=generate_email_verification(result),
+            message=generate_email_verification_text(result),
+            html=generate_email_verification_html(result),
         )
         return result
     except ApplicationError as e:
@@ -127,7 +150,8 @@ def resend_verification_email(
         util.send_email,
         to=user.email,
         subject="Verify Acccount",
-        message=generate_email_verification(user),
+        message=generate_email_verification_text(user),
+        html=generate_email_verification_html(user),
     )
     return {"status": "Success", "message": "Email sent successfully"}
 

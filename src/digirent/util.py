@@ -126,7 +126,7 @@ def send_email(
         )
         if not IS_TEST:
             print("\n\n\n\n")
-            print(str(msg))
+            print(str(message))
             print("\n\n\n\n")
         sg = SendGridAPIClient(SENDGRID_API_KEY)
         sg.send(msg)
