@@ -163,6 +163,7 @@ class Application(ApplicationBase):
                 first_name=first_name,
                 last_name=last_name,
                 email=email,
+                email_verified=True,
                 role=role,
                 commit=False,
             )
@@ -251,6 +252,7 @@ class Application(ApplicationBase):
                 first_name=first_name,
                 last_name=last_name,
                 email=email,
+                email_verified=True,
                 role=role,
                 commit=False,
             )

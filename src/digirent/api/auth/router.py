@@ -176,3 +176,5 @@ async def facebook_authorization(
         raise HTTPException(400, str(e))
     except KeyError:
         raise HTTPException(400, "Invalid authorization token")
+    except MismatchingStateError:
+        raise HTTPException(400, "Invalid authorization token")
