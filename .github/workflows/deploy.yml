@@ -43,7 +43,7 @@ jobs:
           username: ${{ secrets.DO_USERNAME }}
           port: ${{ secrets.DO_PORT }}
           key: ${{ secrets.DO_SSH_KEY }}
-          source: "docker-compose.staging.yml, nginx/*"
+          source: "docker-compose.staging.yml, nginx/nginx.conf"
           target: "Digirent"
       - name: Deploy App To Digital occean
         uses: appleboy/ssh-action@master
