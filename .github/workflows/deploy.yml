@@ -3,7 +3,7 @@ name: Build container and Deploy to Digital Ocean
 on:
   push:
     branches:
-      - master
+      - staging
 
 env:
   PAT: ${{secrets.PAT}}
