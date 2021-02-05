@@ -8,7 +8,7 @@ services:
             - postgres_data:/var/lib/postgresql/data/
         expose:
             - "5432"
-        env_file: 
+        env_file:
             - env/.db.staging.env
         restart: unless-stopped
     digirent-api:
@@ -32,7 +32,7 @@ services:
             - env/.staging.env
         depends_on:
             - digirentdb
-            - digirent-redis 
+            - digirent-redis
         command: ["celery", "--app=digirent.worker.app:app", "worker", "-Q", "rent-queue", "-l", "info"]
     digirent-subscription-worker:
         image: ghcr.io/ariento89/digirent-api:staging
@@ -69,11 +69,40 @@ services:
         restart: unless-stopped
         ports:
             - "80:80"
+            - "443:443"
         volumes:
             - ./nginx:/etc/nginx/conf.d
+            - web-root:/var/www/html
+            - certbot-etc:/etc/letsencrypt
+            - certbot-var:/var/lib/letsencrypt
+            - dhparam:/etc/ssl/certs
         depends_on:
             - digirent-api
-            - digirent-app    
-   
+            - digirent-app
+    digirent-certbot:
+        image: certbot/certbot
+        container_name: digirent-certbot
+        volumes:
+            - certbot-etc:/etc/letsencrypt
+            - certbot-var:/var/lib/letsencrypt
+            - web-root:/var/www/html
+        depends_on:
+            - digirent-nginx
+        command: certonly --webroot --webroot-path=/var/www/html --email orelio.lopes@gmail.com --agree-tos --no-eff-email --force-renewal -d digi-rent.me -d www.digi-rent.me
+
 volumes:
     postgres_data:
+    certbot-etc:
+    certbot-var:
+    web-root:
+        driver: local
+        driver_opts:
+            type: none
+            device: /root/Digirent/views
+            o: bind
+    dhparam:
+        driver: local
+        driver_opts:
+            type: none
+            device: /root/Digirent/dhparam/
+            o: bind

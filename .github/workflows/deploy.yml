@@ -22,7 +22,7 @@ jobs:
       - name: Checkout to repo
         uses: actions/checkout@v2
 
-      - name: Build API and NGINX IMAGES
+      - name: Build API IMAGE
         run: |
           docker build -t $IMAGE .
 
