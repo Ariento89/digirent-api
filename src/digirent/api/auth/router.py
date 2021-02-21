@@ -152,6 +152,18 @@ async def login_with_facebook(
     return {"to": response._headers["location"]}
 
 
+@router.post("/apple", response_model=RedirectSchema)
+async def login_with_apple(
+    who: SocialAccountLoginWho,
+    request: Request,
+    token: Optional[str] = Depends(dependencies.get_optional_current_user_token),
+):
+    redirect_uri = config.CLIENT_APPLE_AUTH_URL
+    state = generate_state(token, who, "apple")
+    response = await oauth.apple.authorize_redirect(request, redirect_uri, state=state)
+    return {"to": response._headers["location"]}
+
+
 @router.post("/authorization/facebook")
 async def facebook_authorization(
     request: Request,

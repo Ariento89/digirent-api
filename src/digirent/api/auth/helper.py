@@ -13,7 +13,7 @@ serializer = URLSafeSerializer(secret_key=config.SECRET_KEY, salt=config.SALT)
 
 def generate_state(access_token: str, who: str, social: str) -> str:
     assert who in ["tenant", "landlord"]
-    assert social in ["google", "facebook"]
+    assert social in ["google", "facebook", "apple"]
     return serializer.dumps(
         {"access_token": access_token, "who": who, "social": social}
     )

@@ -99,6 +99,8 @@ CLIENT_GOOGLE_AUTH_URL: str = config("CLIENT_GOOGLE_AUTH_URL", cast=str)
 
 CLIENT_FACEBOOK_AUTH_URL: str = config("CLIENT_FACEBOOK_AUTH_URL", cast=str)
 
+CLIENT_APPLE_AUTH_URL: str = config("CLIENT_APPLE_AUTH_URL", cast=str)
+
 SALT: str = config("SALT", cast=str)
 
 APPLE_KEY_ID: str = config("APPLE_KEY_ID", cast=str)
@@ -107,4 +109,4 @@ APPLE_TEAM_ID: str = config("APPLE_TEAM_ID", cast=str)
 
 APPLE_PRIVATE_KEY: str = config("APPLE_PRIVATE_KEY", cast=str)
 
-APPLE_CLIENT_ID: str = config("APPLE_ClIENT_ID", cast=str)
+APPLE_CLIENT_ID: str = config("APPLE_CLIENT_ID", cast=str)
