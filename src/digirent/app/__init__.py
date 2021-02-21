@@ -442,9 +442,14 @@ class Application(ApplicationBase):
         return self.apartment_service.update(session, apartment, **kwargs)
 
     def __upload_file(
-        self, user: User, file: IO, extension: str, folder_path: Path
+        self,
+        user: User,
+        file: IO,
+        extension: str,
+        folder_path: Path,
+        supported_file_extensions: List[str] = config.SUPPORTED_FILE_EXTENSIONS,
     ) -> User:
-        if extension.lower() not in config.SUPPORTED_FILE_EXTENSIONS:
+        if extension.lower() not in supported_file_extensions:
             raise ApplicationError("Invalid file format")
         possible_filenames = [
             f"{user.id}.{ext}" for ext in config.SUPPORTED_FILE_EXTENSIONS
@@ -472,18 +477,40 @@ class Application(ApplicationBase):
         return user
 
     def upload_copy_id(self, user: User, file: IO, extension: str) -> User:
-        return self.__upload_file(user, file, extension, util.get_copy_ids_path())
+        supported_file_extensions = [
+            *config.SUPPORTED_FILE_EXTENSIONS,
+            *config.SUPPORTED_IMAGE_EXTENSIONS,
+        ]
+        return self.__upload_file(
+            user, file, extension, util.get_copy_ids_path(), supported_file_extensions
+        )
 
     def upload_proof_of_income(self, user: User, file: IO, extension: str) -> Tenant:
+        supported_file_extensions = [
+            *config.SUPPORTED_FILE_EXTENSIONS,
+            *config.SUPPORTED_IMAGE_EXTENSIONS,
+        ]
         return self.__upload_file(
-            user, file, extension, util.get_proof_of_income_path()
+            user,
+            file,
+            extension,
+            util.get_proof_of_income_path(),
+            supported_file_extensions,
         )
 
     def upload_proof_of_enrollment(
         self, user: User, file: IO, extension: str
     ) -> Tenant:
+        supported_file_extensions = [
+            *config.SUPPORTED_FILE_EXTENSIONS,
+            *config.SUPPORTED_IMAGE_EXTENSIONS,
+        ]
         return self.__upload_file(
-            user, file, extension, util.get_proof_of_enrollment_path()
+            user,
+            file,
+            extension,
+            util.get_proof_of_enrollment_path(),
+            supported_file_extensions,
         )
 
     def upload_apartment_image(
