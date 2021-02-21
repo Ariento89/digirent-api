@@ -272,26 +272,17 @@ def fetch_applications_for_apartments(
     user: User = Depends(deps.get_current_active_admin_or_landlord),
     session: Session = Depends(deps.get_database_session),
 ):
-    try:
-        apartment = session.query(Apartment).get(apartment_id)
-        if not apartment or (
-            user.role == UserRole.LANDLORD and apartment.landlord_id != user.id
-        ):
-            raise HTTPException(404, "Apartment not found")
-        query = (
-            session.query(ApartmentApplication)
-            .join(Apartment)
-            .filter(ApartmentApplication.apartment_id == apartment_id)
-        )
-        if user.role == UserRole.ADMIN:
-            return query.all()
-        elif user.role == UserRole.LANDLORD:
-            query = query.filter(Apartment.landlord_id == user.id)
-            return query.all()
-        else:
-            raise HTTPException(403, "Forbidden")
-    except ApplicationError as e:
-        raise HTTPException(400, str(e))
+    apartment = session.query(Apartment).get(apartment_id)
+    if not apartment or (
+        user.role == UserRole.LANDLORD and apartment.landlord_id != user.id
+    ):
+        raise HTTPException(404, "Apartment not found")
+    query = (
+        session.query(ApartmentApplication)
+        .join(Apartment)
+        .filter(ApartmentApplication.apartment_id == apartment_id)
+    )
+    return query.all()
 
 
 @router.get("/", response_model=List[ApartmentApplicationSchema])

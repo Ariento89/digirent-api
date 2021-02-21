@@ -148,7 +148,7 @@ class Application(ApplicationBase):
 
         if not authenticated_user and existing_google_social_account:
             # social account exists therefore user exists
-            # sing in with google
+            # sign in with google
             user: User = existing_google_social_account.user
             existing_google_social_account.access_token = access_token
             existing_google_social_account.id_token = id_token

@@ -12,6 +12,12 @@ def ensure_greater_than_zero(key, val):
     return val
 
 
+class LandlordInApartmentSchema(OrmSchema):
+    first_name: str
+    last_name: str
+    profile_image_url: Optional[str]
+
+
 class BaseApartmentSchema(BaseSchema):
     name: str
     monthly_price: float
@@ -100,3 +106,4 @@ class ApartmentUpdateSchema(BaseSchema):
 class ApartmentSchema(OrmSchema, BaseApartmentSchema):
     amenity_titles: List[str]
     total_price: float
+    landlord: LandlordInApartmentSchema
