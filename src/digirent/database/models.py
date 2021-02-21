@@ -67,7 +67,10 @@ class User(Base, EntityMixin, TimestampMixin):
 
     @property
     def copy_id_uploaded(self) -> bool:
-        possible_filenames = [f"{self.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
+        possible_filenames = [
+            f"{self.id}.{ext}"
+            for ext in [*SUPPORTED_FILE_EXTENSIONS, *SUPPORTED_IMAGE_EXTENSIONS]
+        ]
         copy_id_path = util.get_copy_ids_path()
         possible_copy_id_file_paths = [
             (copy_id_path / filename) for filename in possible_filenames
@@ -76,7 +79,10 @@ class User(Base, EntityMixin, TimestampMixin):
 
     @property
     def proof_of_income_uploaded(self) -> bool:
-        possible_filenames = [f"{self.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
+        possible_filenames = [
+            f"{self.id}.{ext}"
+            for ext in [*SUPPORTED_FILE_EXTENSIONS, *SUPPORTED_IMAGE_EXTENSIONS]
+        ]
         proof_of_income_path = util.get_proof_of_income_path()
         possible_proof_of_income_file_paths = [
             (proof_of_income_path / filename) for filename in possible_filenames
@@ -85,7 +91,10 @@ class User(Base, EntityMixin, TimestampMixin):
 
     @property
     def proof_of_enrollment_uploaded(self) -> bool:
-        possible_filenames = [f"{self.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
+        possible_filenames = [
+            f"{self.id}.{ext}"
+            for ext in [*SUPPORTED_FILE_EXTENSIONS, *SUPPORTED_IMAGE_EXTENSIONS]
+        ]
         proof_of_enrollment_path = util.get_proof_of_enrollment_path()
         possible_proof_of_enrollment_file_paths = [
             (proof_of_enrollment_path / filename) for filename in possible_filenames
@@ -117,24 +126,11 @@ class Tenant(User):
     @hybrid_property
     def profile_percentage(self) -> float:
         result = 0
-        possible_filenames = [f"{self.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
-        copy_id_path = util.get_copy_ids_path()
-        possible_copy_id_file_paths = [
-            (copy_id_path / filename) for filename in possible_filenames
-        ]
-        proof_of_income_path = util.get_proof_of_income_path()
-        possible_proof_of_income_file_paths = [
-            (proof_of_income_path / filename) for filename in possible_filenames
-        ]
-        proof_of_enrollment_path = util.get_proof_of_enrollment_path()
-        possible_proof_of_enrollment_file_paths = [
-            (proof_of_enrollment_path / filename) for filename in possible_filenames
-        ]
-        if any(path.exists() for path in possible_copy_id_file_paths):
+        if self.copy_id_uploaded:
             result += 20
-        if any(path.exists() for path in possible_proof_of_income_file_paths):
+        if self.proof_of_income_uploaded:
             result += 10
-        if any(path.exists() for path in possible_proof_of_enrollment_file_paths):
+        if self.proof_of_enrollment_uploaded:
             result += 10
         if self.social_accounts:
             result += 10
@@ -148,12 +144,7 @@ class Landlord(User):
     @hybrid_property
     def profile_percentage(self) -> float:
         result = 0
-        possible_filenames = [f"{self.id}.{ext}" for ext in SUPPORTED_FILE_EXTENSIONS]
-        copy_id_path = util.get_copy_ids_path()
-        possible_copy_id_file_paths = [
-            (copy_id_path / filename) for filename in possible_filenames
-        ]
-        if any(path.exists() for path in possible_copy_id_file_paths):
+        if self.copy_id_uploaded:
             result += 30
         if self.social_accounts:
             result += 20
