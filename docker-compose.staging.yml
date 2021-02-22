@@ -21,6 +21,9 @@ services:
         depends_on:
             - digirentdb
         restart: unless-stopped
+        volumes:
+            - digirent_static:/home/digirent_user/static
+            - digirent_uploads:/home/digirent_user/uploads
         command: ["uvicorn", "digirent.web_app:app", "--host", "0.0.0.0", "--port", "5000"]
     digirent-redis:
         container_name: digirent-redis
@@ -105,4 +108,18 @@ volumes:
         driver_opts:
             type: none
             device: ~/Digirent/dhparam/
+            o: bind
+
+    digirent_uploads:
+        driver: local
+        driver_opts:
+            type: none
+            device: ~/Digirent/uploads/
+            o: bind
+
+    digirent_static:
+        driver: local
+        driver_opts:
+            type: none
+            device: ~/Digirent/static/
             o: bind
