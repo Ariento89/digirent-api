@@ -22,7 +22,7 @@ COPY . .
 
 RUN poetry install
 
-RUN useradd -m digirent_user && chown -R digirent_user /src
+RUN useradd -m digirent_user && chown -R digirent_user /src && chown -R digirent_user /home/digirent_user
 
 USER digirent_user
 
