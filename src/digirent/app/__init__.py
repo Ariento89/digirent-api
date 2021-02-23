@@ -520,9 +520,7 @@ class Application(ApplicationBase):
         file_extension = filename.split(".")[-1]
         if file_extension.lower() not in config.SUPPORTED_IMAGE_EXTENSIONS:
             raise ApplicationError("Unsupported image format")
-        folder_path = (
-            Path(config.UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images"
-        )
+        folder_path = util.get_apartment_images_folder_path(apartment)
         files = self.file_service.list_files(folder_path)
         if len(files) == config.NUMBER_OF_APARTMENT_IMAGES:
             raise ApplicationError("Maximum number of apartment images reached")
@@ -536,9 +534,7 @@ class Application(ApplicationBase):
         file_extension = filename.split(".")[-1]
         if file_extension.lower() not in config.SUPPORTED_VIDEO_EXTENSIONS:
             raise ApplicationError("Unsupported video format")
-        folder_path = (
-            Path(config.UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/videos"
-        )
+        folder_path = util.get_apartment_videos_folder_path(apartment)
         files = self.file_service.list_files(folder_path)
         if len(files) == config.NUMBER_OF_APARTMENT_VIDEOS:
             raise ApplicationError("Maximum number of apartment vidoes reached")

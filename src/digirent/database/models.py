@@ -1,3 +1,4 @@
+import os
 from typing import List
 from sqlalchemy import (
     Table,
@@ -219,6 +220,24 @@ class Apartment(Base, EntityMixin, TimestampMixin):
     @hybrid_property
     def total_price(self) -> float:
         return self.monthly_price + self.utilities_price
+
+    @property
+    def images(self) -> str:
+        url = f"/static/apartments/{self.landlord.id}/{self.id}/images"
+        apartment_images_path = util.get_apartment_images_folder_path(self)
+        if not apartment_images_path.exists():
+            return []
+        all_images = os.listdir(apartment_images_path)
+        return [f"{url}/{image}" for image in all_images]
+
+    @property
+    def videos(self) -> str:
+        url = f"/static/apartments/{self.landlord.id}/{self.id}/videos"
+        apartment_videos_path = util.get_apartment_videos_folder_path(self)
+        if not apartment_videos_path.exists():
+            return []
+        all_videos = os.listdir(apartment_videos_path)
+        return [f"{url}/{video}" for video in all_videos]
 
 
 class Amenity(Base, EntityMixin, TimestampMixin):

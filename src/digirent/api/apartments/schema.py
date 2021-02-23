@@ -107,3 +107,5 @@ class ApartmentSchema(OrmSchema, BaseApartmentSchema):
     amenity_titles: List[str]
     total_price: float
     landlord: LandlordInApartmentSchema
+    images: List[str]
+    videos: List[str]
