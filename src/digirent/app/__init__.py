@@ -524,7 +524,9 @@ class Application(ApplicationBase):
         files = self.file_service.list_files(folder_path)
         if len(files) == config.NUMBER_OF_APARTMENT_IMAGES:
             raise ApplicationError("Maximum number of apartment images reached")
-        self.file_service.store_file(folder_path, filename, file)
+        number_of_images_in_folder = len(files)
+        new_filename = f"image{number_of_images_in_folder+1}.{file_extension}"
+        self.file_service.store_file(folder_path, new_filename, file)
         return apartment
 
     def upload_apartment_video(
@@ -538,7 +540,23 @@ class Application(ApplicationBase):
         files = self.file_service.list_files(folder_path)
         if len(files) == config.NUMBER_OF_APARTMENT_VIDEOS:
             raise ApplicationError("Maximum number of apartment vidoes reached")
-        self.file_service.store_file(folder_path, filename, file)
+        number_of_videos_in_folder = len(files)
+        new_filename = f"video{number_of_videos_in_folder+1}.{file_extension}"
+        self.file_service.store_file(folder_path, new_filename, file)
+        return apartment
+
+    def delete_apartment_image(
+        self, apartment: Apartment, image_name: str
+    ) -> Apartment:
+        folder_path = util.get_apartment_images_folder_path(apartment)
+        self.file_service.delete(image_name, folder_path)
+        return apartment
+
+    def delete_apartment_video(
+        self, apartment: Apartment, video_name: str
+    ) -> Apartment:
+        folder_path = util.get_apartment_videos_folder_path(apartment)
+        self.file_service.delete(video_name, folder_path)
         return apartment
 
     def apply_for_apartment(

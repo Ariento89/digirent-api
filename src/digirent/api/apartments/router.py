@@ -1,6 +1,7 @@
 from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
+from fastapi.param_functions import Body
 from digirent.app.error import ApplicationError
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
@@ -166,4 +167,34 @@ def get_apartment(
     apartment = session.query(Apartment).get(apartment_id)
     if not apartment:
         raise HTTPException(404, "Apartment not found")
+    return apartment
+
+
+@router.delete("/{apartment_id}/images", response_model=ApartmentSchema)
+def delete_apartment_image(
+    apartment_id: UUID,
+    images: List[str] = Body(...),
+    session: Session = Depends(dependencies.get_database_session),
+    app: Application = Depends(dependencies.get_application),
+):
+    apartment = session.query(Apartment).get(apartment_id)
+    if not apartment:
+        raise HTTPException(404, "Apartment not found")
+    for image in images:
+        app.delete_apartment_image(apartment, image)
+    return apartment
+
+
+@router.delete("/{apartment_id}/videos", response_model=ApartmentSchema)
+def delete_apartment_video(
+    apartment_id: UUID,
+    videos: List[str] = Body(...),
+    session: Session = Depends(dependencies.get_database_session),
+    app: Application = Depends(dependencies.get_application),
+):
+    apartment = session.query(Apartment).get(apartment_id)
+    if not apartment:
+        raise HTTPException(404, "Apartment not found")
+    for video in videos:
+        app.delete_apartment_video(apartment, video)
     return apartment
