@@ -1,3 +1,4 @@
+from fastapi.exceptions import HTTPException
 import httpx
 from fastapi.requests import Request
 from sqlalchemy.orm.session import Session
@@ -14,13 +15,15 @@ serializer = URLSafeSerializer(secret_key=config.SECRET_KEY, salt=config.SALT)
 def generate_state(access_token: str, who: str, social: str) -> str:
     assert who in ["tenant", "landlord"]
     assert social in ["google", "facebook", "apple"]
-    return serializer.dumps(
+    state = serializer.dumps(
         {"access_token": access_token, "who": who, "social": social}
     )
+    return f"{social}.{state}"
 
 
 def get_payload_from_state(state: str) -> dict:
-    return serializer.loads(state)
+    _, serialized_state = state.split(".", maxsplit=1)
+    return serializer.loads(serialized_state)
 
 
 async def get_token_from_google_auth(
@@ -83,4 +86,40 @@ async def get_token_from_facebook_auth(
         role,
         authenticated_user,
     )
+    return access_token
+
+
+async def get_token_from_apple_auth(
+    request: Request,
+    session: Session,
+    app: Application,
+    role: UserRole,
+    authenticated_user: User,
+) -> bytes:
+    print("about to get access token from apple auth")
+    token = await oauth.apple.authorize_access_token(request)
+    print("\n\n\n\n")
+    print(token)
+    print("\n\n\n\n")
+    access_token = token["access_token"]
+    id_token = token["id_token"]
+    user = await oauth.apple.parse_id_token(request, token)
+    print("\n\n\n\n\n\n")
+    print(user)
+    print(id_token)
+    print("\n\n\n\n\n\n")
+    # name: str = user["name"]
+    # first_name, last_name = name.split(" ", maxsplit=1)
+    # email = user["email"]
+    # # email_verified = user["email_verified"]  TODO should unverified emails be allowed?
+    # access_token = app.authenticate_google(
+    #     session,
+    #     access_token,
+    #     id_token,
+    #     email,
+    #     first_name,
+    #     last_name,
+    #     role,
+    #     authenticated_user,
+    # )
     return access_token

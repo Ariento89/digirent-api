@@ -16,6 +16,7 @@ from digirent.app.social import oauth
 from .helper import (
     get_token_from_facebook_auth,
     get_token_from_google_auth,
+    get_token_from_apple_auth,
     generate_state,
     get_payload_from_state,
 )
@@ -111,7 +112,7 @@ async def google_authorization(
         payload_from_state = get_payload_from_state(state)
         who = payload_from_state["who"]
         social = payload_from_state["social"]
-        if social != "google":
+        if social != social != "google":
             raise HTTPException(400, "Invalid authorization token")
         role = UserRole.TENANT if who == "tenant" else UserRole.LANDLORD
         access_token = await get_token_from_google_auth(
@@ -162,6 +163,37 @@ async def login_with_apple(
     state = generate_state(token, who, "apple")
     response = await oauth.apple.authorize_redirect(request, redirect_uri, state=state)
     return {"to": response._headers["location"]}
+
+
+@router.post("/authorization/apple")
+async def apple_authorization(
+    request: Request,
+    state: str,
+    app: Application = Depends(dependencies.get_application),
+    session: Session = Depends(dependencies.get_database_session),
+    user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
+):
+    try:
+        # TODO properly handle state failures
+        payload_from_state = get_payload_from_state(state)
+        who = payload_from_state["who"]
+        social = payload_from_state["social"]
+        if social != "apple":
+            raise HTTPException(400, "Invalid authorization token")
+        role = UserRole.TENANT if who == "tenant" else UserRole.LANDLORD
+        access_token = await get_token_from_apple_auth(
+            request, session, app, role, user
+        )
+        print("\n\n\n\n\n")
+        print(access_token)
+        print("\n\n\n\n\n")
+        return TokenSchema(access_token=access_token, token_type="bearer")
+    except ApplicationError as e:
+        raise HTTPException(400, str(e))
+    except KeyError:
+        raise HTTPException(400, "Invalid authorization token")
+    except MismatchingStateError:
+        raise HTTPException(400, "Invalid authorization token")
 
 
 @router.post("/authorization/facebook")

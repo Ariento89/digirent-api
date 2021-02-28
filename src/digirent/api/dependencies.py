@@ -188,7 +188,11 @@ def get_optional_current_user_from_state(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload_from_state = serializer.loads(state)
+        splitted_state = state.split(".", 1)
+        if len(splitted_state) < 2:
+            raise credentials_exception
+
+        payload_from_state = serializer.loads(splitted_state[1])
         access_token = payload_from_state["access_token"]
         if not access_token:
             return
