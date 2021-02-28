@@ -24,6 +24,10 @@ RUN poetry install
 
 RUN useradd -m digirent_user && chown -R digirent_user /src
 
+RUN mkdir /home/digirent_user/uploads /home/digirent_user/static
+
+RUN chown -R digirent_user /home/digirent_user/uploads && chown -R digirent_user /home/digirent_user/static
+
 USER digirent_user
 
 ENTRYPOINT [ "/bin/sh", "entrypoint.sh" ]

@@ -14,13 +14,16 @@ services:
     digirent-api:
         image: ghcr.io/ariento89/digirent-api:staging
         container_name: digirent-api
-        ports:
-            - "5000:5000"
+        expose:
+            - "5000"
         env_file:
             - env/.staging.env
         depends_on:
             - digirentdb
         restart: unless-stopped
+        volumes:
+            - digirent_static:/home/digirent_user/static
+            - digirent_uploads:/home/digirent_user/uploads
         command: ["uvicorn", "digirent.web_app:app", "--host", "0.0.0.0", "--port", "5000"]
     digirent-redis:
         container_name: digirent-redis
@@ -88,7 +91,7 @@ services:
             - web-root:/var/www/html
         depends_on:
             - digirent-nginx
-        command: certonly --webroot --webroot-path=/var/www/html --email orelio.lopes@gmail.com --agree-tos --no-eff-email --force-renewal -d digi-rent.me -d www.digi-rent.me
+        command: certonly --webroot --webroot-path=/var/www/html --email orelio.lopes@gmail.com --agree-tos --no-eff-email --force-renewal -d digi-rent.me -d www.digi-rent.me -d api.digi-rent.me
 
 volumes:
     postgres_data:
@@ -98,11 +101,25 @@ volumes:
         driver: local
         driver_opts:
             type: none
-            device: /root/Digirent/views
+            device: ~/Digirent/views
             o: bind
     dhparam:
         driver: local
         driver_opts:
             type: none
-            device: /root/Digirent/dhparam/
+            device: ~/Digirent/dhparam/
+            o: bind
+
+    digirent_uploads:
+        driver: local
+        driver_opts:
+            type: none
+            device: ~/Digirent/uploads/
+            o: bind
+
+    digirent_static:
+        driver: local
+        driver_opts:
+            type: none
+            device: ~/Digirent/static/
             o: bind

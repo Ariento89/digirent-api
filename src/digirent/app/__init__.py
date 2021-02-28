@@ -148,7 +148,7 @@ class Application(ApplicationBase):
 
         if not authenticated_user and existing_google_social_account:
             # social account exists therefore user exists
-            # sing in with google
+            # sign in with google
             user: User = existing_google_social_account.user
             existing_google_social_account.access_token = access_token
             existing_google_social_account.id_token = id_token
@@ -442,9 +442,14 @@ class Application(ApplicationBase):
         return self.apartment_service.update(session, apartment, **kwargs)
 
     def __upload_file(
-        self, user: User, file: IO, extension: str, folder_path: Path
+        self,
+        user: User,
+        file: IO,
+        extension: str,
+        folder_path: Path,
+        supported_file_extensions: List[str] = config.SUPPORTED_FILE_EXTENSIONS,
     ) -> User:
-        if extension.lower() not in config.SUPPORTED_FILE_EXTENSIONS:
+        if extension.lower() not in supported_file_extensions:
             raise ApplicationError("Invalid file format")
         possible_filenames = [
             f"{user.id}.{ext}" for ext in config.SUPPORTED_FILE_EXTENSIONS
@@ -472,18 +477,40 @@ class Application(ApplicationBase):
         return user
 
     def upload_copy_id(self, user: User, file: IO, extension: str) -> User:
-        return self.__upload_file(user, file, extension, util.get_copy_ids_path())
+        supported_file_extensions = [
+            *config.SUPPORTED_FILE_EXTENSIONS,
+            *config.SUPPORTED_IMAGE_EXTENSIONS,
+        ]
+        return self.__upload_file(
+            user, file, extension, util.get_copy_ids_path(), supported_file_extensions
+        )
 
     def upload_proof_of_income(self, user: User, file: IO, extension: str) -> Tenant:
+        supported_file_extensions = [
+            *config.SUPPORTED_FILE_EXTENSIONS,
+            *config.SUPPORTED_IMAGE_EXTENSIONS,
+        ]
         return self.__upload_file(
-            user, file, extension, util.get_proof_of_income_path()
+            user,
+            file,
+            extension,
+            util.get_proof_of_income_path(),
+            supported_file_extensions,
         )
 
     def upload_proof_of_enrollment(
         self, user: User, file: IO, extension: str
     ) -> Tenant:
+        supported_file_extensions = [
+            *config.SUPPORTED_FILE_EXTENSIONS,
+            *config.SUPPORTED_IMAGE_EXTENSIONS,
+        ]
         return self.__upload_file(
-            user, file, extension, util.get_proof_of_enrollment_path()
+            user,
+            file,
+            extension,
+            util.get_proof_of_enrollment_path(),
+            supported_file_extensions,
         )
 
     def upload_apartment_image(
@@ -493,13 +520,13 @@ class Application(ApplicationBase):
         file_extension = filename.split(".")[-1]
         if file_extension.lower() not in config.SUPPORTED_IMAGE_EXTENSIONS:
             raise ApplicationError("Unsupported image format")
-        folder_path = (
-            Path(config.UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images"
-        )
+        folder_path = util.get_apartment_images_folder_path(apartment)
         files = self.file_service.list_files(folder_path)
         if len(files) == config.NUMBER_OF_APARTMENT_IMAGES:
             raise ApplicationError("Maximum number of apartment images reached")
-        self.file_service.store_file(folder_path, filename, file)
+        number_of_images_in_folder = len(files)
+        new_filename = f"image{number_of_images_in_folder+1}.{file_extension}"
+        self.file_service.store_file(folder_path, new_filename, file)
         return apartment
 
     def upload_apartment_video(
@@ -509,13 +536,27 @@ class Application(ApplicationBase):
         file_extension = filename.split(".")[-1]
         if file_extension.lower() not in config.SUPPORTED_VIDEO_EXTENSIONS:
             raise ApplicationError("Unsupported video format")
-        folder_path = (
-            Path(config.UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/videos"
-        )
+        folder_path = util.get_apartment_videos_folder_path(apartment)
         files = self.file_service.list_files(folder_path)
         if len(files) == config.NUMBER_OF_APARTMENT_VIDEOS:
             raise ApplicationError("Maximum number of apartment vidoes reached")
-        self.file_service.store_file(folder_path, filename, file)
+        number_of_videos_in_folder = len(files)
+        new_filename = f"video{number_of_videos_in_folder+1}.{file_extension}"
+        self.file_service.store_file(folder_path, new_filename, file)
+        return apartment
+
+    def delete_apartment_image(
+        self, apartment: Apartment, image_name: str
+    ) -> Apartment:
+        folder_path = util.get_apartment_images_folder_path(apartment)
+        self.file_service.delete(image_name, folder_path)
+        return apartment
+
+    def delete_apartment_video(
+        self, apartment: Apartment, video_name: str
+    ) -> Apartment:
+        folder_path = util.get_apartment_videos_folder_path(apartment)
+        self.file_service.delete(video_name, folder_path)
         return apartment
 
     def apply_for_apartment(

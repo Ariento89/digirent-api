@@ -66,18 +66,24 @@ def get_proof_of_enrollment_path() -> Path:
     return Path(config.UPLOAD_PATH) / "proof_of_enrollment"
 
 
-def get_apartment_images_folder_path(landlord, apartment) -> Path:
+def get_apartment_images_folder_path(apartment) -> Path:
     """
     Get images folder path of a landlord's apartment
     """
-    return Path(config.UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/images"
+    return (
+        Path(config.STATIC_PATH)
+        / f"apartments/{apartment.landlord.id}/{apartment.id}/images"
+    )
 
 
-def get_apartment_videos_folder_path(landlord, apartment) -> Path:
+def get_apartment_videos_folder_path(apartment) -> Path:
     """
     Get videos folder path of a landlord's apartment
     """
-    return Path(config.UPLOAD_PATH) / f"apartments/{landlord.id}/{apartment.id}/videos"
+    return (
+        Path(config.STATIC_PATH)
+        / f"apartments/{apartment.landlord.id}/{apartment.id}/videos"
+    )
 
 
 def get_profile_path() -> Path:

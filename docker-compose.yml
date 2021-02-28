@@ -15,14 +15,16 @@ services:
             context: .
             dockerfile: dockerfile
         container_name: digirent
-        volumes:
-            - .:/src/digirent/
         ports:
             - "5000:5000"
         env_file:
             - env/.env.dev
         depends_on:
             - digirentdb
+        volumes:
+            - .:/src/digirent/
+            - digirent_static:/home/digirent_user/static
+            - digirent_uploads:/home/digirent_user/uploads
         command: ["uvicorn", "digirent.web_app:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]
     digirent-pgadmin:
         container_name: digirent-pgadmin
@@ -78,3 +80,16 @@ services:
 
 volumes: 
     postgres_data:
+    digirent_uploads:
+        driver: local
+        driver_opts:
+            type: none
+            device: ~/digirent_uploads/
+            o: bind
+
+    digirent_static:
+        driver: local
+        driver_opts:
+            type: none
+            device: ~/digirent_static/
+            o: bind

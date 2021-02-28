@@ -22,7 +22,7 @@ class FileService:
         return open(path, "rb")
 
     def delete(self, filename, folder_path: Path):
-        path = folder_path / f"{filename}"
+        path = folder_path / filename
         if not path.exists():
             return False
         os.remove(path)
