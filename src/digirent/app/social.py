@@ -22,5 +22,5 @@ oauth.register(
     name="apple",
     authorize_url="https://appleid.apple.com/auth/authorize",
     access_token_url="https://appleid.apple.com/auth/token",
-    client_kwargs={"scope": "email name", "response_mode": "form_data"},
+    client_kwargs={"scope": "email name", "response_mode": "form_post"},
 )
