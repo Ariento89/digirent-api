@@ -174,6 +174,9 @@ async def apple_authorization(
 ):
     try:
         form_data = await request.form()
+        print("\n\n\n\n\nform data is")
+        print(form_data)
+        print("\n\n\n\n\n")
         if "error" in form_data:
             print("\n\n\n\n\n")
             print("Error in apple authorization")
@@ -210,9 +213,15 @@ async def apple_authorization(
         # return TokenSchema(access_token=access_token, token_type="bearer")
     except ApplicationError as e:
         raise HTTPException(400, str(e))
-    except KeyError:
+    except KeyError as ke:
+        print("\n\n\n\nKey error")
+        print(ke)
+        print("\n\n\n\n")
         raise HTTPException(400, "Invalid authorization token")
-    except MismatchingStateError:
+    except MismatchingStateError as me:
+        print("\n\n\n\nmismatching state error")
+        print(me)
+        print("\n\n\n\n")
         raise HTTPException(400, "Invalid authorization token")
 
 
