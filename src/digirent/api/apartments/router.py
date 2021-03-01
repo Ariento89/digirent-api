@@ -176,10 +176,13 @@ def delete_apartment_image(
     images: List[str] = Body(...),
     session: Session = Depends(dependencies.get_database_session),
     app: Application = Depends(dependencies.get_application),
+    landlord: Landlord = Depends(dependencies.get_current_active_landlord),
 ):
     apartment = session.query(Apartment).get(apartment_id)
     if not apartment:
         raise HTTPException(404, "Apartment not found")
+    if apartment.landlord_id != landlord.id:
+        raise HTTPException(403, "forbidden")
     for image in images:
         app.delete_apartment_image(apartment, image)
     return apartment
@@ -191,10 +194,30 @@ def delete_apartment_video(
     videos: List[str] = Body(...),
     session: Session = Depends(dependencies.get_database_session),
     app: Application = Depends(dependencies.get_application),
+    landlord: Landlord = Depends(dependencies.get_current_active_landlord),
 ):
     apartment = session.query(Apartment).get(apartment_id)
     if not apartment:
         raise HTTPException(404, "Apartment not found")
+    if apartment.landlord_id != landlord.id:
+        raise HTTPException(403, "forbidden")
     for video in videos:
         app.delete_apartment_video(apartment, video)
+    return apartment
+
+
+@router.delete("/{apartment_id}", response_model=ApartmentSchema)
+def delete_apartment(
+    apartment_id: UUID,
+    session: Session = Depends(dependencies.get_database_session),
+    landlord: Landlord = Depends(dependencies.get_current_active_landlord),
+):
+    apartment = session.query(Apartment).get(apartment_id)
+    if not apartment:
+        raise HTTPException(404, "Apartment not found")
+    if apartment.landlord_id != landlord.id:
+        raise HTTPException(403, "forbidden")
+    # TODO more validation
+    session.delete(apartment)
+    session.commit()
     return apartment

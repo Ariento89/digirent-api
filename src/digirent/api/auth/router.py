@@ -167,10 +167,10 @@ async def login_with_apple(
 @router.post("/authorization/apple")
 async def apple_authorization(
     request: Request,
-    state: str,
-    app: Application = Depends(dependencies.get_application),
-    session: Session = Depends(dependencies.get_database_session),
-    user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
+    # state: str,
+    # app: Application = Depends(dependencies.get_application),
+    # session: Session = Depends(dependencies.get_database_session),
+    # user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
 ):
     try:
         form_data = await request.form()
