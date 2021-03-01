@@ -107,6 +107,6 @@ APPLE_KEY_ID: str = config("APPLE_KEY_ID", cast=str)
 
 APPLE_TEAM_ID: str = config("APPLE_TEAM_ID", cast=str)
 
-APPLE_PRIVATE_KEY: str = config("APPLE_PRIVATE_KEY", cast=str)
-
 APPLE_CLIENT_ID: str = config("APPLE_CLIENT_ID", cast=str)
+
+APPLE_PRIVATE_KEY: str = config("APPLE_PRIVATE_KEY", cast=str)

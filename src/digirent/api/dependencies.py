@@ -191,8 +191,11 @@ def get_optional_current_user_from_state(
         splitted_state = state.split(".", 1)
         if len(splitted_state) < 2:
             raise credentials_exception
-
+        print("\n\n\nabout to get payload from state")
         payload_from_state = serializer.loads(splitted_state[1])
+        print("\n\n\n\n\n payload from state is")
+        print(payload_from_state)
+        print("\n\n\n\n\n")
         access_token = payload_from_state["access_token"]
         if not access_token:
             return
@@ -205,7 +208,10 @@ def get_optional_current_user_from_state(
             user = session.query(Landlord).get(user.id)
     except ApplicationError:
         raise credentials_exception
-    except BadSignature:
+    except BadSignature as be:
+        print("\n\n\n\n\n bad signature error")
+        print(be)
+        print("\n\n\n\n")
         raise credentials_exception
     except KeyError:
         raise credentials_exception

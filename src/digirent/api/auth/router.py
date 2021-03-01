@@ -1,8 +1,7 @@
 from typing import Optional
 from enum import Enum
 from authlib.integrations.base_client.errors import MismatchingStateError
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from fastapi.param_functions import Body
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Body, Form
 from fastapi.requests import Request
 from jwt import PyJWTError
 from digirent.app.error import ApplicationError
@@ -174,20 +173,41 @@ async def apple_authorization(
     user: Optional[User] = Depends(dependencies.get_optional_current_user_from_state),
 ):
     try:
-        # TODO properly handle state failures
-        payload_from_state = get_payload_from_state(state)
-        who = payload_from_state["who"]
-        social = payload_from_state["social"]
-        if social != "apple":
-            raise HTTPException(400, "Invalid authorization token")
-        role = UserRole.TENANT if who == "tenant" else UserRole.LANDLORD
-        access_token = await get_token_from_apple_auth(
-            request, session, app, role, user
-        )
-        print("\n\n\n\n\n")
-        print(access_token)
-        print("\n\n\n\n\n")
-        return TokenSchema(access_token=access_token, token_type="bearer")
+        form_data = await request.form()
+        if "error" in form_data:
+            print("\n\n\n\n\n")
+            print("Error in apple authorization")
+            print(form_data["error"])
+            print(form_data["state"])
+            print("\n\n\n\n\n\n")
+            return
+        else:
+            print("\n\n\n no errors in apple auth")
+            code = form_data["code"]
+            id_token = form_data["id_token"]
+            state = form_data["state"]
+            user = form_data["user"]
+            print("\n\n\n\n\n\nApple auth got correct code")
+            print(code)
+            print(id_token)
+            print(state)
+            print(user)
+            print("\n\n\n\n\n\n\n")
+        return
+        # # TODO properly handle state failures
+        # payload_from_state = get_payload_from_state(state)
+        # who = payload_from_state["who"]
+        # social = payload_from_state["social"]
+        # if social != "apple":
+        #     raise HTTPException(400, "Invalid authorization token")
+        # role = UserRole.TENANT if who == "tenant" else UserRole.LANDLORD
+        # access_token = await get_token_from_apple_auth(
+        #     request, session, app, role, user
+        # )
+        # print("\n\n\n\n\n")
+        # print(access_token)
+        # print("\n\n\n\n\n")
+        # return TokenSchema(access_token=access_token, token_type="bearer")
     except ApplicationError as e:
         raise HTTPException(400, str(e))
     except KeyError:
