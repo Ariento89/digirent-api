@@ -97,6 +97,10 @@ async def chat(
     session: Session = SessionLocal()
     try:
         user = application.authenticate_token(session, token)
+        print("\n\n\n")
+        print("user authenticated successfully")
+        print(user.email)
+        print("\n\n\n")
         if user.role == UserRole.ADMIN:
             user = session.query(Admin).get(user.id)
         elif user.role == UserRole.TENANT:
