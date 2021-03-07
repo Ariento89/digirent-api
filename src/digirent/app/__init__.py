@@ -119,11 +119,8 @@ class Application(ApplicationBase):
         return util.create_access_token(data={"sub": str(existing_user.id)})
 
     def authenticate_token(self, session: Session, token: bytes) -> User:
-        try:
-            user_id: str = util.decode_access_token(token)
-            return self.user_service.get(session, UUID(user_id))
-        except PyJWTError:
-            raise ApplicationError("Invalid token")
+        user_id: str = util.decode_access_token(token)
+        return self.user_service.get(session, UUID(user_id))
 
     def authenticate_google(
         self,

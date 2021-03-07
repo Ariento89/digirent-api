@@ -1,4 +1,5 @@
 import json
+import jwt
 from uuid import UUID
 from fastapi import APIRouter, WebSocket, Depends
 from typing import Optional, Any
@@ -18,7 +19,11 @@ from digirent.api.dependencies import (
     get_current_active_user,
     get_database_session,
 )
-from digirent.database.models import ChatMessage, User
+from digirent.app import Application
+from digirent.database.enums import UserRole
+from digirent.database.models import Admin, ChatMessage, Landlord, Tenant, User
+from digirent.database.base import SessionLocal
+
 
 router = APIRouter()
 
@@ -82,11 +87,35 @@ class ChatManagerEndpoint:
 
 @router.websocket("/ws/{token}")
 async def chat(
-    websocket: WebSocket, user: User = Depends(deps.get_active_user_from_websocket)
+    token: str,
+    websocket: WebSocket,
+    application: Application = Depends(deps.get_application),
 ):
+    print("\n\n\n\n")
+    print(f"About to connect user to websocket with token {token}")
+    print("\n\n\n\n")
+    session: Session = SessionLocal()
+    try:
+        user = application.authenticate_token(session, token)
+        if user.role == UserRole.ADMIN:
+            user = session.query(Admin).get(user.id)
+        elif user.role == UserRole.TENANT:
+            user = session.query(Tenant).get(user.id)
+        elif user.role == UserRole.LANDLORD:
+            user = session.query(Landlord).get(user.id)
+    except jwt.PyJWTError:
+        await websocket.close()
+        return None
+    finally:
+        session.close()
+
     if user is None:
         await websocket.close()
         return
+    if not user.is_active:
+        await websocket.close()
+        return
+
     chat_manager: Optional[ChatManager] = websocket.get("chat_manager")
     if chat_manager is None:
         raise RuntimeError("Chat manager is unavailable")
