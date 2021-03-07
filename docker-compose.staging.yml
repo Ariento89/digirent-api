@@ -6,8 +6,8 @@ services:
         container_name: digirentdb
         volumes:
             - postgres_data:/var/lib/postgresql/data/
-        expose:
-            - "5432"
+        ports:
+            - "5100:5432"
         env_file:
             - env/.db.staging.env
         restart: unless-stopped
