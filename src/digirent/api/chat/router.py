@@ -91,16 +91,9 @@ async def chat(
     websocket: WebSocket,
     application: Application = Depends(deps.get_application),
 ):
-    print("\n\n\n\n")
-    print(f"About to connect user to websocket with token {token}")
-    print("\n\n\n\n")
     session: Session = SessionLocal()
     try:
         user = application.authenticate_token(session, token)
-        print("\n\n\n")
-        print("user authenticated successfully")
-        print(user.email)
-        print("\n\n\n")
         if user.role == UserRole.ADMIN:
             user = session.query(Admin).get(user.id)
         elif user.role == UserRole.TENANT:
