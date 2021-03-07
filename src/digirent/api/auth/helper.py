@@ -1,5 +1,4 @@
 import jwt
-from fastapi.exceptions import HTTPException
 import httpx
 from fastapi.requests import Request
 from sqlalchemy.orm.session import Session

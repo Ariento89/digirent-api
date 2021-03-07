@@ -188,6 +188,7 @@ class Apartment(Base, EntityMixin, TimestampMixin):
     country = Column(String, nullable=False)
     state = Column(String, nullable=False)
     city = Column(String, nullable=False)
+    is_archived = Column(Boolean, nullable=False, default=False)
     description = Column(String, nullable=False)
     house_type = Column(ChoiceType(HouseType, impl=String()), nullable=False)
     furnish_type = Column(ChoiceType(FurnishType, impl=String()), nullable=False)
