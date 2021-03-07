@@ -127,6 +127,7 @@ def fetch_apartments(
     landlord_id: Optional[UUID] = None,
 ):
     query = session.query(Apartment)
+    query = query.filter(Apartment.is_archived.is_(False))
     if min_price:
         query = query.filter(Apartment.monthly_price >= min_price)
     if max_price:
@@ -162,10 +163,15 @@ def fetch_apartments(
 @router.get("/{apartment_id}", response_model=ApartmentSchema)
 def get_apartment(
     apartment_id: UUID,
+    landlord: Landlord = Depends(dependencies.get_optional_current_active_landlord),
     session: Session = Depends(dependencies.get_database_session),
 ):
     apartment = session.query(Apartment).get(apartment_id)
-    if not apartment:
+    if landlord and apartment.landlord_id == landlord.id:
+        return apartment
+    if landlord and apartment.is_archived:
+        raise HTTPException(404, "Apartment not found")
+    if apartment.is_archived:
         raise HTTPException(404, "Apartment not found")
     return apartment
 
@@ -178,11 +184,14 @@ def delete_apartment_image(
     app: Application = Depends(dependencies.get_application),
     landlord: Landlord = Depends(dependencies.get_current_active_landlord),
 ):
-    apartment = session.query(Apartment).get(apartment_id)
+    apartment = (
+        session.query(Apartment)
+        .filter(Apartment.apartment_id == apartment_id)
+        .filter(Apartment.landlord_id == landlord.id)
+        .one_or_none()
+    )
     if not apartment:
         raise HTTPException(404, "Apartment not found")
-    if apartment.landlord_id != landlord.id:
-        raise HTTPException(403, "forbidden")
     for image in images:
         app.delete_apartment_image(apartment, image)
     return apartment
@@ -196,28 +205,58 @@ def delete_apartment_video(
     app: Application = Depends(dependencies.get_application),
     landlord: Landlord = Depends(dependencies.get_current_active_landlord),
 ):
-    apartment = session.query(Apartment).get(apartment_id)
+    apartment = (
+        session.query(Apartment)
+        .filter(Apartment.apartment_id == apartment_id)
+        .filter(Apartment.landlord_id == landlord.id)
+        .one_or_none()
+    )
     if not apartment:
         raise HTTPException(404, "Apartment not found")
-    if apartment.landlord_id != landlord.id:
-        raise HTTPException(403, "forbidden")
     for video in videos:
         app.delete_apartment_video(apartment, video)
     return apartment
 
 
-@router.delete("/{apartment_id}", response_model=ApartmentSchema)
-def delete_apartment(
+@router.put("/{apartment_id}/archive", response_model=ApartmentSchema)
+def archive_apartment(
     apartment_id: UUID,
     session: Session = Depends(dependencies.get_database_session),
     landlord: Landlord = Depends(dependencies.get_current_active_landlord),
 ):
-    apartment = session.query(Apartment).get(apartment_id)
+    apartment = (
+        session.query(Apartment)
+        .filter(Apartment.id == apartment_id)
+        .filter(Apartment.landlord_id == landlord.id)
+        .one_or_none()
+    )
     if not apartment:
         raise HTTPException(404, "Apartment not found")
-    if apartment.landlord_id != landlord.id:
-        raise HTTPException(403, "forbidden")
+    if apartment.is_archived:
+        raise HTTPException(400, "Apartment is already archived")
     # TODO more validation
-    session.delete(apartment)
+    apartment.is_archived = True
+    session.commit()
+    return apartment
+
+
+@router.put("/{apartment_id}/unarchive", response_model=ApartmentSchema)
+def unarchive_apartment(
+    apartment_id: UUID,
+    session: Session = Depends(dependencies.get_database_session),
+    landlord: Landlord = Depends(dependencies.get_current_active_landlord),
+):
+    apartment = (
+        session.query(Apartment)
+        .filter(Apartment.id == apartment_id)
+        .filter(Apartment.landlord_id == landlord.id)
+        .one_or_none()
+    )
+    if not apartment:
+        raise HTTPException(404, "Apartment not found")
+    if not apartment.is_archived:
+        raise HTTPException(400, "Apartment is not archived")
+    # TODO more validation
+    apartment.is_archived = False
     session.commit()
     return apartment

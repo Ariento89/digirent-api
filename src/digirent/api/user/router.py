@@ -1,12 +1,13 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from jwt import PyJWTError
+from digirent.api.apartments.schema import ApartmentSchema
 from digirent.app.error import ApplicationError
 from pathlib import Path
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
-from digirent.database.models import Admin, Landlord, Tenant, User
+from digirent.database.models import Admin, Apartment, Landlord, Tenant, User
 from .schema import UserCreateSchema, UserSchema
 from digirent import util
 from digirent.core import config
@@ -179,3 +180,52 @@ def verify_email(
         raise error
     except KeyError:
         raise error
+
+
+@router.get("/landlords/apartments", response_model=List[ApartmentSchema])
+def fetch_landlord_apartments(
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    min_size: Optional[float] = None,
+    max_size: Optional[float] = None,
+    min_bedrooms: Optional[int] = None,
+    max_bedrooms: Optional[int] = None,
+    min_bathrooms: Optional[int] = None,
+    max_bathrooms: Optional[int] = None,
+    is_descending: Optional[bool] = False,
+    is_archived: Optional[bool] = False,
+    session: Session = Depends(dependencies.get_database_session),
+    landlord: Landlord = Depends(dependencies.get_current_active_landlord),
+):
+    """Fetch authenticated landlords apartment"""
+    query = session.query(Apartment)
+    query = query.filter(Apartment.is_archived.is_(is_archived)).filter(
+        Apartment.landlord == landlord.id
+    )
+    if min_price:
+        query = query.filter(Apartment.monthly_price >= min_price)
+    if max_price:
+        query = query.filter(Apartment.monthly_price <= max_price)
+    if min_size:
+        query = query.filter(Apartment.size >= min_size)
+    if max_size:
+        query = query.filter(Apartment.size <= max_size)
+    if min_bedrooms:
+        query = query.filter(Apartment.bedrooms >= min_bedrooms)
+    if max_bedrooms:
+        query = query.filter(Apartment.bedrooms <= max_bedrooms)
+    if min_bathrooms:
+        query = query.filter(Apartment.bathrooms >= min_bathrooms)
+    if max_bathrooms:
+        query = query.filter(Apartment.bathrooms <= max_bathrooms)
+    if latitude and longitude:
+        center = "POINT({} {})".format(longitude, latitude)
+        query = query.filter(Apartment.location.ST_Distance_Sphere(center) < 5000)
+    query = (
+        query.order_by(Apartment.created_at.desc())
+        if is_descending
+        else query.order_by(Apartment.created_at.asc())
+    )
+    return query.all()
