@@ -49,7 +49,9 @@ def get_current_user(
             user = session.query(Tenant).get(user.id)
         elif user.role == UserRole.LANDLORD:
             user = session.query(Landlord).get(user.id)
-    except ApplicationError:
+    except jwt.PyJWTError:
+        raise credentials_exception
+    except jwt.ExpiredSignatureError:
         raise credentials_exception
     return user
 
