@@ -1,5 +1,6 @@
 import os
-from typing import List
+from datetime import date
+from typing import List, Optional
 from sqlalchemy import (
     Table,
     Column,
@@ -59,6 +60,17 @@ class User(Base, EntityMixin, TimestampMixin):
     bank_detail = relationship("BankDetail", uselist=False, backref="user")
 
     __mapper_args__ = {"polymorphic_identity": None, "polymorphic_on": role}
+
+    @hybrid_property
+    def age(self) -> Optional[int]:
+        if not self.dob:
+            return None
+        today = date.today()
+        return (
+            today.year
+            - self.dob.year
+            - ((today.month, today.day) < (self.dob.month, self.dob.day))
+        )
 
     @property
     def is_active(self):

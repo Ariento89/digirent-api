@@ -9,6 +9,7 @@ class ProfileSchema(OrmSchema):
     first_name: str
     last_name: str
     dob: Optional[date]
+    age: Optional[int]
     description: Optional[str]
     city: Optional[str]
     gender: Optional[Gender]

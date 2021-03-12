@@ -9,6 +9,8 @@ class TenantInApplicationSchema(OrmSchema):
     first_name: str
     last_name: str
     email: str
+    profile_percentage: float
+    age: Optional[int]
     gender: Optional[str]
     city: Optional[str]
     profile_image_url: Optional[str]
