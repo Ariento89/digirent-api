@@ -5,9 +5,18 @@ from digirent.database.enums import ApartmentApplicationStatus
 from ..schema import BaseSchema, OrmSchema
 
 
+class TenantInApplicationSchema(OrmSchema):
+    first_name: str
+    last_name: str
+    email: str
+    gender: Optional[str]
+    city: Optional[str]
+    profile_image_url: Optional[str]
+
+
 class ApartmentApplicationBaseSchema(BaseSchema):
     apartment_id: UUID
-    tenant_id: UUID
+    tenant: TenantInApplicationSchema
     status: Optional[ApartmentApplicationStatus]
 
 
