@@ -7,7 +7,9 @@ from typing import OrderedDict as ODict
 
 from sqlalchemy.orm.session import Session
 from digirent.database.base import with_db_session
+from digirent.database.enums import NotificationType
 from digirent.database.models import User, ChatMessage
+from digirent.notifications import store_and_broadcast_notification
 
 
 class ChatEventType(str, enum.Enum):
@@ -44,6 +46,7 @@ class ChatManager:
         db_message = ChatMessage(
             from_user_id=sender_id, to_user_id=user_id, message=message
         )
+        sender = session.query(User).get(sender_id)
         session.add(db_message)
         session.commit()
         from_chatuser = self.chat_users.get(sender_id)
@@ -51,6 +54,19 @@ class ChatManager:
         event = ChatEvent(
             event_type=ChatEventType.MESSAGE,
             data={"from": str(sender_id), "to": str(user_id), "message": message},
+        )
+        await store_and_broadcast_notification(
+            to_chatuser,
+            user_id,
+            NotificationType.CHAT,
+            {
+                "from": {
+                    "firstName": sender.first_name,
+                    "lastName": sender.last_name,
+                    "id": sender.id,
+                    "profileImageUrl": sender.profile_image_url,
+                }
+            },
         )
         if from_chatuser:
             await from_chatuser.send_json(event.dict(by_alias=True))

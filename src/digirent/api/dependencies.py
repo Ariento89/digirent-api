@@ -1,9 +1,10 @@
 import jwt
 from typing import Optional, Union
-from fastapi import Depends, HTTPException
-from fastapi import status as status
+from fastapi import Depends, HTTPException, Request, WebSocket
+from fastapi import status
 from fastapi.param_functions import Header, Query
 from fastapi.security import OAuth2PasswordBearer
+from digirent.api.chat.chat import ChatManager
 from digirent.app import Application
 from digirent.app.container import ApplicationContainer
 from sqlalchemy.orm.session import Session
@@ -294,3 +295,11 @@ def get_optional_current_user_from_state(
     except KeyError:
         raise credentials_exception
     return user
+
+
+def get_user_websocket_from_request(
+    request: Request,
+    user: User = Depends(get_current_user),
+) -> Optional[WebSocket]:
+    manager: ChatManager = request.get("room_manager")
+    return manager.chat_users.get(user.id)

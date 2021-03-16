@@ -2,7 +2,13 @@ from datetime import datetime
 from typing import List
 from uuid import UUID
 from sqlalchemy.orm.session import Session
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    BackgroundTasks,
+    Request,
+)
 from digirent.api import dependencies as deps
 from digirent.api.apartment_applications.schema import (
     ApartmentApplicationSchema,
@@ -10,7 +16,7 @@ from digirent.api.apartment_applications.schema import (
 )
 from digirent.app import Application
 from digirent.app.error import ApplicationError
-from digirent.database.enums import UserRole
+from digirent.database.enums import NotificationType, UserRole
 from digirent.database.models import (
     # Admin,
     Apartment,
@@ -20,6 +26,7 @@ from digirent.database.models import (
     User,
 )
 from digirent.util import send_email
+from digirent.notifications import store_and_broadcast_notification
 
 router = APIRouter()
 
@@ -98,8 +105,9 @@ def signrequest_contract_callback(
 @router.post(
     "/{apartment_id}", status_code=201, response_model=ApartmentApplicationSchema
 )
-def apply(
+async def apply(
     apartment_id: UUID,
+    request: Request,
     tenant: Tenant = Depends(deps.get_current_active_tenant),
     session: Session = Depends(deps.get_database_session),
     application: Application = Depends(deps.get_application),
@@ -108,6 +116,22 @@ def apply(
         apartment = application.apartment_service.get(session, apartment_id)
         if not apartment:
             raise HTTPException(404, "Apartment not found")
+        manager = request.get("room_manager")
+        landlord_socket = manager.chat_users.get(apartment.landlord_id)
+        await store_and_broadcast_notification(
+            landlord_socket,
+            apartment.landlord_id,
+            NotificationType.NEW_APARTMENT_APPLICATION,
+            {
+                "from": {
+                    "firstName": tenant.first_name,
+                    "lastName": tenant.last_name,
+                    "id": tenant.id,
+                    "profileImageUrl": tenant.profile_image_url,
+                },
+                "apartment": {"id": apartment.id, "description": apartment.description},
+            },
+        )
         return application.apply_for_apartment(session, tenant, apartment)
     except ApplicationError as e:
         raise HTTPException(400, str(e))
@@ -118,8 +142,9 @@ def apply(
     status_code=200,
     response_model=ApartmentApplicationSchema,
 )
-def reject_application(
+async def reject_application(
     application_id: UUID,
+    request: Request,
     background_tasks: BackgroundTasks,
     landlord: Landlord = Depends(deps.get_current_active_landlord),
     session: Session = Depends(deps.get_database_session),
@@ -142,6 +167,19 @@ def reject_application(
             subject="Digirent Apartment Application Notification",
             message=email_message,
         )
+        manager = request.get("room_manager")
+        tenant_socket = manager.chat_users.get(apartment_application.tenant_id)
+        await store_and_broadcast_notification(
+            tenant_socket,
+            apartment_application.tenant_id,
+            NotificationType.REJECTED_APARTMENT_APPLICATION,
+            {
+                "apartment": {
+                    "id": apartment_application.apartment_id,
+                    "description": apartment_application.apartment.description,
+                },
+            },
+        )
         return app.reject_apartment_application(session, apartment_application)
     except ApplicationError as e:
         raise HTTPException(400, str(e))
@@ -152,8 +190,9 @@ def reject_application(
     status_code=200,
     response_model=ApartmentApplicationSchema,
 )
-def consider_application(
+async def consider_application(
     application_id: UUID,
+    request: Request,
     background_tasks: BackgroundTasks,
     landlord: Landlord = Depends(deps.get_current_active_landlord),
     session: Session = Depends(deps.get_database_session),
@@ -175,6 +214,19 @@ def consider_application(
             to=apartment_application.tenant.email,
             subject="Digirent Apartment Application Notification",
             message=email_message,
+        )
+        manager = request.get("room_manager")
+        tenant_socket = manager.chat_users.get(apartment_application.tenant_id)
+        await store_and_broadcast_notification(
+            tenant_socket,
+            apartment_application.tenant_id,
+            NotificationType.CONSIDERED_APARTMENT_APPLICATION,
+            {
+                "apartment": {
+                    "id": apartment_application.apartment_id,
+                    "description": apartment_application.apartment.description,
+                },
+            },
         )
         return app.consider_apartment_application(session, apartment_application)
     except ApplicationError as e:
