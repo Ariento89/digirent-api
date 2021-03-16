@@ -20,7 +20,7 @@ from sqlalchemy import (
 from geoalchemy2 import Geometry
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy_utils import ChoiceType, EmailType, UUIDType
+from sqlalchemy_utils import ChoiceType, EmailType, UUIDType, JSONType
 
 from digirent import util
 from digirent.core.config import SUPPORTED_FILE_EXTENSIONS, SUPPORTED_IMAGE_EXTENSIONS
@@ -33,6 +33,7 @@ from .enums import (
     FurnishType,
     InvoiceStatus,
     InvoiceType,
+    NotificationType,
     SocialAccountType,
     UserRole,
     Gender,
@@ -512,3 +513,11 @@ class BlogTag(Base, TimestampMixin):
     __tablename__ = "blog_tags"
 
     name = Column(String, primary_key=True)
+
+
+class Notification(Base, EntityMixin, TimestampMixin):
+    __tablename__ = "notifications"
+    type = Column(ChoiceType(NotificationType, impl=String()), nullable=False)
+    user_id = Column(UUIDType(binary=False), ForeignKey("users.id"), nullable=False)
+    is_read = Column(Boolean, nullable=False, default=False)
+    data = Column(JSONType, nullable=False)

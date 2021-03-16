@@ -62,3 +62,10 @@ class InvoiceStatus(str, Enum):
     PAID = "paid"
     PENDING = "pending"
     FAILED = "failed"
+
+
+class NotificationType(str, Enum):
+    CHAT = "chat"
+    NEW_APARTMENT_APPLICATION = "new_apartment_application"
+    REJECTED_APARTMENT_APPLICATION = "rejected_apartment_application"
+    CONSIDERED_APARTMENT_APPLICATION = "considered_apartment_application"
