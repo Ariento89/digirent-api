@@ -26,7 +26,8 @@ async def store_and_broadcast_notification(
                 "eventType": "NOTIFICATION",
                 "data": {
                     "notificationType": notification_type.value,
-                    "created_at": str(notification.created_at),
+                    "createdAt": str(notification.created_at),
+                    "notificationId": str(notification.id),
                     "payload": data,
                 },
             }
