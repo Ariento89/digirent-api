@@ -55,7 +55,7 @@ def get_api_app():
     api.include_router(chat_router, prefix="/chat", tags=["Chat"])
     api.include_router(blog_router, prefix="/blog", tags=["Blog"])
     api.include_router(documents_router, prefix="/documents", tags=["Documents"])
-    app.include_router(
+    api.include_router(
         notifications_router, prefix="/notifications", tags=["Notifications"]
     )
     return api
