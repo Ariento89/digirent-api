@@ -63,7 +63,7 @@ class ChatManager:
                 "from": {
                     "firstName": sender.first_name,
                     "lastName": sender.last_name,
-                    "id": sender.id,
+                    "id": str(sender.id),
                     "profileImageUrl": sender.profile_image_url,
                 }
             },

@@ -108,6 +108,7 @@ def signrequest_contract_callback(
 async def apply(
     apartment_id: UUID,
     request: Request,
+    background: BackgroundTasks,
     tenant: Tenant = Depends(deps.get_current_active_tenant),
     session: Session = Depends(deps.get_database_session),
     application: Application = Depends(deps.get_application),
@@ -118,7 +119,9 @@ async def apply(
             raise HTTPException(404, "Apartment not found")
         manager = request.get("chat_manager")
         landlord_socket = manager.chat_users.get(apartment.landlord_id)
-        await store_and_broadcast_notification(
+        result = application.apply_for_apartment(session, tenant, apartment)
+        background.add_task(
+            store_and_broadcast_notification,
             landlord_socket,
             apartment.landlord_id,
             NotificationType.NEW_APARTMENT_APPLICATION,
@@ -126,13 +129,16 @@ async def apply(
                 "from": {
                     "firstName": tenant.first_name,
                     "lastName": tenant.last_name,
-                    "id": tenant.id,
+                    "id": str(tenant.id),
                     "profileImageUrl": tenant.profile_image_url,
                 },
-                "apartment": {"id": apartment.id, "description": apartment.description},
+                "apartment": {
+                    "id": str(apartment.id),
+                    "description": apartment.description,
+                },
             },
         )
-        return application.apply_for_apartment(session, tenant, apartment)
+        return result
     except ApplicationError as e:
         raise HTTPException(400, str(e))
 
@@ -145,7 +151,7 @@ async def apply(
 async def reject_application(
     application_id: UUID,
     request: Request,
-    background_tasks: BackgroundTasks,
+    background: BackgroundTasks,
     landlord: Landlord = Depends(deps.get_current_active_landlord),
     session: Session = Depends(deps.get_database_session),
     app: Application = Depends(deps.get_application),
@@ -161,7 +167,7 @@ async def reject_application(
         if not apartment_application:
             raise HTTPException(404, "application not found")
         email_message = f"Your application for apartment {apartment_application.apartment.name} rejected."
-        background_tasks.add_task(
+        background.add_task(
             send_email,
             to=apartment_application.tenant.email,
             subject="Digirent Apartment Application Notification",
@@ -169,18 +175,20 @@ async def reject_application(
         )
         manager = request.get("chat_manager")
         tenant_socket = manager.chat_users.get(apartment_application.tenant_id)
-        await store_and_broadcast_notification(
+        result = app.reject_apartment_application(session, apartment_application)
+        background.add_task(
+            store_and_broadcast_notification,
             tenant_socket,
             apartment_application.tenant_id,
             NotificationType.REJECTED_APARTMENT_APPLICATION,
             {
                 "apartment": {
-                    "id": apartment_application.apartment_id,
+                    "id": str(apartment_application.apartment_id),
                     "description": apartment_application.apartment.description,
                 },
             },
         )
-        return app.reject_apartment_application(session, apartment_application)
+        return result
     except ApplicationError as e:
         raise HTTPException(400, str(e))
 
@@ -193,7 +201,7 @@ async def reject_application(
 async def consider_application(
     application_id: UUID,
     request: Request,
-    background_tasks: BackgroundTasks,
+    background: BackgroundTasks,
     landlord: Landlord = Depends(deps.get_current_active_landlord),
     session: Session = Depends(deps.get_database_session),
     app: Application = Depends(deps.get_application),
@@ -209,7 +217,7 @@ async def consider_application(
         if not apartment_application:
             raise HTTPException(404, "application not found")
         email_message = f"Your application for apartment {apartment_application.apartment.name} has been considered. You stand a chance of being awarded this apartment"
-        background_tasks.add_task(
+        background.add_task(
             send_email,
             to=apartment_application.tenant.email,
             subject="Digirent Apartment Application Notification",
@@ -217,18 +225,20 @@ async def consider_application(
         )
         manager = request.get("chat_manager")
         tenant_socket = manager.chat_users.get(apartment_application.tenant_id)
-        await store_and_broadcast_notification(
+        result = app.consider_apartment_application(session, apartment_application)
+        background.add_task(
+            store_and_broadcast_notification,
             tenant_socket,
             apartment_application.tenant_id,
             NotificationType.CONSIDERED_APARTMENT_APPLICATION,
             {
                 "apartment": {
-                    "id": apartment_application.apartment_id,
+                    "id": str(apartment_application.apartment_id),
                     "description": apartment_application.apartment.description,
                 },
             },
         )
-        return app.consider_apartment_application(session, apartment_application)
+        return result
     except ApplicationError as e:
         raise HTTPException(400, str(e))
 
