@@ -1,3 +1,4 @@
+from datetime import date
 from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
@@ -123,35 +124,45 @@ def fetch_apartments(
     max_bedrooms: Optional[int] = None,
     min_bathrooms: Optional[int] = None,
     max_bathrooms: Optional[int] = None,
+    available_from: Optional[date] = None,
+    available_to: Optional[date] = None,
     is_descending: Optional[bool] = False,
     landlord_id: Optional[UUID] = None,
 ):
     query = session.query(Apartment)
     query = query.filter(Apartment.is_archived.is_(False))
-    if min_price:
+    if min_price is not None:
         query = query.filter(Apartment.monthly_price >= min_price)
-    if max_price:
+    if max_price is not None:
         query = query.filter(Apartment.monthly_price <= max_price)
-    if min_size:
+    if min_size is not None:
         query = query.filter(Apartment.size >= min_size)
-    if max_size:
+    if max_size is not None:
         query = query.filter(Apartment.size <= max_size)
-    if min_bedrooms:
+    if min_bedrooms is not None:
         query = query.filter(Apartment.bedrooms >= min_bedrooms)
-    if max_bedrooms:
+    if max_bedrooms is not None:
         query = query.filter(Apartment.bedrooms <= max_bedrooms)
-    if min_bathrooms:
+    if min_bathrooms is not None:
         query = query.filter(Apartment.bathrooms >= min_bathrooms)
-    if max_bathrooms:
+    if max_bathrooms is not None:
         query = query.filter(Apartment.bathrooms <= max_bathrooms)
-    if latitude and longitude:
+    if latitude is not None and longitude is not None:
         center = "POINT({} {})".format(longitude, latitude)
         query = query.filter(Apartment.location.ST_Distance_Sphere(center) < 5000)
-    if landlord_id:
+    if landlord_id is not None:
         landlord: Landlord = session.query(Landlord).get(landlord_id)
         if not landlord:
             raise HTTPException(404, "Landlord not found")
         query = query.filter(Apartment.landlord_id == landlord_id)
+    if available_from is not None:
+        query = query.filter(Apartment.available_from <= available_from).filter(
+            Apartment.available_to >= available_from
+        )
+    if available_to is not None:
+        query = query.filter(Apartment.available_from <= available_to).filter(
+            Apartment.available_to >= available_to
+        )
     query = (
         query.order_by(Apartment.created_at.desc())
         if is_descending
