@@ -52,6 +52,8 @@ class ChatManagerEndpoint:
                 print("\n\n\n\nError in decoding websocket message\n\n")
                 print(je)
                 print("\n\n")
+                print(text)
+                print("\n\n")
                 await websocket.close(code=status.WS_1003_UNSUPPORTED_DATA)
                 raise RuntimeError("Malformed JSON data received.")
 
