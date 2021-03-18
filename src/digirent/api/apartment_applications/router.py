@@ -116,7 +116,7 @@ async def apply(
         apartment = application.apartment_service.get(session, apartment_id)
         if not apartment:
             raise HTTPException(404, "Apartment not found")
-        manager = request.get("room_manager")
+        manager = request.get("chat_manager")
         landlord_socket = manager.chat_users.get(apartment.landlord_id)
         await store_and_broadcast_notification(
             landlord_socket,
@@ -167,7 +167,7 @@ async def reject_application(
             subject="Digirent Apartment Application Notification",
             message=email_message,
         )
-        manager = request.get("room_manager")
+        manager = request.get("chat_manager")
         tenant_socket = manager.chat_users.get(apartment_application.tenant_id)
         await store_and_broadcast_notification(
             tenant_socket,
@@ -215,7 +215,7 @@ async def consider_application(
             subject="Digirent Apartment Application Notification",
             message=email_message,
         )
-        manager = request.get("room_manager")
+        manager = request.get("chat_manager")
         tenant_socket = manager.chat_users.get(apartment_application.tenant_id)
         await store_and_broadcast_notification(
             tenant_socket,
