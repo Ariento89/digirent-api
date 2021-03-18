@@ -122,10 +122,10 @@ async def apply(
         result = application.apply_for_apartment(session, tenant, apartment)
         background.add_task(
             store_and_broadcast_notification,
-            landlord_socket,
-            apartment.landlord_id,
-            NotificationType.NEW_APARTMENT_APPLICATION,
-            {
+            websocket=landlord_socket,
+            user_id=apartment.landlord_id,
+            notification_type=NotificationType.NEW_APARTMENT_APPLICATION,
+            data={
                 "from": {
                     "firstName": tenant.first_name,
                     "lastName": tenant.last_name,
@@ -178,10 +178,10 @@ async def reject_application(
         result = app.reject_apartment_application(session, apartment_application)
         background.add_task(
             store_and_broadcast_notification,
-            tenant_socket,
-            apartment_application.tenant_id,
-            NotificationType.REJECTED_APARTMENT_APPLICATION,
-            {
+            websocket=tenant_socket,
+            user_id=apartment_application.tenant_id,
+            notification_type=NotificationType.REJECTED_APARTMENT_APPLICATION,
+            data={
                 "apartment": {
                     "id": str(apartment_application.apartment_id),
                     "description": apartment_application.apartment.description,
@@ -228,10 +228,10 @@ async def consider_application(
         result = app.consider_apartment_application(session, apartment_application)
         background.add_task(
             store_and_broadcast_notification,
-            tenant_socket,
-            apartment_application.tenant_id,
-            NotificationType.CONSIDERED_APARTMENT_APPLICATION,
-            {
+            websocket=tenant_socket,
+            user_id=apartment_application.tenant_id,
+            notification_type=NotificationType.CONSIDERED_APARTMENT_APPLICATION,
+            data={
                 "apartment": {
                     "id": str(apartment_application.apartment_id),
                     "description": apartment_application.apartment.description,
