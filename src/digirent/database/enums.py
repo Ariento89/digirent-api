@@ -13,9 +13,10 @@ class Gender(str, Enum):
 
 
 class HouseType(str, Enum):
-    DUPLEX = "duplex"
-    BUNGALOW = "bungalow"
-    FLAT = "flat"
+    STUDIO = "studio"
+    APARTMENT = "apartment"
+    SHARED_ROOM = "shared_room"
+    PRIVATE_ROOM = "private_room"
 
 
 class FurnishType(str, Enum):
