@@ -52,3 +52,24 @@ def mark_as_read(
         raise HTTPException(400, "Notification already marked as read")
     notification.is_read = True
     session.commit()
+    return notification
+
+
+@router.delete("/{notification_id}", response_model=NotificationSchema)
+def delete_notification(
+    notification_id: UUID,
+    session: Session = Depends(dependencies.get_database_session),
+    user: User = Depends(dependencies.get_current_active_user),
+):
+    """Delete a notification"""
+    notification = (
+        session.query(Notification)
+        .filter(Notification.id == notification_id)
+        .filter(Notification.user_id == user.id)
+        .one_or_none()
+    )
+    if notification is None:
+        raise HTTPException(404, "Not found")
+    session.delete(notification)
+    session.commit()
+    return notification
