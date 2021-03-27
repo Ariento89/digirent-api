@@ -7,8 +7,19 @@ from digirent.app.error import ApplicationError
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
-from digirent.database.models import Amenity, Apartment, Landlord
-from .schema import ApartmentCreateSchema, ApartmentSchema, ApartmentUpdateSchema
+from digirent.database.models import (
+    Amenity,
+    Apartment,
+    ApartmentApplication,
+    Landlord,
+    Tenant,
+)
+from .schema import (
+    ApartmentCreateSchema,
+    ApartmentSchema,
+    ApartmentUpdateSchema,
+    TenantApartmentSchema,
+)
 
 router = APIRouter()
 
@@ -169,6 +180,53 @@ def fetch_apartments(
         else query.order_by(Apartment.created_at.asc())
     )
     return query.all()
+
+
+@router.get("/tenant", response_model=List[TenantApartmentSchema])
+def fetch_apartments_as_tenant(
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    available_from: Optional[date] = None,
+    available_to: Optional[date] = None,
+    is_descending: Optional[bool] = False,
+    landlord_id: Optional[UUID] = None,
+    session: Session = Depends(dependencies.get_database_session),
+    tenant: Tenant = Depends(dependencies.get_current_active_tenant),
+):
+    query = session.query(Apartment)
+    query = query.filter(Apartment.is_archived.is_(False))
+    if latitude is not None and longitude is not None:
+        center = "POINT({} {})".format(longitude, latitude)
+        query = query.filter(Apartment.location.ST_Distance_Sphere(center) < 5000)
+    if landlord_id is not None:
+        landlord: Landlord = session.query(Landlord).get(landlord_id)
+        if not landlord:
+            raise HTTPException(404, "Landlord not found")
+        query = query.filter(Apartment.landlord_id == landlord_id)
+    if available_from is not None:
+        query = query.filter(Apartment.available_from <= available_from).filter(
+            Apartment.available_to >= available_from
+        )
+    if available_to is not None:
+        query = query.filter(Apartment.available_from <= available_to).filter(
+            Apartment.available_to >= available_to
+        )
+    query = (
+        query.order_by(Apartment.created_at.desc())
+        if is_descending
+        else query.order_by(Apartment.created_at.asc())
+    )
+    all_apartments = query.all()
+    result = []
+    for apartment in all_apartments:
+        tenant_apartment_application = (
+            session.query(ApartmentApplication)
+            .filter(ApartmentApplication.tenant_id == tenant)
+            .filter(ApartmentApplication.apartment_id == apartment.id)
+        )
+        applied = tenant_apartment_application is not None
+        result.append({"applied": applied, "apartment": apartment})
+    return result
 
 
 @router.get("/{apartment_id}", response_model=ApartmentSchema)

@@ -109,3 +109,8 @@ class ApartmentSchema(OrmSchema, BaseApartmentSchema):
     landlord: LandlordInApartmentSchema
     images: List[str]
     videos: List[str]
+
+
+class TenantApartmentSchema(BaseSchema):
+    applied: bool
+    apartment: ApartmentSchema
