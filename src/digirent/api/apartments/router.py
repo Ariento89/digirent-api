@@ -7,12 +7,14 @@ from digirent.app.error import ApplicationError
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
+from digirent.database.enums import HouseType
 from digirent.database.models import (
     Amenity,
     Apartment,
     ApartmentApplication,
     Landlord,
     Tenant,
+    User,
 )
 from .schema import (
     ApartmentCreateSchema,
@@ -180,6 +182,11 @@ def fetch_apartments(
         else query.order_by(Apartment.created_at.asc())
     )
     return query.all()
+
+
+@router.get("/house-types", response_model=List[str])
+def fetch_supported_house_types():
+    return [x.value for x in HouseType]
 
 
 @router.get("/tenant", response_model=List[TenantApartmentSchema])
