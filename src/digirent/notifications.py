@@ -16,15 +16,17 @@ def store_and_broadcast_notification(
     data: Union[list, dict],
     session: Session = None,
 ):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    loop = asyncio.get_event_loop()
+    if loop is None:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
     notification = Notification(
         user_id=user_id, is_read=False, type=notification_type, data=data
     )
     session.add(notification)
     session.commit()
     if websocket:
-        loop.run_until_complete(
+        loop.create_task(
             websocket.send_json(
                 {
                     "eventType": "NOTIFICATION",

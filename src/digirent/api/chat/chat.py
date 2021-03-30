@@ -55,7 +55,7 @@ class ChatManager:
             event_type=ChatEventType.MESSAGE,
             data={"from": str(sender_id), "to": str(user_id), "message": message},
         )
-        await store_and_broadcast_notification(
+        store_and_broadcast_notification(
             to_chatuser,
             user_id,
             NotificationType.CHAT,
@@ -95,5 +95,6 @@ class ChatManager:
             message: str = data["message"]
             await self.send_message_to_user(to, from_user, message)
         elif event_type == ChatEventType.USER_DISCONNECTED:
-            print(f"going to drop user {user.id}")
-            del self.chat_users[user.id]
+            print(f"Going to drop user {user.id}")
+            if user.id in self.chat_users:
+                del self.chat_users[user.id]
