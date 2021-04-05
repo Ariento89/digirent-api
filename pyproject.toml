@@ -31,6 +31,7 @@ GeoAlchemy2 = "^0.8.4"
 mollie-api-python = "^2.4.1"
 celery = {extras = ["redis"], version = "^5.0.2"}
 fastapi = "0.61.2"
+Shapely = "^1.7.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

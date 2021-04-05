@@ -84,12 +84,12 @@ volumes:
         driver: local
         driver_opts:
             type: none
-            device: ~/digirent_uploads/
+            device: ~/MyDockerVolumes/digirent_uploads/
             o: bind
 
     digirent_static:
         driver: local
         driver_opts:
             type: none
-            device: ~/digirent_static/
+            device: ~/MyDockerVolumes/digirent_static/
             o: bind

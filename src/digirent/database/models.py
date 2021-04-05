@@ -18,6 +18,7 @@ from sqlalchemy import (
     or_,
 )
 from geoalchemy2 import Geometry
+from geoalchemy2.shape import to_shape
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy_utils import ChoiceType, EmailType, UUIDType, JSONType
@@ -226,6 +227,18 @@ class Apartment(Base, EntityMixin, TimestampMixin):
     tenant = relationship(
         "Tenant", foreign_keys=[tenant_id], backref=backref("apartment", uselist=False)
     )
+
+    @hybrid_property
+    def point(self):
+        return to_shape(self.location)
+
+    @hybrid_property
+    def latitude(self):
+        return self.point.y
+
+    @hybrid_property
+    def longitude(self):
+        return self.point.x
 
     @hybrid_property
     def amenity_titles(self) -> List[str]:
