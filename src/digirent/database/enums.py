@@ -47,6 +47,7 @@ class SocialAccountType(str, Enum):
 
 class ContractStatus(str, Enum):
     NEW = "new"
+    NO_CONTRACT = "no_contract"
     SIGNED = "signed"
     EXPIRED = "expired"
     DECLINED = "declined"
@@ -70,3 +71,12 @@ class NotificationType(str, Enum):
     NEW_APARTMENT_APPLICATION = "new_apartment_application"
     REJECTED_APARTMENT_APPLICATION = "rejected_apartment_application"
     CONSIDERED_APARTMENT_APPLICATION = "considered_apartment_application"
+    ACCEPTED_APARTMENT_APPLICATION = "accepted_apartment_application"
+    PROCESSING_APARTMENT_APPLICATION = "processing_apartment_application"
+    CONTRACT_SIGNED = "contract_signed"
+    CONTRACT_DECLINED = "contract_declined"
+    CONTRACT_EXPIRED = "contract_expired"
+    CONTRACT_CANCELLED = "contract_cancelled"
+    KEYS_PROVIDED = "keys_provided"
+    KEYS_ACCEPTED = "keys_accepted"
+    COMPLETED_APARTMENT_APPLICATION = "completed_apartment_application"

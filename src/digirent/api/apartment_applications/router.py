@@ -250,7 +250,9 @@ async def consider_application(
 )
 def process_application(
     application_id: UUID,
-    background_tasks: BackgroundTasks,
+    background: BackgroundTasks,
+    request: Request,
+    with_contract: bool = True,
     landlord: Landlord = Depends(deps.get_current_active_landlord),
     session: Session = Depends(deps.get_database_session),
     app: Application = Depends(deps.get_application),
@@ -265,14 +267,41 @@ def process_application(
         )
         if not apartment_application:
             raise HTTPException(404, "application not found")
-        email_message = f"Your application for apartment {apartment_application.apartment.name} is processing. Please sign the contract"
-        background_tasks.add_task(
+
+        manager = request.get("chat_manager")
+        tenant_socket = manager.chat_users.get(apartment_application.tenant_id)
+        result = app.process_apartment_application(
+            session, apartment_application, with_contract
+        )
+        if with_contract:
+            email_message = f"Your application for apartment {apartment_application.apartment.name} is processing. Please sign the contract"
+        else:
+            email_message = f"Your application for apartment {apartment_application.apartment.name} has been accepted."
+        background.add_task(
             send_email,
             to=apartment_application.tenant.email,
             subject="Digirent Apartment Application Notification",
             message=email_message,
         )
-        return app.process_apartment_application(session, apartment_application)
+        notification_type = (
+            NotificationType.PROCESSING_APARTMENT_APPLICATION
+            if with_contract
+            else NotificationType.ACCEPTED_APARTMENT_APPLICATION
+        )
+        background.add_task(
+            store_and_broadcast_notification,
+            websocket=tenant_socket,
+            user_id=apartment_application.tenant_id,
+            notification_type=notification_type,
+            data={
+                "apartment": {
+                    "id": str(apartment_application.apartment_id),
+                    "description": apartment_application.apartment.description,
+                    "with_contract": with_contract,
+                },
+            },
+        )
+        return result
     except ApplicationError as e:
         raise HTTPException(400, str(e))
 

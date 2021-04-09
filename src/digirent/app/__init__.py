@@ -620,6 +620,7 @@ class Application(ApplicationBase):
         self,
         session: Session,
         apartment_application: ApartmentApplication,
+        has_document: bool = True,
     ) -> ApartmentApplication:
         if apartment_application.status != ApartmentApplicationStatus.CONSIDERED:
             raise ApplicationError("Apartment has not been considered")
@@ -640,10 +641,12 @@ class Application(ApplicationBase):
         )
         if currently_processed_application:
             raise ApplicationError("Another application is currently being processed")
-        contract = Contract(apartment_application_id=apartment_application.id)
+        contract = Contract(
+            apartment_application_id=apartment_application.id, has_document=has_document
+        )
         session.add(contract)
         session.commit()
-        if config.APP_ENV != "test":
+        if config.APP_ENV != "test" and has_document:
             send_contract_sign_request(
                 apartment_application.id,
                 apartment_application.apartment.landlord.email,

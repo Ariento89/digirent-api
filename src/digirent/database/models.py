@@ -304,7 +304,7 @@ class ApartmentApplication(Base, EntityMixin, TimestampMixin):
             return ApartmentApplicationStatus.FAILED
         if self.contract.status == ContractStatus.NEW:
             return ApartmentApplicationStatus.PROCESSING
-        if self.contract.status == ContractStatus.SIGNED:
+        if self.contract.status in [ContractStatus.SIGNED, ContractStatus.NO_CONTRACT]:
             return ApartmentApplicationStatus.AWARDED
             # TODO is it awarded when contract is signed
         if self.contract.status == ContractStatus.COMPLETED:
@@ -341,7 +341,10 @@ class ApartmentApplication(Base, EntityMixin, TimestampMixin):
                     ApartmentApplicationStatus.PROCESSING.value,
                 ),
                 (
-                    Contract.status == ContractStatus.SIGNED,
+                    or_(
+                        Contract.status == ContractStatus.SIGNED,
+                        Contract.status == ContractStatus.NO_CONTRACT,
+                    ),
                     ApartmentApplicationStatus.AWARDED.value,
                 ),
                 (
@@ -357,6 +360,7 @@ class Contract(Base, EntityMixin, TimestampMixin):
     apartment_application_id = Column(
         UUIDType(binary=False), ForeignKey("apartment_applications.id")
     )
+    has_document = Column(Boolean, nullable=False, default=True)
     landlord_has_signed = Column(Boolean, nullable=False, default=False)
     landlord_signed_on = Column(DateTime, nullable=True)
     tenant_has_signed = Column(Boolean, nullable=False, default=False)
@@ -376,6 +380,10 @@ class Contract(Base, EntityMixin, TimestampMixin):
 
     @hybrid_property
     def status(self) -> ContractStatus:
+        if not self.has_document and not all(
+            [self.landlord_has_provided_keys, self.tenant_has_received_keys]
+        ):
+            return ContractStatus.NO_CONTRACT
         if any([self.tenant_declined, self.landlord_declined]):
             return ContractStatus.DECLINED
         elif self.expired:
@@ -393,6 +401,16 @@ class Contract(Base, EntityMixin, TimestampMixin):
     def status(self):
         return case(
             [
+                (
+                    and_(
+                        self.has_document == False,  # noqa
+                        or_(
+                            self.landlord_has_provided_keys == False,
+                            self.tenant_has_received_keys == False,
+                        ),
+                    ),
+                    ContractStatus.NO_CONTRACT.value,
+                ),
                 (
                     or_(
                         self.tenant_declined == True,  # noqa
