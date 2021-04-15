@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from jwt import PyJWTError
@@ -8,6 +9,7 @@ from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
 from digirent.database.models import Admin, Apartment, Landlord, Tenant, User
+from digirent.database.enums import ActivityTokenType
 from .schema import UserCreateSchema, UserSchema
 from digirent import util
 from digirent.core import config
@@ -15,14 +17,16 @@ from digirent.core import config
 
 router = APIRouter()
 
-EMAIL_VERIFICATION_TOKEN_VALUE = "email_verification"
+EMAIL_VERIFICATION_TOKEN_VALUE = ActivityTokenType.EMAIL_VERIFICATION.value
 
 verification_email_path = Path(__file__).parents[4] / "templates/verification.html"
 
 
 def generate_verification_url(user: User) -> str:
     token = util.create_token(
-        {"type": EMAIL_VERIFICATION_TOKEN_VALUE, "email": user.email}
+        {"type": EMAIL_VERIFICATION_TOKEN_VALUE, "email": user.email},
+        expires_delta=timedelta(hours=24),
+        secret=config.ACTIVITY_TOKEN_SECRET_KEY,
     )
     return f"{config.CLIENT_HOST}/verify?token={token.decode('utf-8')}"
 
@@ -164,7 +168,9 @@ def verify_email(
 ):
     error = HTTPException(400, "Invalid token")
     try:
-        payload = util.get_payload_from_token(token)
+        payload = util.get_payload_from_token(
+            token, secret=config.ACTIVITY_TOKEN_SECRET_KEY
+        )
         token_type = payload["type"]
         if token_type != EMAIL_VERIFICATION_TOKEN_VALUE:
             raise error

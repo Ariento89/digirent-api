@@ -27,6 +27,8 @@ DATABASE_URL: str = config("DATABASE_URL", cast=str)
 
 SECRET_KEY: str = config("SECRET_KEY", cast=str)
 
+ACTIVITY_TOKEN_SECRET_KEY: str = config("ACTIVITY_TOKEN_SECRET_KEY", cast=str)
+
 JWT_ALGORITHM: str = config("JWT_ALGORITHM", cast=str, default="HS256")
 
 ACCESS_TOKEN_EXPIRE_MINUTES: int = config(

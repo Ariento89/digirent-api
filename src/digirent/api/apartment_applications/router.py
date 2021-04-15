@@ -25,7 +25,7 @@ from digirent.database.models import (
     Tenant,
     User,
 )
-from digirent.util import send_email
+from digirent.util import send_email, generate_application_email_html
 from digirent.notifications import store_and_broadcast_notification
 
 router = APIRouter()
@@ -170,8 +170,13 @@ async def reject_application(
         background.add_task(
             send_email,
             to=apartment_application.tenant.email,
-            subject="Digirent Apartment Application Notification",
+            subject=f"Rejected For {apartment_application.apartment.name}",
             message=email_message,
+            html=generate_application_email_html(
+                apartment_application.tenant.first_name,
+                "rejected",
+                apartment_application.apartment.name,
+            ),
         )
         manager = request.get("chat_manager")
         tenant_socket = manager.chat_users.get(apartment_application.tenant_id)
@@ -220,8 +225,13 @@ async def consider_application(
         background.add_task(
             send_email,
             to=apartment_application.tenant.email,
-            subject="Digirent Apartment Application Notification",
+            subject="Through to the next round!",
             message=email_message,
+            html=generate_application_email_html(
+                apartment_application.tenant.first_name,
+                "considered",
+                apartment_application.apartment.name,
+            ),
         )
         manager = request.get("chat_manager")
         tenant_socket = manager.chat_users.get(apartment_application.tenant_id)
@@ -275,14 +285,25 @@ def process_application(
         )
         if with_contract:
             email_message = f"Your application for apartment {apartment_application.apartment.name} is processing. Please sign the contract"
+            background.add_task(
+                send_email,
+                to=apartment_application.tenant.email,
+                subject="Digirent Apartment Application Notification",
+                message=email_message,
+            )
         else:
             email_message = f"Your application for apartment {apartment_application.apartment.name} has been accepted."
-        background.add_task(
-            send_email,
-            to=apartment_application.tenant.email,
-            subject="Digirent Apartment Application Notification",
-            message=email_message,
-        )
+            background.add_task(
+                send_email,
+                to=apartment_application.tenant.email,
+                subject="Awarded property!",
+                message=email_message,
+                html=generate_application_email_html(
+                    apartment_application.tenant.first_name,
+                    "awarded",
+                    apartment_application.apartment.name,
+                ),
+            )
         notification_type = (
             NotificationType.PROCESSING_APARTMENT_APPLICATION
             if with_contract

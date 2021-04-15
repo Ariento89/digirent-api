@@ -1,6 +1,6 @@
 import jwt
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 from datetime import datetime, timedelta, date
 from passlib.context import CryptContext
 from digirent.core import config
@@ -10,15 +10,27 @@ from sendgrid.helpers.mail import Mail
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+application_rejected_email_path = (
+    Path(__file__).parents[2] / "templates/application_rejected.html"
+)
+application_considered_email_path = (
+    Path(__file__).parents[2] / "templates/application_considered.html"
+)
+application_awarded_email_path = (
+    Path(__file__).parents[2] / "templates/application_awarded.html"
+)
 
-def create_token(payload: dict, expires_delta: timedelta = None):
+
+def create_token(
+    payload: dict, expires_delta: timedelta = None, secret=config.SECRET_KEY
+):
     to_encode = payload.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=60)
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, config.SECRET_KEY, algorithm=config.JWT_ALGORITHM)
+    return jwt.encode(to_encode, secret, algorithm=config.JWT_ALGORITHM)
 
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
@@ -26,8 +38,8 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return create_token(data, expire)
 
 
-def get_payload_from_token(token: Union[str, bytes]) -> Any:
-    return jwt.decode(token, config.SECRET_KEY, algorithms=[config.JWT_ALGORITHM])
+def get_payload_from_token(token: Union[str, bytes], secret=config.SECRET_KEY) -> Any:
+    return jwt.decode(token, secret, algorithms=[config.JWT_ALGORITHM])
 
 
 def decode_access_token(token: Union[str, bytes]) -> str:
@@ -163,3 +175,22 @@ def generate_apple_client_secret() -> str:
         algorithm="ES256",
         headers=headers,
     ).decode("utf-8")
+
+
+def generate_application_email_html(
+    first_name: str,
+    kind: Literal["rejected", "awarded", "considered"],
+    apartment_name: str,
+) -> str:
+    mapping = {
+        "rejected": application_rejected_email_path,
+        "considered": application_considered_email_path,
+        "awarded": application_awarded_email_path,
+    }
+    path_to_open = mapping[kind]
+    with open(path_to_open) as f:
+        content = f.read()
+        content = content.replace("{{first_name}}", f"{first_name}")
+        content = content.replace("{{property_name}}", apartment_name)
+        content = content.replace("{{url_to_visit}}", config.CLIENT_HOST)
+        return content

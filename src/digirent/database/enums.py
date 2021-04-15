@@ -80,3 +80,8 @@ class NotificationType(str, Enum):
     KEYS_PROVIDED = "keys_provided"
     KEYS_ACCEPTED = "keys_accepted"
     COMPLETED_APARTMENT_APPLICATION = "completed_apartment_application"
+
+
+class ActivityTokenType(str, Enum):
+    EMAIL_VERIFICATION = "email_verification"
+    PASSWORD_RESET = "password_reset"
