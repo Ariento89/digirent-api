@@ -1,11 +1,13 @@
+from datetime import timedelta
 from typing import Optional
 from enum import Enum
 from authlib.integrations.base_client.errors import MismatchingStateError
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Body, Form
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Body
+from pathlib import Path
 from fastapi.requests import Request
 from jwt import PyJWTError
 from digirent.app.error import ApplicationError
-from digirent.database.enums import UserRole
+from digirent.database.enums import ActivityTokenType, UserRole
 from digirent.database.models import User
 from .schema import RedirectSchema, TokenSchema
 from fastapi.security import OAuth2PasswordRequestForm
@@ -15,7 +17,6 @@ from digirent.app.social import oauth
 from .helper import (
     get_token_from_facebook_auth,
     get_token_from_google_auth,
-    get_token_from_apple_auth,
     generate_state,
     get_payload_from_state,
 )
@@ -24,7 +25,35 @@ from digirent import util
 from digirent.core import config
 
 
-PASSWORD_RESET_TOKEN_VALUE = "password_reset"
+PASSWORD_RESET_TOKEN_VALUE = ActivityTokenType.PASSWORD_RESET.value
+
+password_reset_email_path = (
+    Path(__file__).parents[4] / "templates/password_recovery.html"
+)
+
+
+def generate_password_reset_url(user_email: str) -> str:
+    token = util.create_token(
+        {"type": PASSWORD_RESET_TOKEN_VALUE, "email": user_email},
+        expires_delta=timedelta(hours=1),
+        secret=config.ACTIVITY_TOKEN_SECRET_KEY,
+    )
+    return f"{config.CLIENT_HOST}/forgot-password?token={token.decode('utf-8')}"
+
+
+def generate_password_reset_text(first_name: str, url: str) -> str:
+    return f"""
+        Hello, {first_name},
+        Follow this link to reset password {url}
+    """
+
+
+def generate_password_reset_html(first_name: str, url: str) -> str:
+    with open(password_reset_email_path) as f:
+        content = f.read()
+        content = content.replace("{{first_name}}", first_name)
+        content = content.replace("{{url_to_visit}}", url)
+        return content
 
 
 class SocialAccountLoginWho(str, Enum):
@@ -56,16 +85,13 @@ def forgot_password(
 ):
     user_with_email = session.query(User).filter(User.email == email).one_or_none()
     if user_with_email:
-        password_reset_token = util.create_access_token(
-            {"type": PASSWORD_RESET_TOKEN_VALUE, "email": email}
-        )
-        url = f"{config.CLIENT_HOST}/forgot-password?token={password_reset_token}"
-        email_str = f"Follow this link to reset password {url}"
+        url = generate_password_reset_url(email)
         background.add_task(
             util.send_email,
             to=email,
-            subject="Reset Digirent Password",
-            message=email_str,
+            subject="Reset your forgotten password",
+            message=generate_password_reset_text(user_with_email.first_name),
+            html=generate_password_reset_html(user_with_email.first_name, url),
         )
 
 
@@ -83,7 +109,9 @@ def reset_password(
     if not user_with_email:
         raise HTTPException(404, "User not found")
     try:
-        payload = util.get_payload_from_token(token)
+        payload = util.get_payload_from_token(
+            token, secret=config.ACTIVITY_TOKEN_SECRET_KEY
+        )
         token_type = payload["type"]
         if token_type != PASSWORD_RESET_TOKEN_VALUE:
             raise error

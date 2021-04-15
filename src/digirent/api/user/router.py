@@ -22,31 +22,27 @@ EMAIL_VERIFICATION_TOKEN_VALUE = ActivityTokenType.EMAIL_VERIFICATION.value
 verification_email_path = Path(__file__).parents[4] / "templates/verification.html"
 
 
-def generate_verification_url(user: User) -> str:
+def generate_verification_url(user_email: str) -> str:
     token = util.create_token(
-        {"type": EMAIL_VERIFICATION_TOKEN_VALUE, "email": user.email},
+        {"type": EMAIL_VERIFICATION_TOKEN_VALUE, "email": user_email},
         expires_delta=timedelta(hours=24),
         secret=config.ACTIVITY_TOKEN_SECRET_KEY,
     )
     return f"{config.CLIENT_HOST}/verify?token={token.decode('utf-8')}"
 
 
-def generate_email_verification_text(user: User) -> str:
-    url = generate_verification_url(user)
+def generate_email_verification_text(first_name: str, url: str) -> str:
     return f"""
-        Hello, {user.first_name},
+        Hello, {first_name},
         Thank you for signing up on Digi rent.
         Please follow this url to verify your account {url}
     """
 
 
-def generate_email_verification_html(user: User) -> str:
-    url = generate_verification_url(user)
+def generate_email_verification_html(user_name: str, url: str) -> str:
     with open(verification_email_path) as f:
         content = f.read()
-        content = content.replace(
-            "{{user_name}}", f"{user.first_name} {user.last_name}"
-        )
+        content = content.replace("{{user_name}}", user_name)
         content = content.replace("{{verification_url}}", url)
         return content
 
@@ -72,12 +68,13 @@ async def register_tenant(
         if existing_user_with_phonenumber:
             raise HTTPException(409, "User with phone number aready exists")
         result = application.create_tenant(session, **data.dict())
+        url = generate_verification_url(result.email)
         background_tasks.add_task(
             util.send_email,
             to=result.email,
             subject="Verify Acccount",
-            message=generate_email_verification_text(result),
-            html=generate_email_verification_html(result),
+            message=generate_email_verification_text(result.first_name, url),
+            html=generate_email_verification_html(result.first_name, url),
         )
         return result
     except ApplicationError as e:
@@ -105,12 +102,13 @@ async def register_landlord(
         if existing_user_with_phonenumber:
             raise HTTPException(409, "User with phone number aready exists")
         result = application.create_landlord(session, **data.dict())
+        url = generate_verification_url(result.email)
         background_tasks.add_task(
             util.send_email,
             to=result.email,
             subject="Verify Acccount",
-            message=generate_email_verification_text(result),
-            html=generate_email_verification_html(result),
+            message=generate_email_verification_text(result.first_name, url),
+            html=generate_email_verification_html(result.first_name, url),
         )
         return result
     except ApplicationError as e:
