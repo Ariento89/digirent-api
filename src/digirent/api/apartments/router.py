@@ -14,7 +14,6 @@ from digirent.database.models import (
     ApartmentApplication,
     Landlord,
     Tenant,
-    User,
 )
 from .schema import (
     ApartmentCreateSchema,
@@ -141,6 +140,7 @@ def fetch_apartments(
     available_to: Optional[date] = None,
     is_descending: Optional[bool] = False,
     landlord_id: Optional[UUID] = None,
+    house_type: Optional[HouseType] = None,
 ):
     query = session.query(Apartment)
     query = query.filter(Apartment.is_archived.is_(False))
@@ -176,6 +176,8 @@ def fetch_apartments(
         query = query.filter(Apartment.available_from <= available_to).filter(
             Apartment.available_to >= available_to
         )
+    if house_type is not None:
+        query = query.filter(Apartment.house_type == house_type)
     query = (
         query.order_by(Apartment.created_at.desc())
         if is_descending

@@ -25,7 +25,6 @@ async def create_amenity(
 
 @router.get("/", response_model=List[AmenitySchema])
 async def fetch_amenities(
-    user: User = Depends(dependencies.get_current_active_user),
     application: Application = Depends(dependencies.get_application),
     session: Session = Depends(dependencies.get_database_session),
 ):
