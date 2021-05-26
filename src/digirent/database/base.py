@@ -16,11 +16,15 @@ def load_spatialite(dbapi_conn, connection_record):
 
 if "sqlite" in DATABASE_URL:
     engine = create_engine(
-        DATABASE_URL, connect_args={"check_same_thread": False}, echo=SQLALCHEMY_LOG
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        echo=SQLALCHEMY_LOG,
     )
     listen(engine, "connect", load_spatialite)
 else:
-    engine = create_engine(DATABASE_URL, echo=SQLALCHEMY_LOG)
+    engine = create_engine(
+        DATABASE_URL, echo=SQLALCHEMY_LOG, pool_size=20, max_overflow=10
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
