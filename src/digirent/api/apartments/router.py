@@ -7,7 +7,7 @@ from digirent.app.error import ApplicationError
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
-from digirent.database.enums import HouseType
+from digirent.database.enums import FurnishType, HouseType
 from digirent.database.models import (
     Amenity,
     Apartment,
@@ -141,6 +141,7 @@ def fetch_apartments(
     is_descending: Optional[bool] = False,
     landlord_id: Optional[UUID] = None,
     house_type: Optional[HouseType] = None,
+    furnish_type: Optional[FurnishType] = None,
 ):
     query = session.query(Apartment)
     query = query.filter(Apartment.is_archived.is_(False))
@@ -178,6 +179,8 @@ def fetch_apartments(
         )
     if house_type is not None:
         query = query.filter(Apartment.house_type == house_type)
+    if furnish_type is not None:
+        query = query.filter(Apartment.furnish_type == furnish_type)
     query = (
         query.order_by(Apartment.created_at.desc())
         if is_descending
