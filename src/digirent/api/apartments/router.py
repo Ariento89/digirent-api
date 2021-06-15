@@ -1,7 +1,7 @@
 from datetime import date
 from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query
 from fastapi.param_functions import Body
 from digirent.app.error import ApplicationError
 from sqlalchemy.orm.session import Session
@@ -142,7 +142,7 @@ def fetch_apartments(
     landlord_id: Optional[UUID] = None,
     house_type: Optional[HouseType] = None,
     furnish_type: Optional[FurnishType] = None,
-    ameneties: Optional[List[str]] = None,
+    ameneties: Optional[List[UUID]] = Query(None),
 ):
     query = session.query(Apartment)
     query = query.filter(Apartment.is_archived.is_(False))
