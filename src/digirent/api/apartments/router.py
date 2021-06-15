@@ -142,7 +142,7 @@ def fetch_apartments(
     landlord_id: Optional[UUID] = None,
     house_type: Optional[HouseType] = None,
     furnish_type: Optional[FurnishType] = None,
-    ameneties: List[UUID],
+    ameneties: List[UUID] = None,
 ):
     query = session.query(Apartment)
     query = query.filter(Apartment.is_archived.is_(False))
@@ -182,8 +182,9 @@ def fetch_apartments(
         query = query.filter(Apartment.house_type == house_type)
     if furnish_type is not None:
         query = query.filter(Apartment.furnish_type == furnish_type)
-    for amenity in ameneties:
-        query = query.filter(Apartment.amenities.has(Amenity.id==amenity))
+    if ameneties is not None:
+        for amenity in ameneties:
+            query = query.filter(Apartment.amenities.has(Amenity.id == amenity))
     query = (
         query.order_by(Apartment.created_at.desc())
         if is_descending
