@@ -184,7 +184,7 @@ def fetch_apartments(
         query = query.filter(Apartment.furnish_type == furnish_type)
     if ameneties is not None:
         for amenity in ameneties:
-            query = query.filter(Apartment.amenities.has(Amenity.id == amenity))
+            query = query.filter(Apartment.amenities.any(Amenity.id == amenity))
     query = (
         query.order_by(Apartment.created_at.desc())
         if is_descending
