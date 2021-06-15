@@ -142,7 +142,7 @@ def fetch_apartments(
     landlord_id: Optional[UUID] = None,
     house_type: Optional[HouseType] = None,
     furnish_type: Optional[FurnishType] = None,
-    ameneties: List[UUID] = None,
+    ameneties: Optional[List[str]] = None,
 ):
     query = session.query(Apartment)
     query = query.filter(Apartment.is_archived.is_(False))
