@@ -1,5 +1,5 @@
 from datetime import date
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query
 from fastapi.param_functions import Body
@@ -143,6 +143,8 @@ def fetch_apartments(
     house_type: Optional[HouseType] = None,
     furnish_type: Optional[FurnishType] = None,
     ameneties: Optional[List[UUID]] = Query(None),
+    sort_by: Optional[Literal["price", "date"]] = None,
+    sort_order: Optional[Literal["asc", "desc"]] = None,
 ):
     query = session.query(Apartment)
     query = query.filter(Apartment.is_archived.is_(False))
@@ -185,6 +187,9 @@ def fetch_apartments(
     if ameneties is not None:
         for amenity in ameneties:
             query = query.filter(Apartment.amenities.any(Amenity.id == amenity))
+    sort_col = Apartment.total_price if sort_by == "price" else Apartment.created_at
+    sort_expr = sort_col.desc() if sort_order == "desc" else sort_col.asc()
+    query = query.order_by(sort_expr)
     query = (
         query.order_by(Apartment.created_at.desc())
         if is_descending
