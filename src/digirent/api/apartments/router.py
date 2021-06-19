@@ -210,6 +210,7 @@ def fetch_apartments_as_tenant(
     available_from: Optional[date] = None,
     available_to: Optional[date] = None,
     is_descending: Optional[bool] = False,
+    favorite: Optional[bool] = False,
     landlord_id: Optional[UUID] = None,
     session: Session = Depends(dependencies.get_database_session),
     tenant: Tenant = Depends(dependencies.get_current_active_tenant),
@@ -232,6 +233,8 @@ def fetch_apartments_as_tenant(
         query = query.filter(Apartment.available_from <= available_to).filter(
             Apartment.available_to >= available_to
         )
+    if favorite:
+        query = query.filter(Apartment.favorite_tenants.any(Tenant.id == tenant.id))
     query = (
         query.order_by(Apartment.created_at.desc())
         if is_descending
@@ -350,3 +353,49 @@ def unarchive_apartment(
     apartment.is_archived = False
     session.commit()
     return apartment
+
+
+@router.post("/{apartment_id}/favorites", response_model=None)
+def favorite_apartment(
+    apartment_id: UUID,
+    session: Session = Depends(dependencies.get_database_session),
+    tenant: Tenant = Depends(dependencies.get_current_active_tenant),
+):
+    apartment = session.query(Apartment).get(apartment_id)
+    if apartment is None:
+        raise HTTPException(404, "Apartment not found")
+    is_apartment_favorited = (
+        session.query(Apartment)
+        .filter(Apartment.id == apartment_id)
+        .filter(Apartment.favorite_tenants.any(Tenant.id == tenant.id))
+        .count()
+        > 0
+    )
+    if is_apartment_favorited:
+        raise HTTPException(400, "Apartment has already been favorited by this user")
+    tenant.favorite_apartments.append(apartment)
+    session.commit()
+    return None
+
+
+@router.delete("/{apartment_id}/favorites", response_model=None)
+def unfavorite_apartment(
+    apartment_id: UUID,
+    session: Session = Depends(dependencies.get_database_session),
+    tenant: Tenant = Depends(dependencies.get_current_active_tenant),
+):
+    apartment = session.query(Apartment).get(apartment_id)
+    if apartment is None:
+        raise HTTPException(404, "Apartment not found")
+    is_apartment_favorited = (
+        session.query(Apartment)
+        .filter(Apartment.id == apartment_id)
+        .filter(Apartment.favorite_tenants.any(Tenant.id == tenant.id))
+        .count()
+        > 0
+    )
+    if not is_apartment_favorited:
+        raise HTTPException(400, "Apartment has not been favorited by this user")
+    tenant.favorite_apartments.remove(apartment)
+    session.commit()
+    return None

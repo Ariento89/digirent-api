@@ -16,6 +16,7 @@ from sqlalchemy import (
     case,
     and_,
     or_,
+    func,
 )
 from geoalchemy2 import Geometry
 from geoalchemy2.shape import to_shape
@@ -41,6 +42,26 @@ from .enums import (
     HouseType,
 )
 from .association_tables import apartments_amenities_association_table
+
+
+tenant_apartment_favorite_table = Table(
+    "favorite_apartments",
+    Base.metadata,
+    Column("created_at", DateTime, nullable=False, default=func.now()),
+    Column("updated_at", DateTime, nullable=True, onupdate=func.now()),
+    Column(
+        "user_id",
+        ForeignKey("users.id", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+        primary_key=True,
+    ),
+    Column(
+        "apartment_id",
+        ForeignKey("apartments.id", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+        primary_key=True,
+    ),
+)
 
 
 class User(Base, EntityMixin, TimestampMixin):
@@ -151,6 +172,12 @@ class Tenant(User):
             result += 10
         assert result <= 100
         return result
+
+    favorite_apartments = relationship(
+        "Apartment",
+        secondary=tenant_apartment_favorite_table,
+        backref="favorite_tenants",
+    )
 
 
 class Landlord(User):
