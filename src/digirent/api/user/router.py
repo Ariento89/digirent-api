@@ -154,8 +154,8 @@ def resend_verification_email(
         util.send_email,
         to=user.email,
         subject="Verify Acccount",
-        message=generate_email_verification_text(user, url),
-        html=generate_email_verification_html(user, url),
+        message=generate_email_verification_text(user.first_name, url),
+        html=generate_email_verification_html(user.first_name, url),
     )
     return {"status": "Success", "message": "Email sent successfully"}
 
