@@ -1,7 +1,7 @@
 from datetime import date
 from uuid import UUID
 from typing import List, Optional
-from pydantic import validator, root_validator
+from pydantic import validator
 from digirent.database.enums import FurnishType, HouseType
 from ..schema import BaseSchema, OrmSchema
 
@@ -116,3 +116,4 @@ class ApartmentSchema(OrmSchema, BaseApartmentSchema):
 class TenantApartmentSchema(BaseSchema):
     applied: bool
     apartment: ApartmentSchema
+    is_favorited: bool

@@ -248,8 +248,21 @@ def fetch_apartments_as_tenant(
             .filter(ApartmentApplication.tenant_id == tenant)
             .filter(ApartmentApplication.apartment_id == apartment.id)
         )
+        is_apartment_favorited = (
+            session.query(Apartment)
+            .filter(Apartment.id == apartment.id)
+            .filter(Apartment.favorite_tenants.any(Tenant.id == tenant.id))
+            .count()
+            > 0
+        )
         applied = tenant_apartment_application is not None
-        result.append({"applied": applied, "apartment": apartment})
+        result.append(
+            {
+                "applied": applied,
+                "apartment": apartment,
+                "is_favorited": is_apartment_favorited,
+            }
+        )
     return result
 
 
