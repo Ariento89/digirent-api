@@ -149,12 +149,13 @@ def resend_verification_email(
 ):
     if user.email_verified:
         raise HTTPException(400, "User email already verified")
+    url = generate_verification_url(user.email)
     background_tasks.add_task(
         util.send_email,
         to=user.email,
         subject="Verify Acccount",
-        message=generate_email_verification_text(user),
-        html=generate_email_verification_html(user),
+        message=generate_email_verification_text(user, url),
+        html=generate_email_verification_html(user, url),
     )
     return {"status": "Success", "message": "Email sent successfully"}
 
