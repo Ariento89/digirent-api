@@ -113,6 +113,11 @@ class ApartmentSchema(OrmSchema, BaseApartmentSchema):
     longitude: str
 
 
+class ApartmentWithContextSchema(BaseSchema):
+    context: Optional[dict]
+    apartment: ApartmentSchema
+
+
 class TenantApartmentSchema(BaseSchema):
     applied: bool
     apartment: ApartmentSchema

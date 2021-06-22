@@ -7,22 +7,49 @@ from digirent.app.error import ApplicationError
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
-from digirent.database.enums import FurnishType, HouseType
+from digirent.database.enums import FurnishType, HouseType, UserRole
 from digirent.database.models import (
     Amenity,
     Apartment,
     ApartmentApplication,
     Landlord,
     Tenant,
+    User,
 )
 from .schema import (
     ApartmentCreateSchema,
     ApartmentSchema,
     ApartmentUpdateSchema,
+    ApartmentWithContextSchema,
     TenantApartmentSchema,
 )
 
 router = APIRouter()
+
+
+def get_context_data(
+    session: Session, apartment: Apartment, user: Optional[User] = None
+):
+    if user is not None and user.role == UserRole.TENANT:
+        data = {}
+        is_apartment_favorited = (
+            session.query(Apartment)
+            .filter(Apartment.id == apartment.id)
+            .filter(Apartment.favorite_tenants.any(Tenant.id == user.id))
+            .count()
+            > 0
+        )
+        is_apartment_applied = (
+            session.query(ApartmentApplication)
+            .filter(ApartmentApplication.tenant_id == user.id)
+            .filter(ApartmentApplication.apartment_id == apartment.id)
+            .count()
+            > 0
+        )
+        data["is_favorited"] = is_apartment_favorited
+        data["is_applied"] = is_apartment_applied
+        return data
+    return None
 
 
 @router.post(
@@ -123,9 +150,10 @@ def upload_videos(
         raise HTTPException(400, str(e))
 
 
-@router.get("/", response_model=List[ApartmentSchema])
+@router.get("/", response_model=List[ApartmentWithContextSchema])
 def fetch_apartments(
     session: Session = Depends(dependencies.get_database_session),
+    user: Optional[User] = Depends(dependencies.get_optional_current_active_user),
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
     latitude: Optional[float] = None,
@@ -138,14 +166,16 @@ def fetch_apartments(
     max_bathrooms: Optional[int] = None,
     available_from: Optional[date] = None,
     available_to: Optional[date] = None,
-    is_descending: Optional[bool] = False,
     landlord_id: Optional[UUID] = None,
     house_type: Optional[HouseType] = None,
     furnish_type: Optional[FurnishType] = None,
     ameneties: Optional[List[UUID]] = Query(None),
     sort_by: Optional[Literal["price", "date"]] = None,
     sort_order: Optional[Literal["asc", "desc"]] = None,
+    favorite: Optional[bool] = False,
+    applied: Optional[bool] = False,
 ):
+
     query = session.query(Apartment)
     query = query.filter(Apartment.is_archived.is_(False))
     if min_price is not None:
@@ -187,15 +217,21 @@ def fetch_apartments(
     if ameneties is not None:
         for amenity in ameneties:
             query = query.filter(Apartment.amenities.any(Amenity.id == amenity))
+    if favorite and user is not None and user.role == UserRole.TENANT:
+        query = query.filter(Apartment.favorite_tenants.any(Tenant.id == user.id))
+    if applied and user is not None and user.role == UserRole.TENANT:
+        query = query.filter(
+            Apartment.applications.any(ApartmentApplication.tenant_id == user.id)
+        )
     sort_col = Apartment.total_price if sort_by == "price" else Apartment.created_at
     sort_expr = sort_col.desc() if sort_order == "desc" else sort_col.asc()
     query = query.order_by(sort_expr)
-    query = (
-        query.order_by(Apartment.created_at.desc())
-        if is_descending
-        else query.order_by(Apartment.created_at.asc())
-    )
-    return query.all()
+    all_apartments = query.all()
+    result = []
+    for apartment in all_apartments:
+        context_data = get_context_data(session, apartment, user)
+        result.append({"context": context_data, "apartment": apartment})
+    return result
 
 
 @router.get("/house-types", response_model=List[str])

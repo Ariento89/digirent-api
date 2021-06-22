@@ -313,6 +313,7 @@ class ApartmentApplication(Base, EntityMixin, TimestampMixin):
         "BookingRequest", uselist=False, backref="apartment_application"
     )
 
+    apartment = relationship("Apartment", backref="applications")
     contract = relationship("Contract", uselist=False, backref="apartment_application")
 
     @hybrid_property
