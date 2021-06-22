@@ -1,6 +1,7 @@
 from datetime import date
 from typing import List, Literal, Optional
 from uuid import UUID
+from sqlalchemy import not_
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query
 from fastapi.param_functions import Body
 from digirent.app.error import ApplicationError
@@ -172,8 +173,8 @@ def fetch_apartments(
     ameneties: Optional[List[UUID]] = Query(None),
     sort_by: Optional[Literal["price", "date"]] = None,
     sort_order: Optional[Literal["asc", "desc"]] = None,
-    favorite: Optional[bool] = False,
-    applied: Optional[bool] = False,
+    favorite: Optional[bool] = None,
+    applied: Optional[bool] = None,
 ):
 
     query = session.query(Apartment)
@@ -217,12 +218,22 @@ def fetch_apartments(
     if ameneties is not None:
         for amenity in ameneties:
             query = query.filter(Apartment.amenities.any(Amenity.id == amenity))
-    if favorite and user is not None and user.role == UserRole.TENANT:
-        query = query.filter(Apartment.favorite_tenants.any(Tenant.id == user.id))
-    if applied and user is not None and user.role == UserRole.TENANT:
-        query = query.filter(
-            Apartment.applications.any(ApartmentApplication.tenant_id == user.id)
+    if favorite is not None and user is not None and user.role == UserRole.TENANT:
+        favorite_filter = (
+            Apartment.favorite_tenants.any(Tenant.id == user.id)
+            if favorite
+            else not_(Apartment.favorite_tenants.any(Tenant.id == user.id))
         )
+        query = query.filter(favorite_filter)
+    if applied is not None and user is not None and user.role == UserRole.TENANT:
+        applied_filter = (
+            Apartment.applications.any(ApartmentApplication.tenant_id == user.id)
+            if applied
+            else not_(
+                Apartment.applications.any(ApartmentApplication.tenant_id == user.id)
+            )
+        )
+        query = query.filter(applied_filter)
     sort_col = Apartment.total_price if sort_by == "price" else Apartment.created_at
     sort_expr = sort_col.desc() if sort_order == "desc" else sort_col.asc()
     query = query.order_by(sort_expr)

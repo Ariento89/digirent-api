@@ -192,6 +192,7 @@ def get_optional_current_user(
             user = session.query(Tenant).get(user.id)
         elif user.role == UserRole.LANDLORD:
             user = session.query(Landlord).get(user.id)
+        return user
     except jwt.PyJWTError:
         raise HTTPException(401, "invalid authorization token")
 
