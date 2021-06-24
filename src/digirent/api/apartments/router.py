@@ -316,14 +316,9 @@ def fetch_apartments_as_tenant(
 @router.get("/{apartment_id}", response_model=ApartmentSchema)
 def get_apartment(
     apartment_id: UUID,
-    landlord: Landlord = Depends(dependencies.get_optional_current_active_landlord),
     session: Session = Depends(dependencies.get_database_session),
 ):
     apartment = session.query(Apartment).get(apartment_id)
-    if landlord and apartment.landlord_id == landlord.id:
-        return apartment
-    if landlord and apartment.is_archived:
-        raise HTTPException(404, "Apartment not found")
     if apartment.is_archived:
         raise HTTPException(404, "Apartment not found")
     return apartment
