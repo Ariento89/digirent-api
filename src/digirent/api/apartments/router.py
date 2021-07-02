@@ -313,15 +313,19 @@ def fetch_apartments_as_tenant(
     return result
 
 
-@router.get("/{apartment_id}", response_model=ApartmentSchema)
+@router.get("/{apartment_id}", response_model=ApartmentWithContextSchema)
 def get_apartment(
     apartment_id: UUID,
+    user: Optional[User] = Depends(dependencies.get_optional_current_active_user),
     session: Session = Depends(dependencies.get_database_session),
 ):
     apartment = session.query(Apartment).get(apartment_id)
-    if apartment.is_archived:
+    if apartment is None:
         raise HTTPException(404, "Apartment not found")
-    return apartment
+    if user is not None and apartment.landlord_id != user.id and apartment.is_archived:
+        raise HTTPException(404, "Apartment not found")
+    context_data = get_context_data(session, apartment, user)
+    return {"context": context_data, "apartment": apartment}
 
 
 @router.delete("/{apartment_id}/images", response_model=ApartmentSchema)
