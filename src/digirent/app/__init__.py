@@ -22,6 +22,7 @@ from digirent.database.enums import (
 from .base import ApplicationBase
 from .error import ApplicationError
 from digirent.database.models import (
+    Admin,
     Amenity,
     Apartment,
     ApartmentApplication,
@@ -110,10 +111,7 @@ class Application(ApplicationBase):
 
     def authenticate_user(self, session: Session, email: str, password: str) -> bytes:
         existing_user: Optional[User] = (
-            session.query(User)
-            .filter(User.role != UserRole.ADMIN)
-            .filter(User.email == email)
-            .one_or_none()
+            session.query(User).filter(User.email == email).one_or_none()
         )
         if not existing_user:
             raise ApplicationError("Invalid login credentials")
@@ -122,11 +120,8 @@ class Application(ApplicationBase):
         return util.create_access_token(data={"sub": str(existing_user.id)})
 
     def authenticate_admin(self, session: Session, email: str, password: str) -> bytes:
-        existing_user: Optional[User] = (
-            session.query(User)
-            .filter(User.role == UserRole.ADMIN)
-            .filter(User.email == email)
-            .one_or_none()
+        existing_user: Optional[Admin] = (
+            session.query(Admin).filter(Admin.email == email).one_or_none()
         )
         if not existing_user:
             raise ApplicationError("Invalid login credentials")
@@ -134,9 +129,15 @@ class Application(ApplicationBase):
             raise ApplicationError("Invalid login credentials")
         return util.create_access_token(data={"sub": str(existing_user.id)})
 
-    def authenticate_token(self, session: Session, token: bytes) -> User:
+    def authenticate_user_token(self, session: Session, token: bytes) -> Optional[User]:
         user_id: str = util.decode_access_token(token)
-        return self.user_service.get(session, UUID(user_id))
+        return session.query(User).get(user_id)
+
+    def authenticate_admin_token(
+        self, session: Session, token: bytes
+    ) -> Optional[Admin]:
+        admin_id: str = util.decode_access_token(token)
+        return session.query(Admin).get(admin_id)
 
     def authenticate_google(
         self,

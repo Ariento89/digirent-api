@@ -9,6 +9,7 @@ class BaseUserSchema(BaseSchema):
     last_name: str
     email: Optional[str]
     phone_number: Optional[str]
+    city: Optional[str]
     dob: Optional[date]
 
 

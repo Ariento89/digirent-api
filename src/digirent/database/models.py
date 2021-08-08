@@ -64,14 +64,23 @@ tenant_apartment_favorite_table = Table(
 )
 
 
-class User(Base, EntityMixin, TimestampMixin):
-    __tablename__ = "users"
+class BaseUser(Base, EntityMixin, TimestampMixin):
+    __abstract__ = True
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
-    dob = Column(Date, nullable=True)
-    phone_number = Column(String, nullable=True, unique=True)
     email = Column(EmailType, nullable=False, unique=True)
     hashed_password = Column(Text, nullable=True)
+
+
+class Admin(BaseUser):
+    __tablename__ = "admins"
+    hashed_password = Column(Text, nullable=False)
+
+
+class User(BaseUser):
+    __tablename__ = "users"
+    dob = Column(Date, nullable=True)
+    phone_number = Column(String, nullable=True, unique=True)
     email_verified = Column(Boolean, nullable=False, default=False)
     phone_verified = Column(Boolean, nullable=False, default=False)
     is_suspended = Column(Boolean, nullable=False, default=False)
@@ -149,10 +158,6 @@ class User(Base, EntityMixin, TimestampMixin):
             if image_path.exists():
                 url += image_path.name
                 return url
-
-
-class Admin(User):
-    __mapper_args__ = {"polymorphic_identity": UserRole.ADMIN}
 
 
 class Tenant(User):

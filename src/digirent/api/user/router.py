@@ -8,7 +8,7 @@ from pathlib import Path
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
-from digirent.database.models import Admin, Apartment, Landlord, Tenant, User
+from digirent.database.models import Apartment, Landlord, Tenant, User
 from digirent.database.enums import ActivityTokenType
 from .schema import UserCreateSchema, UserSchema
 from digirent import util
@@ -115,18 +115,10 @@ async def register_landlord(
         raise HTTPException(401, str(e))
 
 
-@router.get("/", response_model=List[UserSchema])
-def fetch_all_users(
-    admin: Admin = Depends(dependencies.get_current_admin_user),
-    session: Session = Depends(dependencies.get_database_session),
-):
-    return session.query(User).all()
-
-
 @router.get("/landlords", response_model=List[UserSchema])
 def fetch_all_landlords(
     # TODO pagination
-    admin_or_tenant: Tenant = Depends(dependencies.get_current_admin_or_tenant),
+    tenant: Tenant = Depends(dependencies.get_current_tenant),
     session: Session = Depends(dependencies.get_database_session),
 ):
     return session.query(Landlord).all()
@@ -135,7 +127,7 @@ def fetch_all_landlords(
 @router.get("/tenants", response_model=List[UserSchema])
 def fetch_all_tenants(
     # TODO pagination
-    admin_or_landlord: Landlord = Depends(dependencies.get_current_admin_or_landlord),
+    landlord: Landlord = Depends(dependencies.get_current_landlord),
     session: Session = Depends(dependencies.get_database_session),
 ):
     return session.query(Tenant).all()

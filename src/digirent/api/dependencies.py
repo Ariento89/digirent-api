@@ -44,12 +44,8 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        user: User = application.authenticate_token(session, token)
-        if user.role == UserRole.TENANT:
-            user = session.query(Tenant).get(user.id)
-        elif user.role == UserRole.LANDLORD:
-            user = session.query(Landlord).get(user.id)
-        else:
+        user: User = application.authenticate_user_token(session, token)
+        if user is None:
             raise credentials_exception
     except jwt.PyJWTError:
         raise credentials_exception
@@ -76,11 +72,9 @@ def get_current_admin_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        user: User = application.authenticate_token(session, token)
-        if user.role != UserRole.ADMIN:
+        admin: Admin = application.authenticate_admin_token(session, token)
+        if admin is not None:
             raise credentials_exception
-        else:
-            admin = session.query(Admin).get(user.id)
     except jwt.PyJWTError:
         raise credentials_exception
     except jwt.ExpiredSignatureError:
