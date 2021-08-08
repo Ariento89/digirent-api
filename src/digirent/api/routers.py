@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from digirent.api.auth.router import router as auth_router
+from digirent.api.auth import auth_router, admin_auth_router
 from digirent.api.me.router import router as me_router
 from digirent.api.user.router import router as user_router
 from digirent.api.amenity.router import router as amenity_router
@@ -44,4 +44,6 @@ def get_normal_router() -> APIRouter:
 
 
 def get_admin_router() -> APIRouter:
-    pass
+    router = APIRouter()
+    router.include_router(admin_auth_router, prefix="/auth", tags=["Authentication"])
+    return router

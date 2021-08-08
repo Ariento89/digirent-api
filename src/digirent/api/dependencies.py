@@ -16,6 +16,7 @@ from itsdangerous.url_safe import URLSafeSerializer
 from itsdangerous.exc import BadSignature
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/")
+admin_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/admin/auth/")
 serializer = URLSafeSerializer(secret_key=config.SECRET_KEY, salt=config.SALT)
 
 
@@ -44,12 +45,12 @@ def get_current_user(
     )
     try:
         user: User = application.authenticate_token(session, token)
-        if user.role == UserRole.ADMIN:
-            user = session.query(Admin).get(user.id)
-        elif user.role == UserRole.TENANT:
+        if user.role == UserRole.TENANT:
             user = session.query(Tenant).get(user.id)
         elif user.role == UserRole.LANDLORD:
             user = session.query(Landlord).get(user.id)
+        else:
+            raise credentials_exception
     except jwt.PyJWTError:
         raise credentials_exception
     except jwt.ExpiredSignatureError:
@@ -64,11 +65,27 @@ def get_current_active_user(current_user: User = Depends(get_current_user)):
 
 
 def get_current_admin_user(
-    current_user: User = Depends(get_current_user),
+    token: bytes = Depends(admin_oauth2_scheme),
+    session: Session = Depends(get_database_session),
+    application: Application = Depends(get_application),
 ) -> Admin:
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    return current_user
+    # todo? change to application method instead of service method?
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        user: User = application.authenticate_token(session, token)
+        if user.role != UserRole.ADMIN:
+            raise credentials_exception
+        else:
+            admin = session.query(Admin).get(user.id)
+    except jwt.PyJWTError:
+        raise credentials_exception
+    except jwt.ExpiredSignatureError:
+        raise credentials_exception
+    return admin
 
 
 def get_current_active_admin_user(

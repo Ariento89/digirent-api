@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import IO, List, Optional
+from typing import IO, List, Optional, Union
 from uuid import UUID, uuid4
 from datetime import date, datetime
 from jwt import PyJWTError
@@ -108,10 +108,26 @@ class Application(ApplicationBase):
             hashed_password=hashed_password,
         )
 
-    def authenticate_user(self, session: Session, login: str, password: str) -> bytes:
-        existing_user: Optional[User] = self.user_service.get_by_email(
-            session, login
-        ) or self.user_service.get_by_phone_number(session, login)
+    def authenticate_user(self, session: Session, email: str, password: str) -> bytes:
+        existing_user: Optional[User] = (
+            session.query(User)
+            .filter(User.role != UserRole.ADMIN)
+            .filter(User.email == email)
+            .one_or_none()
+        )
+        if not existing_user:
+            raise ApplicationError("Invalid login credentials")
+        if not util.password_is_match(password, existing_user.hashed_password):
+            raise ApplicationError("Invalid login credentials")
+        return util.create_access_token(data={"sub": str(existing_user.id)})
+
+    def authenticate_admin(self, session: Session, email: str, password: str) -> bytes:
+        existing_user: Optional[User] = (
+            session.query(User)
+            .filter(User.role == UserRole.ADMIN)
+            .filter(User.email == email)
+            .one_or_none()
+        )
         if not existing_user:
             raise ApplicationError("Invalid login credentials")
         if not util.password_is_match(password, existing_user.hashed_password):
