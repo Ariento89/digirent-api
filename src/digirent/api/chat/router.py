@@ -98,10 +98,8 @@ async def chat(
 ):
     session: Session = SessionLocal()
     try:
-        user = application.authenticate_token(session, token)
-        if user.role == UserRole.ADMIN:
-            user = session.query(Admin).get(user.id)
-        elif user.role == UserRole.TENANT:
+        user = application.authenticate_user_token(session, token)
+        if user.role == UserRole.TENANT:
             user = session.query(Tenant).get(user.id)
         elif user.role == UserRole.LANDLORD:
             user = session.query(Landlord).get(user.id)

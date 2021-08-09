@@ -110,7 +110,6 @@ def admin_create_data() -> dict:
         "phone_number": "0012345678",
         "dob": None,
         "password": "testpassword",
-        "role": UserRole.ADMIN,
     }
 
 

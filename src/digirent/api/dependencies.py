@@ -125,8 +125,6 @@ def get_current_active_landlord(
 def get_current_non_admin_user(
     current_user: User = Depends(get_current_user),
 ) -> Union[Landlord, Tenant]:
-    if current_user.role == UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Forbidden")
     return current_user
 
 
@@ -143,7 +141,7 @@ def get_current_active_non_admin_user(
 def get_current_admin_or_tenant(
     current_user: User = Depends(get_current_user),
 ) -> Union[Admin, Tenant]:
-    if current_user.role not in [UserRole.TENANT, UserRole.ADMIN]:
+    if current_user.role not in [UserRole.TENANT]:
         raise HTTPException(status_code=403, detail="Forbidden")
     return current_user
 
@@ -159,7 +157,7 @@ def get_current_active_admin_or_tenant(
 def get_current_admin_or_landlord(
     current_user: User = Depends(get_current_user),
 ) -> Union[Admin, Tenant]:
-    if current_user.role not in [UserRole.LANDLORD, UserRole.ADMIN]:
+    if current_user.role not in [UserRole.LANDLORD]:
         raise HTTPException(status_code=403, detail="Forbidden")
     return current_user
 
@@ -196,10 +194,8 @@ def get_optional_current_user(
     if token is None:
         return
     try:
-        user = application.authenticate_token(session, token)
-        if user.role == UserRole.ADMIN:
-            user = session.query(Admin).get(user.id)
-        elif user.role == UserRole.TENANT:
+        user = application.authenticate_user_token(session, token)
+        if user.role == UserRole.TENANT:
             user = session.query(Tenant).get(user.id)
         elif user.role == UserRole.LANDLORD:
             user = session.query(Landlord).get(user.id)
@@ -290,10 +286,8 @@ def get_optional_current_user_from_state(
         access_token = payload_from_state["access_token"]
         if not access_token:
             return
-        user: User = application.authenticate_token(session, access_token)
-        if user.role == UserRole.ADMIN:
-            user = session.query(Admin).get(user.id)
-        elif user.role == UserRole.TENANT:
+        user: User = application.authenticate_user_token(session, access_token)
+        if user.role == UserRole.TENANT:
             user = session.query(Tenant).get(user.id)
         elif user.role == UserRole.LANDLORD:
             user = session.query(Landlord).get(user.id)

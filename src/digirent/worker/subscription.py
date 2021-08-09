@@ -33,9 +33,7 @@ def generate_subscription_invoices(*args):
     try:
         print("\n\n\n\n\nStarting subscription invoice worker")
         # ? should be active users TODO
-        non_admin_users: List[User] = (
-            session.query(User).filter(User.role != UserRole.ADMIN).all()
-        )
+        non_admin_users: List[User] = session.query(User).all()
         for user in non_admin_users:
             latest_invoice: Invoice = (
                 session.query(Invoice)

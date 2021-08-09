@@ -54,7 +54,6 @@ def test_create_admin(
     admin: User = application.create_admin(session, **admin_create_data)
     assert admin
     assert not admin.dob
-    assert admin.role == UserRole.ADMIN
     assert session.query(User).count() == 1
 
 
