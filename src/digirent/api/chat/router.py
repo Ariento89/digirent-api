@@ -21,7 +21,7 @@ from digirent.api.dependencies import (
 )
 from digirent.app import Application
 from digirent.database.enums import UserRole
-from digirent.database.models import Admin, ChatMessage, Landlord, Tenant, User
+from digirent.database.models import ChatMessage, Landlord, Tenant, User
 from digirent.database.base import SessionLocal
 
 

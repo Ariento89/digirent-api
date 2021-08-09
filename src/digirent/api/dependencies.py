@@ -191,17 +191,20 @@ def get_optional_current_user(
     application: Application = Depends(get_application),
 ):
     """Get optional user from token if token in request"""
+    invalid_token_exception = HTTPException(401, "invalid authorization token")
     if token is None:
         return
     try:
         user = application.authenticate_user_token(session, token)
+        if user is None:
+            raise invalid_token_exception
         if user.role == UserRole.TENANT:
             user = session.query(Tenant).get(user.id)
         elif user.role == UserRole.LANDLORD:
             user = session.query(Landlord).get(user.id)
         return user
     except jwt.PyJWTError:
-        raise HTTPException(401, "invalid authorization token")
+        raise invalid_token_exception
 
 
 def get_optional_current_landlord(

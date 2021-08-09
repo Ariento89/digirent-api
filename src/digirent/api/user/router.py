@@ -67,16 +67,19 @@ async def register_tenant(
         )
         if existing_user_with_phonenumber:
             raise HTTPException(409, "User with phone number aready exists")
-        result = application.create_tenant(session, **data.dict())
-        url = generate_verification_url(result.email)
+        tenant = Tenant(**data.dict(exclude_unset=True, exclude={"password"}))
+        tenant.hashed_password = util.hash_password(data.password)
+        session.add(tenant)
+        session.commit()
+        url = generate_verification_url(tenant.email)
         background_tasks.add_task(
             util.send_email,
-            to=result.email,
+            to=tenant.email,
             subject="Verify Acccount",
-            message=generate_email_verification_text(result.first_name, url),
-            html=generate_email_verification_html(result.first_name, url),
+            message=generate_email_verification_text(tenant.first_name, url),
+            html=generate_email_verification_html(tenant.first_name, url),
         )
-        return result
+        return tenant
     except ApplicationError as e:
         raise HTTPException(401, str(e))
 
@@ -101,16 +104,19 @@ async def register_landlord(
         )
         if existing_user_with_phonenumber:
             raise HTTPException(409, "User with phone number aready exists")
-        result = application.create_landlord(session, **data.dict())
-        url = generate_verification_url(result.email)
+        landlord = Landlord(**data.dict(exclude_unset=True, exclude={"password"}))
+        landlord.hashed_password = util.hash_password(data.password)
+        session.add(landlord)
+        session.commit()
+        url = generate_verification_url(landlord.email)
         background_tasks.add_task(
             util.send_email,
-            to=result.email,
+            to=landlord.email,
             subject="Verify Acccount",
-            message=generate_email_verification_text(result.first_name, url),
-            html=generate_email_verification_html(result.first_name, url),
+            message=generate_email_verification_text(landlord.first_name, url),
+            html=generate_email_verification_html(landlord.first_name, url),
         )
-        return result
+        return landlord
     except ApplicationError as e:
         raise HTTPException(401, str(e))
 

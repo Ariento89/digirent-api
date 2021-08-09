@@ -46,48 +46,6 @@ mollie_client.set_api_key(config.MOLLIE_API_KEY)
 
 
 class Application(ApplicationBase):
-    def create_tenant(
-        self,
-        session: Session,
-        first_name: str,
-        last_name: str,
-        dob: date,
-        email: str,
-        phone_number: str,
-        password: str,
-    ) -> Tenant:
-        hashed_password = util.hash_password(password)
-        return self.tenant_service.create(
-            session,
-            first_name=first_name,
-            last_name=last_name,
-            dob=dob,
-            email=email,
-            phone_number=phone_number,
-            hashed_password=hashed_password,
-        )
-
-    def create_landlord(
-        self,
-        session: Session,
-        first_name: str,
-        last_name: str,
-        dob: date,
-        email: str,
-        phone_number: str,
-        password: str,
-    ):
-        hashed_password = util.hash_password(password)
-        return self.landlord_service.create(
-            session,
-            first_name=first_name,
-            last_name=last_name,
-            dob=dob,
-            email=email,
-            phone_number=phone_number,
-            hashed_password=hashed_password,
-        )
-
     def create_admin(
         self,
         session: Session,
