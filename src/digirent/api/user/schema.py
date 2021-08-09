@@ -1,5 +1,6 @@
 from datetime import date
 from typing import Optional
+from digirent.database.enums import UserStatus
 from digirent.database.models import UserRole
 from ..schema import BaseSchema, OrmSchema
 
@@ -20,4 +21,5 @@ class UserCreateSchema(BaseUserSchema):
 class UserSchema(OrmSchema, BaseUserSchema):
     dob: Optional[date]
     role: UserRole
+    status: UserStatus
     profile_image_url: Optional[str]

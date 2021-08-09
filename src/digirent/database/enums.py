@@ -6,6 +6,12 @@ class UserRole(str, Enum):
     LANDLORD = "landlord"
 
 
+class UserStatus(str, Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    SUSPENDED = "suspended"
+
+
 class Gender(str, Enum):
     MALE = "male"
     FEMALE = "female"

@@ -40,6 +40,7 @@ from .enums import (
     UserRole,
     Gender,
     HouseType,
+    UserStatus,
 )
 from .association_tables import apartments_amenities_association_table
 
@@ -158,6 +159,14 @@ class User(BaseUser):
             if image_path.exists():
                 url += image_path.name
                 return url
+
+    @hybrid_property
+    def status(self) -> UserStatus:
+        if self.is_suspended:
+            return UserStatus.SUSPENDED
+        if not self.is_active:
+            return UserStatus.INACTIVE
+        return UserStatus.ACTIVE
 
 
 class Tenant(User):
