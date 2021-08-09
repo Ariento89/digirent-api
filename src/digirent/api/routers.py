@@ -4,7 +4,10 @@ from digirent.api.me.router import router as me_router
 from digirent.api.user import user_router, admin_user_router
 from digirent.api.amenity.router import router as amenity_router
 from digirent.api.apartments.router import router as apartments_router
-from digirent.api.apartment_applications.router import router as applications_router
+from digirent.api.apartment_applications import (
+    apartment_applications_router,
+    admin_apartment_applications_router,
+)
 from digirent.api.invites.router import router as invites_router
 from digirent.api.signrequest.router import router as signerequest_router
 from digirent.api.payments.router import router as payments_router
@@ -26,7 +29,9 @@ def get_normal_router() -> APIRouter:
     router.include_router(amenity_router, prefix="/amenities", tags=["Amenities"])
     router.include_router(apartments_router, prefix="/apartments", tags=["Apartments"])
     router.include_router(
-        applications_router, prefix="/applications", tags=["Apartment Applications"]
+        apartment_applications_router,
+        prefix="/applications",
+        tags=["Apartment Applications"],
     )
     router.include_router(invites_router, prefix="/invites", tags=["Invites"])
     router.include_router(
@@ -47,4 +52,9 @@ def get_admin_router() -> APIRouter:
     router = APIRouter()
     router.include_router(admin_auth_router, prefix="/auth", tags=["Authentication"])
     router.include_router(admin_user_router, prefix="/users", tags=["Users"])
+    router.include_router(
+        admin_apartment_applications_router,
+        prefix="/applications",
+        tags=["Apartment Applications"],
+    )
     return router

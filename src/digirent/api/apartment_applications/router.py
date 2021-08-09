@@ -16,14 +16,13 @@ from digirent.api.apartment_applications.schema import (
 )
 from digirent.app import Application
 from digirent.app.error import ApplicationError
-from digirent.database.enums import NotificationType, UserRole
+from digirent.database.enums import NotificationType
 from digirent.database.models import (
     # Admin,
     Apartment,
     ApartmentApplication,
     Landlord,
     Tenant,
-    User,
 )
 from digirent.util import send_email, generate_application_email_html
 from digirent.notifications import store_and_broadcast_notification
@@ -378,16 +377,29 @@ def tenant_received_keys(
         raise HTTPException(400, str(e))
 
 
-@router.get("/{apartment_id}", response_model=List[ApartmentApplicationSchema])
+@router.get(
+    "/{apartment_id}",
+    response_model=List[ApartmentApplicationSchema],
+)
 def fetch_applications_for_apartments(
+    # TODO change to query params
     apartment_id: UUID,
-    user: User = Depends(deps.get_current_active_admin_or_landlord),
+    landlord: Landlord = Depends(deps.get_current_active_landlord),
     session: Session = Depends(deps.get_database_session),
 ):
-    apartment = session.query(Apartment).get(apartment_id)
-    if not apartment or (
-        user.role == UserRole.LANDLORD and apartment.landlord_id != user.id
-    ):
+    """
+    Endpoint to fetch apartment applications. This endpoint is available for
+    landlords to fetch applications for one of their apartments (apartment_id).
+
+    TODO: apartment_id to be a 'query_parameter' and not url path parameter
+    """
+    apartment = (
+        session.query(Apartment)
+        .filter(Apartment.landlord_id == landlord.id)
+        .filter(Apartment.id == apartment_id)
+        .one_or_none()
+    )
+    if apartment is None:
         raise HTTPException(404, "Apartment not found")
     query = (
         session.query(ApartmentApplication)
