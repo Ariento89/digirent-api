@@ -73,7 +73,7 @@ def get_current_admin_user(
     )
     try:
         admin: Admin = application.authenticate_admin_token(session, token)
-        if admin is not None:
+        if admin is None:
             raise credentials_exception
     except jwt.PyJWTError:
         raise credentials_exception
