@@ -22,5 +22,5 @@ class UserSchema(OrmSchema, BaseUserSchema):
     dob: Optional[date]
     role: UserRole
     status: UserStatus
-    gender: Gender
+    gender: Optional[Gender]
     profile_image_url: Optional[str]
