@@ -1,20 +1,22 @@
-from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from digirent.app.error import ApplicationError
 from sqlalchemy.orm.session import Session
 from digirent.app import Application
 import digirent.api.dependencies as dependencies
-from .schema import AmenitySchema
+from digirent.database.models import Admin
+from .schema import AmenityCreateSchema, AmenitySchema
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[AmenitySchema])
-async def fetch_amenities(
+@router.post("/", status_code=201, response_model=AmenitySchema)
+async def create_amenity(
+    data: AmenityCreateSchema,
+    admin: Admin = Depends(dependencies.get_current_admin_user),
     application: Application = Depends(dependencies.get_application),
     session: Session = Depends(dependencies.get_database_session),
 ):
     try:
-        return application.amenity_service.all(session)
+        return application.create_amenity(session, **data.dict())
     except ApplicationError as e:
         raise HTTPException(401, str(e))
