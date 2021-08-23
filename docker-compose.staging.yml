@@ -96,20 +96,35 @@ services:
 
 volumes:
     postgres_data:
+    
     certbot-etc:
+        driver: local
+        driver_opts:
+            type: none
+            device: ~/Digirent/certbot_etc
+            o: bind
+    
     certbot-var:
+        driver: local
+        driver_opts:
+            type: none
+            device: ~/Digirent/certbot_var
+            o: bind
+    
     web-root:
         driver: local
         driver_opts:
             type: none
             device: ~/Digirent/views
             o: bind
+    
     admin-root:
         driver: local
         driver_opts:
             type: none
             device: ~/Digirent/admin
             o: bind
+    
     dhparam:
         driver: local
         driver_opts:
