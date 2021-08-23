@@ -67,7 +67,7 @@ services:
         command: bash -c "yarn start"
         restart: unless-stopped
     digirent-nginx:
-        image: nginx:mainline-alpine
+        image: ghcr.io/ariento89/digirent-nginx:staging
         container_name: digirent-nginx
         restart: unless-stopped
         ports:
@@ -76,6 +76,7 @@ services:
         volumes:
             - ./nginx:/etc/nginx/conf.d
             - web-root:/var/www/html
+            - admin-root:/var/www/admin
             - certbot-etc:/etc/letsencrypt
             - certbot-var:/var/lib/letsencrypt
             - dhparam:/etc/ssl/certs
@@ -102,6 +103,12 @@ volumes:
         driver_opts:
             type: none
             device: ~/Digirent/views
+            o: bind
+    admin-root:
+        driver: local
+        driver_opts:
+            type: none
+            device: ~/Digirent/admin
             o: bind
     dhparam:
         driver: local
