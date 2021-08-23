@@ -92,7 +92,7 @@ services:
             - web-root:/var/www/html
         depends_on:
             - digirent-nginx
-        command: certonly --webroot --webroot-path=/var/www/html --email orelio.lopes@gmail.com --agree-tos --no-eff-email --force-renewal -d digi-rent.me -d www.digi-rent.me -d api.digi-rent.me
+        command: certonly --webroot --webroot-path=/var/www/html --email orelio.lopes@gmail.com --agree-tos --no-eff-email --force-renewal -d digi-rent.me -d www.digi-rent.me -d api.digi-rent.me -d admin.digi-rent.me
 
 volumes:
     postgres_data:
